@@ -36,14 +36,14 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 
 ## 3. Tech Stack
 
-- Python: scraping (`requests` + `beautifulsoup4`), ML (`scikit-learn`, `pandas`, `numpy`)
+- Python: scraping (`requests` + `beautifulsoup4` for LDP; a vanilla local browser, e.g. Playwright with no stealth patches, for SRP — see §6/§9), ML (`scikit-learn`, `pandas`, `numpy`)
 - PostgreSQL
 - Django 5.2 + Django REST Framework + `django-filter` for the API
 - Django templates + Tailwind CSS + Chart.js for the dashboard (server-rendered; Chart.js is largely unused in Standard since trend charts are Stretch)
 - `whitenoise` for static file serving in production
-- Render for deployment (web service) and the scheduled scraper (Cron Job — see §9)
+- Render for deployment of the web service and API only. The scraper (SRP browser fetch + LDP + DB write) runs entirely on the local machine via Windows Task Scheduler, not on Render — see §9.
 
-Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`.
+Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `playwright` (SRP fetch only, no stealth plugin), `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`.
 
 ## 4. Repository / App Structure
 
@@ -99,7 +99,7 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 | `id` | `BigAutoField` | required (PK) | |
 | `source_site` | `CharField(max_length=20)`, choices `[batdongsan, maisonoffice]` | required | Standard scraper only ever writes `batdongsan` |
 | `source_id` | `CharField(max_length=64)` | required | unique together with `source_site` |
-| `url` | `URLField` | required, unique | |
+| `url` | `URLField(max_length=500)` | required, unique | Default Django max_length of 200 is too short for real batdongsan LDP URLs. Confirmed and fixed 2026-07-07. |
 | `title` | `CharField(max_length=255)` | required | |
 | `category_id_source` | `IntegerField` | required | batdongsan's `cateId` from `pageTrackingData` |
 | `property_type` | `CharField(max_length=20)`, choices `[apartment, house, land, villa, office]` | required | Standard never produces `office` |
@@ -114,7 +114,7 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 | `area_sqm` | `DecimalField(max_digits=10, decimal_places=2)` | nullable | |
 | `bedrooms` | `IntegerField` | nullable | Absent for land/project listings — expected, not an error |
 | `bathrooms` | `IntegerField` | nullable | Same as above |
-| `address_raw` | `TextField` | nullable | Full string, district/ward parsed separately |
+| `address_raw` | `TextField` | nullable | Full string, district/ward parsed separately (see derivation rule below) |
 | `district_id_source` | `IntegerField` | nullable | Always populated for batdongsan from `pageTrackingData` |
 | `ward_id_source` | `IntegerField` | nullable | Same source as above |
 | `district` | `CharField(max_length=100)` | nullable | |
@@ -138,6 +138,8 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 | `anomaly_reason` | `JSONField` | nullable | Dict of rule code → `{"triggered": bool, "value": ...}`. See §11 for exact shape. |
 
 Constraints: `unique_together = (("source_site", "source_id"),)`. `url` has `unique=True`.
+
+`district`/`ward` derivation rule, confirmed against real HTML 2026-07-07: split `address_raw` on commas, strip whitespace from each segment. `district` is the second-to-last segment, `ward` is the third-to-last. This holds regardless of the literal admin-unit word used (`Quận N`, `Thành phố Thuận An`, etc. all land correctly by position). Verified against both attached LDP samples, including a listing where the district-level segment reads `Thành phố Thuận An` rather than the more common `Quận N` pattern. This is a heuristic on address text, not a lookup against `district_id_source`/`ward_id_source` — if batdongsan ever changes its address-string ordering, this breaks silently. No ID-to-name lookup table exists yet; revisit if address formats prove inconsistent across a larger real crawl.
 
 `days_on_market` and cumulative `price_change_pct` are **not columns**. See §5.5.
 
@@ -214,19 +216,34 @@ def price_change_pct(listing):
     return (latest.price - previous.price) / previous.price
 ```
 
-## 6. Scraper Target and Depth
+## 6. Data Acquisition
 
 Single source: batdongsan.com.vn, HCMC listings, `property_type` in `{apartment, house, land, villa}`, `listing_intent` in `{sale, rent}`.
 
-Every scrape run does a full crawl: paginate through the search-results pages (SRP) for the tracked scope, then visit the listing detail page (LDP) for every listing found — every pass, not just on first discovery. `address_raw`, `specs_raw`, `description`, `images`, `map_lat`/`map_lng`, and `phone_number`'s absence all require the LDP; SRP alone can't populate this schema. Always-fresh data and one code path outweigh the extra requests at this project's volume (hundreds to low thousands of listings).
+### Automated crawling: tested, blocked, abandoned for launch
 
-### Fetch method
+Automated fetching of batdongsan is dead. Verified live, not assumed:
 
-Plain `requests` + `beautifulsoup4`. No headless browser by default, and no bot-detection evasion of any kind under any circumstance — no stealth patches, no `navigator.webdriver` spoofing, nothing designed to make automated traffic pass as human. Decided 2026-07-06, final: actively defeating a site's anti-bot protection is a different act than reading a public page, and it sits past the line §1 draws for this project (public listings only, never a lead-gen tool). It's also a poor engineering bet on its own terms — a scraper that only works because it fools one detection version breaks the moment that version changes, on a schedule nobody controls.
+- Plain `requests` with realistic headers (`User-Agent`, `Accept-Language`, `Referer`): 403, a Cloudflare managed JS challenge (`title: Just a moment...`), on SRPs (2026-07-07) and, as of the same date, on LDPs that previously worked.
+- Headless browser: never clears the challenge.
+- Headed vanilla Playwright (no stealth): the first navigation passes, then Cloudflare blocks every subsequent navigation in the same session **regardless of pacing** — verified live with 20-second gaps between pages; every page after the first still failed.
 
-LDP pages are confirmed working via plain `requests.get()` with a standard `User-Agent` header (verified 2026-07-06 against real listing pages). SRP (search-results) pages still need the same test, with `Accept-Language` and `Referer` headers added, before concluding plain requests can't reach them. Don't skip straight to browser automation on an assumption; confirm the plain-request path actually fails first.
+The 2026-07-06 no-evasion decision stands and is final: no stealth patches, no `navigator.webdriver` spoofing, nothing designed to make automated traffic pass as human. Defeating anti-bot protection is a different act than reading a public page, and it sits past the line §1 draws. Do not revisit this when the manual pace feels slow.
 
-If SRP genuinely cannot be reached without a browser, even a vanilla one with no stealth patches, that piece runs locally only, never as part of the Render deployment (§9) — a hard boundary, not a cost tradeoff.
+### Launch data path: manual collection + `ingest_saved_listings`
+
+The launch dataset is hand-collected. Browse batdongsan in a normal browser, save individual LDPs as "HTML Only" into a folder — roughly three hours per week for the five weeks remaining to the Aug 10 deadline. Then:
+
+```
+python manage.py ingest_saved_listings <folder>
+```
+
+reads every file in the folder (no filename convention), parses each with the existing `parse_ldp`, and upserts through the same verified sequence in `listings/upsert.py` that the crawler used (Agent resolution, PriceHistory on first insert and on price change, null-price guard). One bad file logs as an error and never stops the batch. Property type comes from each file's own `cateId` via `parse_ldp`, never from folder structure.
+
+Consequences, accepted:
+- Coverage is partial by definition. A listing absent from a folder means nothing, so `ingest_saved_listings` performs no delisting sweep and never flips `is_active`. Delisting detection (§7) only ever ran on full crawls and is dormant until automated crawling is somehow viable again.
+- A saved file with `expired == true` is skipped and counted, not ingested and not delisted.
+- `scrape_batdongsan` stays in the repo but is unscheduled and not part of the launch pipeline.
 
 ### Currency parsing
 
@@ -342,9 +359,7 @@ Must be fixed before deploying (standard practice, not a judgment call):
 - `ALLOWED_HOSTS` from an env var (comma-split), including the Render-assigned domain.
 - `whitenoise` added to `MIDDLEWARE` (right after `SecurityMiddleware`) and `requirements.txt` for static file serving — Render doesn't serve Django static files on its own.
 
-Scraper scheduling: **Render Cron Job** running `python manage.py scrape_batdongsan` on a daily schedule, followed by `python manage.py score_listings`. Verify Render's current Cron Job pricing before relying on this — not confirmed as free. If cost is prohibitive, documented fallback is Windows Task Scheduler on the local machine pointed at the same remote Postgres instance (accepts the risk of gaps in `PriceHistory`/delisting detection when the machine is off).
-
-Separately from cost: if §6's fetch-method validation finds SRP crawling needs a browser at all, that piece runs locally only, never on Render, regardless of price. Stealth-patched bot-detection evasion is out of scope entirely (§6); a vanilla headless browser is the ceiling of what's on the table, and even that only runs from the local machine until proven otherwise.
+Scraper scheduling: confirmed 2026-07-07 that SRP fetching needs a local, non-stealth browser (§6), which rules out a clean Render Cron Job for the scraper. Final decision: the entire scraper pipeline, `scrape_batdongsan` followed by `score_listings`, runs locally via Windows Task Scheduler, not split across Render and a local machine. Splitting it, browser fetch on one machine, DB write on another, adds a coordination problem (shipping discovered URLs somewhere Render can read them) for no real benefit at this project's scale. Render's job shrinks to hosting the Django web app and API only, both of which read the same remote Postgres instance the local scraper writes to. This accepts the risk of gaps in `PriceHistory`/delisting detection when the local machine is off.
 
 ML model: trained locally via `train_model`, the resulting `model.pkl` is committed to the repo (`listings/ml/model.pkl`), loaded at Django startup. Not retrained automatically as part of deployment.
 
@@ -426,7 +441,7 @@ Full view/endpoint test coverage and ML internals are not required to consider a
 - Fetch method matches §6 exactly: plain `requests` where it works, local-only browser (no stealth, no evasion) only where proven necessary.
 - `PriceHistory` row inserted on every detected price change, and on first insert.
 - Has run successfully at least once against the live site producing real data (not seed/fixture data).
-- Running on a schedule unattended (Render Cron Job or the documented fallback), not only ever run by hand.
+- Running on a schedule unattended via local Windows Task Scheduler (final, §9), not only ever run by hand.
 
 **Database**
 - `makemigrations` + `migrate` runs clean from an empty database.
