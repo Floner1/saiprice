@@ -7,18 +7,19 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 logger = logging.getLogger(__name__)
 
-# ponytail: SRP fetch confirmed 2026-07-07 to need a browser (Cloudflare managed
-# JS challenge, 403 on plain requests.get). Per CLAUDE.md §6/§9 that piece is a
-# vanilla, local-only browser only -- no stealth, never on Render, not built
-# here since scrape_batdongsan.py (the SRP crawl loop) isn't part of this
-# session's scope. LDP fetches (this module's job) work fine on plain requests.
-
+# Headers proven live on alonhadat/homedy 2026-07-10 via test_scrape_targets.py:
+# a realistic desktop UA + vi-VN Accept-Language per CLAUDE.md §6, nothing
+# beyond that -- no stealth, no challenge-solving. The old batdongsan Referer
+# is gone with the batdongsan crawler itself (Cloudflare-dead per §6).
 session = requests.Session()
 session.headers.update(
     {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "vi-VN,vi;q=0.9",
-        "Referer": "https://batdongsan.com.vn/",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     }
 )
 
@@ -30,6 +31,15 @@ def fetch(url):
         except (Timeout, ConnectionError, HTTPError):
             time.sleep(2**attempt * 2)
             continue
+
+        # alonhadat serves its bot challenge as a 200 redirect to
+        # /xac-thuc-nguoi-dung.html (seen live 2026-07-10 after ~30
+        # sequential LDP fetches; IP-scoped, SRPs unaffected). Treat it as
+        # a failed fetch, no retry: it won't clear in seconds, and solving
+        # or routing around it is the evasion CLAUDE.md §6 rules out.
+        if "xac-thuc-nguoi-dung" in response.url:
+            logger.error(f"bot challenge served for {url}")
+            return None
 
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
