@@ -13,6 +13,7 @@ from listings.scraping.parsers import (
     parse_srp,
     parse_srp_total_pages,
 )
+from listings.scraping.sites import alonhadat
 
 # ponytail: these point at the real sample HTML in testdata/ (gitignored)
 # rather than a duplicated fixtures/ copy. If those files move, repoint
@@ -198,6 +199,327 @@ class SweepDelistingsGuardTests(TestCase):
         sweep_delistings(self._run(3))
         listing.refresh_from_db()
         self.assertFalse(listing.is_active)
+
+
+class ParseAlonhadatSrpTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.listings, cls.skips = alonhadat.parse_srp(
+            _read("alonhadat_srp_apartment.txt"), "apartment", "sale"
+        )
+
+    def test_all_cards_parse_with_required_fields(self):
+        self.assertEqual(len(self.listings), 20)
+        self.assertEqual(self.skips, [])
+        for item in self.listings:
+            self.assertEqual(item.source_site, "alonhadat")
+            self.assertTrue(item.source_id.isdigit())
+            self.assertTrue(item.fields["url"].startswith("https://alonhadat.com.vn/"))
+            self.assertTrue(item.fields["title"])
+            self.assertEqual(item.fields["property_type"], "apartment")
+            self.assertEqual(item.fields["listing_intent"], "sale")
+
+    def test_first_card_known_values(self):
+        f = self.listings[0].fields
+        self.assertEqual(f["price"], Decimal("40000000000"))
+        self.assertEqual(f["area_sqm"], Decimal("90"))
+        self.assertEqual(f["bedrooms"], 16)
+        self.assertEqual(f["posted_date"], date(2026, 7, 10))
+        self.assertEqual(f["district"], "Quận 5")
+        self.assertEqual(f["ward"], "Phường Chợ Quán")
+        self.assertEqual(f["vip_type"], "vip-2")
+        self.assertEqual(f["price_per_sqm"], (f["price"] / f["area_sqm"]).quantize(Decimal("1")))
+
+    def test_non_vip_card_has_null_vip_type(self):
+        self.assertIsNone(self.listings[12].fields["vip_type"])
+
+    def test_agent_memberid_on_every_card(self):
+        for item in self.listings:
+            self.assertTrue(item.agent_source_id)
+            self.assertIsNone(item.agent_name)
+
+    def test_missing_id_in_href_is_skipped_not_dropped(self):
+        html = (
+            '<article class="property-item"><a itemprop="url" href="/no-id-here.html">'
+            '<h3 itemprop="name">t</h3></a></article>'
+        )
+        listings, skips = alonhadat.parse_srp(html, "apartment", "sale")
+        self.assertEqual(listings, [])
+        self.assertEqual(skips, [("/no-id-here.html", "source_id")])
+
+
+class ParseAlonhadatLdpExtrasTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.extras = alonhadat.parse_ldp_extras(_read("alonhadat_ldp_apartment.txt"))
+
+    def test_breadcrumb_confirms_property_type_and_intent(self):
+        self.assertEqual(self.extras["property_type"], "apartment")
+        self.assertEqual(self.extras["listing_intent"], "sale")
+
+    def test_images_absolute_deduped_complete(self):
+        self.assertEqual(len(self.extras["images"]), 5)
+        for url in self.extras["images"]:
+            self.assertTrue(url.startswith("https://alonhadat.com.vn/files/"))
+
+    def test_rent_mirror_slug(self):
+        html = (
+            "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+            "<a href='/cho-thue-nha'>x</a></div>"
+        )
+        extras = alonhadat.parse_ldp_extras(html)
+        self.assertEqual(extras["property_type"], "house")
+        self.assertEqual(extras["listing_intent"], "rent")
+
+    def test_unmapped_slug_and_empty_gallery(self):
+        html = (
+            "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+            "<a href='/can-ban-van-phong'>x</a></div>"
+        )
+        extras = alonhadat.parse_ldp_extras(html)
+        self.assertIsNone(extras["property_type"])
+        self.assertIsNone(extras["listing_intent"])
+        self.assertEqual(extras["images"], [])
+
+
+class EnrichFromLdpTests(TestCase):
+    def _item(self):
+        from listings.scraping.parsers import ParsedListing
+
+        return ParsedListing(
+            source_site="alonhadat",
+            source_id="111",
+            agent_source_id=None,
+            agent_name=None,
+            expired=False,
+            fields={
+                "url": "https://alonhadat.com.vn/x-111.html",
+                "title": "t",
+                "property_type": "apartment",
+                "listing_intent": "sale",
+            },
+        )
+
+    def _run_enrich(self, item, fetch_response):
+        from unittest.mock import patch
+
+        from listings.management.commands import scrape_listings
+
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now()
+        )
+        with patch.object(
+            scrape_listings, "fetch", return_value=fetch_response
+        ) as mock_fetch:
+            scrape_listings.Command()._enrich_from_ldp(item, run)
+        return run, mock_fetch
+
+    def test_new_listing_gets_breadcrumb_type_and_images(self):
+        from unittest.mock import Mock
+
+        ldp_html = (
+            "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+            "<a href='/can-ban-nha'>x</a></div>"
+            "<article class='property'><section class='images'>"
+            "<ul class='image-list'><li><img src='/files/a.jpg'></li></ul>"
+            "</section></article>"
+        )
+        item = self._item()
+        run, mock_fetch = self._run_enrich(item, Mock(status_code=200, text=ldp_html))
+        mock_fetch.assert_called_once()
+        self.assertEqual(item.fields["property_type"], "house")
+        self.assertEqual(item.fields["images"], ["https://alonhadat.com.vn/files/a.jpg"])
+        self.assertEqual(run.error_count, 0)
+
+    def test_existing_row_with_images_skips_fetch_and_keeps_stored_type(self):
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=["https://alonhadat.com.vn/files/a.jpg"],
+            last_seen_at=timezone.now(),
+        )
+        item = self._item()
+        run, mock_fetch = self._run_enrich(item, None)
+        mock_fetch.assert_not_called()
+        self.assertNotIn("property_type", item.fields)
+        self.assertNotIn("listing_intent", item.fields)
+
+    def test_existing_row_without_images_refetches_but_failed_fetch_is_error(self):
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=None,
+            last_seen_at=timezone.now(),
+        )
+        item = self._item()
+        run, mock_fetch = self._run_enrich(item, None)
+        mock_fetch.assert_called_once()
+        self.assertEqual(run.error_count, 1)
+        self.assertNotIn("property_type", item.fields)
+        self.assertNotIn("images", item.fields)
+
+
+class LdpBudgetTests(TestCase):
+    LDP_HTML = (
+        "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+        "<a href='/can-ban-can-ho-chung-cu'>x</a></div>"
+        "<article class='property'><section class='images'>"
+        "<ul class='image-list'><li><img src='/files/a.jpg'></li></ul>"
+        "</section></article>"
+    )
+
+    def _item(self, source_id):
+        from listings.scraping.parsers import ParsedListing
+
+        return ParsedListing(
+            source_site="alonhadat",
+            source_id=source_id,
+            agent_source_id=None,
+            agent_name=None,
+            expired=False,
+            fields={
+                "url": f"https://alonhadat.com.vn/x-{source_id}.html",
+                "title": "t",
+                "property_type": "apartment",
+                "listing_intent": "sale",
+            },
+        )
+
+    def _command_with_budget(self, budget):
+        from listings.management.commands import scrape_listings
+
+        cmd = scrape_listings.Command()
+        cmd.ldp_budget = budget
+        return cmd
+
+    def test_default_flag_values(self):
+        from listings.management.commands import scrape_listings
+
+        parser = scrape_listings.Command().create_parser("manage.py", "scrape_listings")
+        opts = parser.parse_args(["--source", "alonhadat"])
+        self.assertEqual(opts.max_ldp_visits, 20)
+        self.assertFalse(opts.no_ldp_enrich)
+
+    def test_cap_stops_fetches_but_capped_items_keep_srp_fields(self):
+        from unittest.mock import Mock, patch
+
+        from listings.management.commands import scrape_listings
+
+        cmd = self._command_with_budget(1)
+        run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
+        first, second = self._item("111"), self._item("222")
+        with patch.object(
+            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+        ) as mock_fetch:
+            cmd._enrich_from_ldp(first, run)
+            cmd._enrich_from_ldp(second, run)
+        mock_fetch.assert_called_once_with(first.fields["url"])
+        self.assertIn("images", first.fields)
+        self.assertNotIn("images", second.fields)
+        self.assertEqual(second.fields["property_type"], "apartment")
+        self.assertEqual(second.fields["listing_intent"], "sale")
+        self.assertEqual(run.error_count, 0)
+
+    def test_already_enriched_rows_do_not_burn_budget(self):
+        from unittest.mock import Mock, patch
+
+        from listings.management.commands import scrape_listings
+
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=["https://alonhadat.com.vn/files/a.jpg"],
+            last_seen_at=timezone.now(),
+        )
+        cmd = self._command_with_budget(1)
+        run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
+        with patch.object(
+            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+        ) as mock_fetch:
+            cmd._enrich_from_ldp(self._item("111"), run)
+            cmd._enrich_from_ldp(self._item("222"), run)
+        mock_fetch.assert_called_once_with("https://alonhadat.com.vn/x-222.html")
+
+    def test_capped_existing_row_still_pops_provisional_srp_type(self):
+        from unittest.mock import patch
+
+        from listings.management.commands import scrape_listings
+
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=None,
+            last_seen_at=timezone.now(),
+        )
+        cmd = self._command_with_budget(0)
+        run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
+        item = self._item("111")
+        with patch.object(scrape_listings, "fetch") as mock_fetch:
+            cmd._enrich_from_ldp(item, run)
+        mock_fetch.assert_not_called()
+        self.assertNotIn("property_type", item.fields)
+        self.assertNotIn("listing_intent", item.fields)
+        self.assertEqual(run.error_count, 0)
+
+
+class NoLdpEnrichHandleTests(TestCase):
+    def test_srp_only_crawl_fires_zero_ldp_requests(self):
+        import io
+        from unittest.mock import Mock, patch
+
+        from django.core.management import call_command
+
+        from listings.management.commands import scrape_listings
+
+        srp = Mock(status_code=200, text=_read("alonhadat_srp_apartment.txt"))
+        out = io.StringIO()
+        with patch.object(scrape_listings, "fetch", return_value=srp) as mock_fetch:
+            call_command(
+                "scrape_listings",
+                "--source", "alonhadat",
+                "--no-ldp-enrich",
+                "--max-ldp-visits", "5",
+                stdout=out,
+            )
+        self.assertEqual(Listing.objects.count(), 20)
+        self.assertEqual(Listing.objects.filter(images__isnull=True).count(), 20)
+        for call in mock_fetch.call_args_list:
+            self.assertIn("/can-ban-can-ho-chung-cu", call.args[0])
+            self.assertFalse(call.args[0].endswith(".html"))
+        self.assertIn("ldp_visits=0", out.getvalue())
+
+
+class FetchBotChallengeTests(SimpleTestCase):
+    def test_challenge_redirect_returns_none_without_retry(self):
+        from unittest.mock import Mock, patch
+
+        from listings.scraping import client
+
+        challenge = Mock(
+            status_code=200,
+            url="https://alonhadat.com.vn/xac-thuc-nguoi-dung.html?url=/x-1.html",
+        )
+        with patch.object(client.session, "get", return_value=challenge) as get:
+            self.assertIsNone(client.fetch("https://alonhadat.com.vn/x-1.html"))
+            self.assertEqual(get.call_count, 1)
 
 
 class ParseSrpTests(SimpleTestCase):

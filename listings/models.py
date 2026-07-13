@@ -2,8 +2,16 @@ from django.db import models
 from django.utils import timezone
 
 SOURCE_SITE_CHOICES = [
+    ("alonhadat", "alonhadat"),
+    ("homedy", "homedy"),
     ("batdongsan", "batdongsan"),
     ("maisonoffice", "maisonoffice"),
+]
+
+SCRAPE_RUN_SOURCE_CHOICES = [
+    ("alonhadat", "alonhadat"),
+    ("homedy", "homedy"),
+    ("batdongsan", "batdongsan"),
 ]
 
 
@@ -33,7 +41,9 @@ class Listing(models.Model):
     source_id = models.CharField(max_length=64)
     url = models.URLField(max_length=500, unique=True)
     title = models.CharField(max_length=255)
-    category_id_source = models.IntegerField()
+    # nullable since 2026-07-10: batdongsan-specific (pageTrackingData.cateId),
+    # no confirmed equivalent on alonhadat/homedy (CLAUDE.md §5.1)
+    category_id_source = models.IntegerField(null=True)
     property_type = models.CharField(max_length=20, choices=PROPERTY_TYPE_CHOICES)
     project_name = models.CharField(max_length=255, null=True)
     project_id_source = models.CharField(max_length=64, null=True)
@@ -90,12 +100,15 @@ class Listing(models.Model):
 
 class PriceHistory(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=15, decimal_places=0)
+    # nullable per CLAUDE.md §5.3: matches Listing.price -- negotiable
+    # ("Thỏa thuận") listings must not raise on their first PriceHistory row
+    price = models.DecimalField(max_digits=15, decimal_places=0, null=True)
     price_per_sqm = models.DecimalField(max_digits=15, decimal_places=0, null=True)
     observed_at = models.DateTimeField()
 
 
 class ScrapeRun(models.Model):
+    source_site = models.CharField(max_length=20, choices=SCRAPE_RUN_SOURCE_CHOICES)
     started_at = models.DateTimeField()
     finished_at = models.DateTimeField(null=True)
     listings_seen = models.IntegerField(default=0)
