@@ -15,7 +15,8 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 ## 2. Scope Boundaries
 
 ### Standard (locked, ships by Aug 10)
-- Single source: **batdongsan.com.vn** only.
+- Primary automated source: **alonhadat.com.vn**. Secondary automated source: **homedy.com**, scraped the same way, for wider coverage and as a cross-check on alonhadat's price/field parsing where a listing happens to appear on both — still exact `(source_site, source_id)` dedup per listing, never a cross-source merge (§7). Both confirmed reachable via plain `requests` on SRP and LDP, no browser, no bot challenge — see §6.
+- **batdongsan.com.vn dropped as the automated source.** Confirmed Cloudflare-gated on every navigation (§6); that finding is unchanged. `ingest_saved_listings` (manual HTML capture) stays in the repo as a rare, opportunistic fallback only — unscheduled, not relied on for volume, not required by any phase's Definition of Done (§14). Decided 2026-07-10: kept rather than deleted because it's already built and tested and costs nothing to leave dormant, not because it's still a launch-data source.
 - `property_type` in `{apartment, house, land, villa}`, `listing_intent` in `{sale, rent}`. `office` is a valid schema value but is never produced by the Standard scraper.
 - Full pipeline: scraper → Postgres → Django backend + REST API → dashboard → ML price model → Render deployment → published research piece.
 - Price history tracking, delisting detection, and anomaly flagging (price-gap, low-photo, stale-listing rules only — see §11) are in Standard scope. They are pipeline requirements, not stretch features.
@@ -36,14 +37,14 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 
 ## 3. Tech Stack
 
-- Python: scraping (`requests` + `beautifulsoup4` for LDP; a vanilla local browser, e.g. Playwright with no stealth patches, for SRP — see §6/§9), ML (`scikit-learn`, `pandas`, `numpy`)
+- Python: scraping (`requests` + `beautifulsoup4` for both SRP and LDP on alonhadat.com.vn and homedy.com — both confirmed to serve full listing HTML to a plain request, no browser needed, see §6), ML (`scikit-learn`, `pandas`, `numpy`)
 - PostgreSQL
 - Django 5.2 + Django REST Framework + `django-filter` for the API
 - Django templates + Tailwind CSS + Chart.js for the dashboard (server-rendered; Chart.js is largely unused in Standard since trend charts are Stretch)
 - `whitenoise` for static file serving in production
-- Render for deployment of the web service and API only. The scraper (SRP browser fetch + LDP + DB write) runs entirely on the local machine via Windows Task Scheduler, not on Render — see §9.
+- Render for deployment of the web service and API only. The scraper (SRP fetch + LDP fetch + DB write) runs entirely on the local machine via Windows Task Scheduler, not on Render — see §9 for why, now that the original browser-dependency rationale no longer applies.
 
-Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `playwright` (SRP fetch only, no stealth plugin), `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`.
+Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`. `playwright` is no longer needed anywhere in the pipeline — no remaining source requires a browser (§6). It's already in `requirements.txt` from the earlier batdongsan-browser plan; remove it next time that file is touched.
 
 ## 4. Repository / App Structure
 
@@ -56,13 +57,17 @@ saiprice/
     admin.py                           # register all four models
     management/
       commands/
-        scrape_batdongsan.py           # scraper entrypoint
+        scrape_listings.py             # scraper entrypoint, takes --source (alonhadat|homedy)
+        ingest_saved_listings.py       # manual batdongsan HTML fallback, unscheduled — see §6
         score_listings.py              # ML prediction + anomaly scoring, run after each scrape
         train_model.py                 # one-off/occasional, not scheduled
     scraping/
       client.py                        # HTTP session, retry/backoff, rate limiting
-      parsers.py                       # batdongsan SRP/LDP field extraction
-      currency.py                      # Vietnamese price-text -> whole VND
+      sites/
+        alonhadat.py                   # alonhadat SRP/LDP field extraction
+        homedy.py                      # homedy SRP/LDP field extraction
+        batdongsan.py                  # batdongsan LDP extraction, manual-fallback path only
+      currency.py                      # Vietnamese price-text -> whole VND, shared across all three sites
     api/
       serializers.py
       views.py
@@ -97,11 +102,11 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 | Field | Type | Required/Nullable | Notes |
 |---|---|---|---|
 | `id` | `BigAutoField` | required (PK) | |
-| `source_site` | `CharField(max_length=20)`, choices `[batdongsan, maisonoffice]` | required | Standard scraper only ever writes `batdongsan` |
+| `source_site` | `CharField(max_length=20)`, choices `[alonhadat, homedy, batdongsan, maisonoffice]` | required | Standard scraper writes `alonhadat`/`homedy`; `batdongsan` only from the manual `ingest_saved_listings` fallback (§6); `maisonoffice` is Stretch |
 | `source_id` | `CharField(max_length=64)` | required | unique together with `source_site` |
 | `url` | `URLField(max_length=500)` | required, unique | Default Django max_length of 200 is too short for real batdongsan LDP URLs. Confirmed and fixed 2026-07-07. |
 | `title` | `CharField(max_length=255)` | required | |
-| `category_id_source` | `IntegerField` | required | batdongsan's `cateId` from `pageTrackingData` |
+| `category_id_source` | `IntegerField` | nullable | Populated only via the batdongsan manual-fallback path (`pageTrackingData.cateId`). Null for alonhadat/homedy until each site's real category signal is confirmed (§6) — `property_type` is the required, source-agnostic category signal instead (§7). Whether this field stays an `IntegerField` once alonhadat/homedy's signal is confirmed (it may turn out to be a slug string, not an int) is undecided — this fix only changes nullability, not type |
 | `property_type` | `CharField(max_length=20)`, choices `[apartment, house, land, villa, office]` | required | Standard never produces `office` |
 | `project_name` | `CharField(max_length=255)` | nullable | |
 | `project_id_source` | `CharField(max_length=64)` | nullable | |
@@ -139,6 +144,8 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 
 Constraints: `unique_together = (("source_site", "source_id"),)`. `url` has `unique=True`.
 
+Several notes in the table above — `category_id_source`'s `pageTrackingData` origin, `vip_type`'s raw-code convention, `agent` being "almost always populated," `phone_number` being always null, the district/ward derivation rule below — describe **batdongsan's** HTML specifically and stay accurate only for the dormant manual-fallback path. None of it automatically carries over to alonhadat/homedy. Before `scraping/sites/alonhadat.py`/`homedy.py` are written, each site's own equivalents need confirming against real HTML, not assumed from batdongsan: how it signals category/property type (alonhadat's URL slugs — `/ban-can-ho-chung-cu`, `/ban-biet-thu`, `/ban-dat` — look like a clean signal but this is unconfirmed), its address-string format, whether it gates agent phone numbers the way batdongsan's KYC reveal does or exposes them directly (if either doesn't gate it, `phone_number` becomes populatable for that source — a real difference from the permanent batdongsan null in §2), and whether it exposes a stable per-agent identifier at all versus just a name and phone per listing.
+
 `district`/`ward` derivation rule, confirmed against real HTML 2026-07-07: split `address_raw` on commas, strip whitespace from each segment. `district` is the second-to-last segment, `ward` is the third-to-last. This holds regardless of the literal admin-unit word used (`Quận N`, `Thành phố Thuận An`, etc. all land correctly by position). Verified against both attached LDP samples, including a listing where the district-level segment reads `Thành phố Thuận An` rather than the more common `Quận N` pattern. This is a heuristic on address text, not a lookup against `district_id_source`/`ward_id_source` — if batdongsan ever changes its address-string ordering, this breaks silently. No ID-to-name lookup table exists yet; revisit if address formats prove inconsistent across a larger real crawl.
 
 `days_on_market` and cumulative `price_change_pct` are **not columns**. See §5.5.
@@ -150,13 +157,15 @@ One row per distinct agent, deduplicated the same way as `Listing`: exact match 
 | Field | Type | Required/Nullable | Notes |
 |---|---|---|---|
 | `id` | `BigAutoField` | required (PK) | |
-| `source_site` | `CharField(max_length=20)`, choices `[batdongsan, maisonoffice]` | required | Same choices as `Listing.source_site` |
+| `source_site` | `CharField(max_length=20)`, choices `[alonhadat, homedy, batdongsan, maisonoffice]` | required | Same choices as `Listing.source_site` |
 | `source_id` | `CharField(max_length=64)` | required, unique together with `source_site` | batdongsan's agent ID from `pageTrackingData`. Named `source_id` (not `agent_id_source`) to mirror `Listing`'s own `(source_site, source_id)` pattern now that this is its own row, not a foreign value living on `Listing` |
 | `name` | `CharField(max_length=255)` | nullable | Parse-failure fallback only, same rule as any other nullable text field (§8). batdongsan always exposes an agent name per §2, so null here should be rare |
 
 Constraints: `unique_together = (("source_site", "source_id"),)`.
 
 Not modeled: agency vs. individual seller distinction (§2, `individual_seller` is explicitly out of scope), agent contact fields beyond `name` (phone stays out per §2's KYC note), and any development/project entity. `project_name`/`project_id_source` stay flat fields on `Listing` — they were never raised as a filtering need the way agent was, and splitting them out is a separate decision, not a required consequence of this one. Revisit only if a real need for project-level querying shows up.
+
+The `source_id`/`name` notes above describe batdongsan's `pageTrackingData`-based agent exposure specifically. Whether alonhadat/homedy expose a comparably stable per-agent identifier, versus just a name and phone number repeated per listing, is unconfirmed — check before assuming `Agent` dedup works identically for those two sources.
 
 ### 5.3 `PriceHistory`
 
@@ -166,7 +175,7 @@ One row per observed price change. Not a mirror of every scrape, only inserted w
 |---|---|---|
 | `id` | `BigAutoField` | required (PK) |
 | `listing` | `ForeignKey(Listing, on_delete=CASCADE)` | required |
-| `price` | `DecimalField(max_digits=15, decimal_places=0)` | required |
+| `price` | `DecimalField(max_digits=15, decimal_places=0)` | nullable | Matches `Listing.price`'s own nullability — a listing can be re-observed while still showing "Thỏa thuận" (negotiable). Fixed 2026-07-13: §7's `upsert()` had no null-price guard, and this field was previously `required`, which would raise `IntegrityError` the first time a negotiable listing got scraped. Making this nullable, rather than adding a skip branch to `upsert()`, was chosen to preserve the "a new `Listing` always gets exactly one `PriceHistory` row at insert time" invariant below, which `days_on_market`'s `posted_date`-null fallback (§5.5) depends on. |
 | `price_per_sqm` | `DecimalField(max_digits=15, decimal_places=0)` | nullable |
 | `observed_at` | `DateTimeField` | required |
 
@@ -174,11 +183,12 @@ A new `Listing` always gets exactly one `PriceHistory` row at insert time (its f
 
 ### 5.4 `ScrapeRun`
 
-One row per scraper invocation. This is the primary way to notice the scraper silently broke (e.g. batdongsan changed its HTML structure) — check this table, don't rely on reading log files.
+One row per scraper invocation, scoped to a single source — one run = one source, `scrape_listings` is invoked once per source (§9). This is the primary way to notice a site's parser silently broke (e.g. alonhadat changed its HTML structure) — check this table, don't rely on reading log files. `source_site` was added 2026-07-10 when the pipeline moved from one automated source to two (§6); collapsing both sites' numbers into one row would hide a break in either parser behind the other's healthy numbers, defeating the point of this table.
 
 | Field | Type | Required/Nullable |
 |---|---|---|
 | `id` | `BigAutoField` | required (PK) |
+| `source_site` | `CharField(max_length=20)`, choices `[alonhadat, homedy, batdongsan]` | required |
 | `started_at` | `DateTimeField` | required |
 | `finished_at` | `DateTimeField` | nullable (null while the run is in progress) |
 | `listings_seen` | `IntegerField(default=0)` | required |
@@ -218,36 +228,47 @@ def price_change_pct(listing):
 
 ## 6. Data Acquisition
 
-Single source: batdongsan.com.vn, HCMC listings, `property_type` in `{apartment, house, land, villa}`, `listing_intent` in `{sale, rent}`.
+Automated sources: **alonhadat.com.vn** (primary) and **homedy.com** (secondary), HCMC listings, `property_type` in `{apartment, house, land, villa}`, `listing_intent` in `{sale, rent}`. Manual fallback: batdongsan.com.vn, rare and opportunistic only — see below.
 
-### Automated crawling: tested, blocked, abandoned for launch
+### Automated crawling: batdongsan dead, alonhadat/homedy confirmed working
 
-Automated fetching of batdongsan is dead. Verified live, not assumed:
+batdongsan is dead for automation, confirmed live 2026-07-07, finding unchanged:
 
-- Plain `requests` with realistic headers (`User-Agent`, `Accept-Language`, `Referer`): 403, a Cloudflare managed JS challenge (`title: Just a moment...`), on SRPs (2026-07-07) and, as of the same date, on LDPs that previously worked.
+- Plain `requests` with realistic headers (`User-Agent`, `Accept-Language`, `Referer`): 403, a Cloudflare managed JS challenge (`title: Just a moment...`), on SRPs and on LDPs that previously worked.
 - Headless browser: never clears the challenge.
 - Headed vanilla Playwright (no stealth): the first navigation passes, then Cloudflare blocks every subsequent navigation in the same session **regardless of pacing** — verified live with 20-second gaps between pages; every page after the first still failed.
 
-The 2026-07-06 no-evasion decision stands and is final: no stealth patches, no `navigator.webdriver` spoofing, nothing designed to make automated traffic pass as human. Defeating anti-bot protection is a different act than reading a public page, and it sits past the line §1 draws. Do not revisit this when the manual pace feels slow.
+The 2026-07-06 no-evasion decision stands: no stealth patches, no `navigator.webdriver` spoofing, nothing designed to make automated traffic pass as human. This is why batdongsan is dropped rather than fought — clearing that challenge means exactly the automated-traffic-passing-as-human behavior §1 rules out, not a parsing problem.
 
-### Launch data path: manual collection + `ingest_saved_listings`
+alonhadat.com.vn and homedy.com, by contrast, are confirmed live 2026-07-10 with plain `requests` and a realistic `User-Agent`/`Accept-Language` header — no browser, no stealth, nothing beyond what §8's rate limiting already calls for:
 
-The launch dataset is hand-collected. Browse batdongsan in a normal browser, save individual LDPs as "HTML Only" into a folder — roughly three hours per week for the five weeks remaining to the Aug 10 deadline. Then:
+- alonhadat SRP (`/can-ban-nha-dat/ho-chi-minh`) and a real LDP linked from it: both `200`, full server-rendered HTML, no Cloudflare/captcha markers. Listing cards carry schema.org microdata (`itemprop="price"`, `itemprop="floorSize"`, etc.) — a genuine parsing convenience over batdongsan's inline JSON blob.
+- homedy SRP (`/ban-nha-dat-tp-ho-chi-minh`) and a real LDP linked from it: both `200`, full server-rendered HTML, no Cloudflare/captcha markers. A `recaptcha/api.js` tag is present but inert on these pages — it's a defensive include for the site's own login form, not an active challenge; both requests returned complete listing content without solving anything.
 
-```
-python manage.py ingest_saved_listings <folder>
-```
+This was one manual request per page, not a sustained crawl — §8's retry/backoff and randomized rate limiting still apply once `scrape_listings` runs for real, and "has run successfully at least once against the live site" (§14) is the actual bar, not this spot-check. Update 2026-07-10: for alonhadat this clean-reachability finding describes the pre-escalation state — see the dated blocking status in the `Agent.source_id` bullet below.
 
-reads every file in the folder (no filename convention), parses each with the existing `parse_ldp`, and upserts through the same verified sequence in `listings/upsert.py` that the crawler used (Agent resolution, PriceHistory on first insert and on price change, null-price guard). One bad file logs as an error and never stops the batch. Property type comes from each file's own `cateId` via `parse_ldp`, never from folder structure.
+Not yet confirmed, and needed before `scraping/sites/alonhadat.py`/`homedy.py` are written — do not assume these mirror batdongsan:
+- Each site's exact category/property-type signal. batdongsan used `pageTrackingData.products[0].cateId`; alonhadat's URL slugs look like a clean signal (`/ban-can-ho-chung-cu`, `/ban-biet-thu`, `/ban-dat`), but this needs confirming against a full category list, not assumed from three examples.
+- Each site's address-string format for the district/ward derivation rule (§5.1) — batdongsan's comma-split-by-position rule is specific to batdongsan.
+- Whether either site gates agent phone numbers the way batdongsan's KYC reveal does, or exposes them directly. If either doesn't gate it, `phone_number` becomes populatable for that source — a real difference from the permanent batdongsan null in §2.
+- `Agent.source_id` for alonhadat: **confirmed 2026-07-10** — every SRP card carries a `data-memberid` attribute, used directly as `Agent.source_id`. Agent rows now populate for alonhadat. `name` stays null at SRP level (the card doesn't expose it) — standard nullable-field handling (§8), not a skip. Blocking/VIP status as of 2026-07-10: page-1 `vip-N` SRP cards can be cross-category injections, so `property_type` on VIP rows is mislabel-suspect until LDP-verified — the diagnostic query (alonhadat rows with `vip_type` non-null) counts **18** of 90 alonhadat rows. Bulk LDP verification triggered alonhadat's IP-scoped robot-verify wall (HTTP 200 redirect to `/xac-thuc-nguoi-dung.html`). The LDP-volume side is mitigated, done and verified: `scrape_listings` caps LDP visits per run via `--max-ldp-visits` (default 20), `--no-ldp-enrich` skips LDP enrichment entirely, and `client.fetch` detects the challenge URL and returns None rather than retrying (no-evasion rule above). Later on 2026-07-10 the wall escalated: the identical two-page SRP pagination test that previously passed now serves the challenge on `/trang-2` (page 1 still passes), so SRP crawling is blocked too, not just LDP enrichment. Root cause unconfirmed. The alonhadat scraper is paused pending a 48–72h cooldown; no retries while the flag is active.
+- Whether homedy exposes anything usable as `Agent.source_id` (§5.2) — still unconfirmed; check this together with the phone-gating question above, not separately. If homedy exposes its agent phone number directly (not gated), that phone number is the candidate stable identifier for `Agent.source_id`. If it exposes nothing stable (no ID, no direct phone, nothing else identifying), `Agent` creation for homedy stays permanently skipped by the existing `upsert()` guard (`if parsed.agent_source_id:` — §7) — a graceful degradation to "no agent linked" per listing, not a bug. But it does mean `Agent`-based querying and API filtering (`agent.listing_set.all()`, `?agent=` on `/api/listings/`, §10) excludes homedy until/unless it turns out to expose something stable. No synthetic ID scheme is being invented to paper over this.
+- Each site's own listing-removed/expired signal (a 404, a status banner, something else) — batdongsan's `pageTrackingData.products[0].expired` field doesn't exist on other sites. See §7.
+- Whether alonhadat/homedy have any equivalent to batdongsan's `is_verified` badge concept. Lower stakes than the above: `is_verified` defaults to `False` (§5.1) and isn't in §7's required-field list, so an unconfirmed/unmapped source just reads as unverified until this is checked — not a skip, not a crash.
+
+### Manual fallback: `ingest_saved_listings`, batdongsan only
+
+batdongsan.com.vn stays reachable exactly one way: a human browses it normally and saves individual LDPs as "HTML Only." `ingest_saved_listings <folder>` reads every file in the folder (no filename convention), parses each with the existing `parse_ldp`, and upserts through the same verified sequence in `listings/upsert.py` the crawler uses (Agent resolution, PriceHistory on first insert and on price change, null-price guard). One bad file logs as an error and never stops the batch. Property type comes from each file's own `cateId` via `parse_ldp`, never from folder structure.
+
+This is no longer the launch data path — alonhadat/homedy automation is. It's a rare, opportunistic top-up when a specific batdongsan listing is worth having and nothing else covers it: not scheduled, not weekly, not required by any phase's Definition of Done (§14).
 
 Consequences, accepted:
-- Coverage is partial by definition. A listing absent from a folder means nothing, so `ingest_saved_listings` performs no delisting sweep and never flips `is_active`. Delisting detection (§7) only ever ran on full crawls and is dormant until automated crawling is somehow viable again.
+- Coverage is partial by definition. A listing absent from a folder means nothing, so `ingest_saved_listings` performs no delisting sweep and never flips `is_active`. Delisting detection (§7) only runs against sources with full-coverage automated crawls — batdongsan is permanently excluded from it now, not just dormant.
 - A saved file with `expired == true` is skipped and counted, not ingested and not delisted.
-- `scrape_batdongsan` stays in the repo but is unscheduled and not part of the launch pipeline.
 
 ### Currency parsing
 
-batdongsan prices render as Vietnamese-unit text: `"8 tỷ"` = 8 billion VND, `"~129,03 triệu/m²"` = 129.03 million VND/sqm (comma is the decimal separator). Parse to whole VND integers:
+Vietnamese-site prices render as unit text: `"8 tỷ"` = 8 billion VND, `"~129,03 triệu/m²"` = 129.03 million VND/sqm (comma is the decimal separator). Confirmed the same convention on alonhadat — `"26 tỷ"` seen directly in a live SRP fetch 2026-07-10 — so `parse_vnd` below is shared across all three sites' parsers, not rewritten per site. Parse to whole VND integers:
 
 ```python
 # listings/scraping/currency.py
@@ -266,7 +287,7 @@ def parse_vnd(text: str) -> Decimal | None:
     return (number * UNITS[match.group(2)]).quantize(Decimal("1"))
 ```
 
-`price_unit` stays null/unused for batdongsan — VND is implicit for this source.
+`price_unit` stays null/unused for alonhadat, homedy, and batdongsan — VND is implicit for all three. It stays reserved for maisonoffice (Stretch).
 
 ## 7. Deduplication and Upsert Semantics
 
@@ -277,7 +298,7 @@ On each scrape pass, per listing:
 1. Look up existing `Listing` by `(source_site, source_id)`.
 2. If found: compare the newly parsed `price` to the **existing stored** `price` (before overwriting). If different, or if no `Listing` existed yet, insert a new `PriceHistory` row with `observed_at = now()`.
 3. Overwrite every field on `Listing` with what was just parsed this pass — full overwrite, no per-field diffing. Set `last_seen_at = now()` and `is_active = True`.
-4. If the required fields (`source_site`, `source_id`, `url`, `title`, `property_type`, `listing_intent`, `category_id_source`) failed to parse, do not save anything for this listing — increment `ScrapeRun.skipped`, log the URL and reason, move on. A nullable field failing to parse is not a skip condition; store it as null and proceed (self-heals next pass if the source is parseable again).
+4. If the required fields (`source_site`, `source_id`, `url`, `title`, `property_type`, `listing_intent`) failed to parse, do not save anything for this listing — increment `ScrapeRun.skipped`, log the URL and reason, move on. A nullable field failing to parse is not a skip condition; store it as null and proceed (self-heals next pass if the source is parseable again). `category_id_source` was dropped from this list 2026-07-10: it was batdongsan-specific (`pageTrackingData.cateId`) and, left in as a required check, would have skipped every alonhadat/homedy listing since neither site has a confirmed equivalent (§6). `property_type` is the required, source-agnostic category signal going forward — it already has a plausible derivation path from URL slugs for alonhadat (§6), which `category_id_source` never had for the new sources.
 
 ```python
 def upsert(parsed):
@@ -312,17 +333,19 @@ def upsert(parsed):
 
 ### Delisting detection
 
-Because every run does a full crawl of the tracked scope, a listing that has genuinely been removed simply won't be touched this run. At the end of `scrape_batdongsan`:
+Because every run does a full crawl of the tracked scope for its one source, a listing that has genuinely been removed simply won't be touched this run. At the end of `scrape_listings` for a given (single-source) `run`:
 
 ```python
 Listing.objects.filter(
-    source_site="batdongsan", is_active=True, last_seen_at__lt=run.started_at,
+    source_site=run.source_site, is_active=True, last_seen_at__lt=run.started_at,
 ).update(is_active=False, delisted_at=run.finished_at)
 ```
 
+This only ever runs for `alonhadat` or `homedy` — batdongsan has no full-coverage automated crawl to make the sweep meaningful (§6), so it's permanently excluded, not conditionally skipped.
+
 A 404 on a previously-known LDP URL during the crawl is also treated as an immediate delisting signal (`is_active=False`, `delisted_at=now()`) for that listing, not a scrape failure.
 
-`pageTrackingData.products[0].expired` is a real boolean field batdongsan exposes on every LDP, confirmed present in sample HTML pulled 2026-07-06. If `expired == true` on a listing the crawler visits, treat it the same as the 404 case: `is_active=False`, `delisted_at=now()`, not a parse failure and not skipped. This was previously an open question (§2's earlier draft flagged it and deferred); it's resolved now that real data confirms the field costs nothing extra to check, since `parsers.py` already reads this same JSON object for `category_id_source`/`district_id_source`/`ward_id_source`.
+batdongsan exposed a `pageTrackingData.products[0].expired` boolean on every LDP, which made "still listed but marked expired" cheap to detect without an extra check. Whether alonhadat or homedy expose an equivalent signal (a banner, a status field, or nothing beyond a 404) is unconfirmed — check while building `scraping/sites/alonhadat.py`/`homedy.py`. If neither has one, a 404 plus the end-of-run sweep above is the whole delisting signal for that source, and that's an acceptable outcome, not a degraded one.
 
 ## 8. Error Handling
 
@@ -349,7 +372,7 @@ def fetch(url):
 
 **Nullable-field parse failure**: store null, continue. Not counted as a skip or an error.
 
-**Run tracking**: create a `ScrapeRun` row at the start of `scrape_batdongsan` (`started_at=now()`), update it at the end (`finished_at`, `listings_seen`, `inserted`, `updated`, `skipped`, `error_count`). This is how a structural break in batdongsan's HTML (e.g. a redesign that breaks every selector) becomes visible — check this table (via `/admin/`) periodically; a run with `listings_seen` near zero or `error_count` spiking relative to history means the site changed and the parser needs attention, not that the data is real.
+**Run tracking**: create a `ScrapeRun` row at the start of `scrape_listings` (`source_site` from the invocation's `--source`, `started_at=now()`), update it at the end (`finished_at`, `listings_seen`, `inserted`, `updated`, `skipped`, `error_count`). This is how a structural break in a site's HTML (e.g. a redesign that breaks every selector) becomes visible — check this table (via `/admin/`) periodically, filtered by `source_site`; a run with `listings_seen` near zero or `error_count` spiking relative to that source's own history means that site changed and its parser needs attention, not that the data is real.
 
 ## 9. Deployment
 
@@ -359,7 +382,7 @@ Must be fixed before deploying (standard practice, not a judgment call):
 - `ALLOWED_HOSTS` from an env var (comma-split), including the Render-assigned domain.
 - `whitenoise` added to `MIDDLEWARE` (right after `SecurityMiddleware`) and `requirements.txt` for static file serving — Render doesn't serve Django static files on its own.
 
-Scraper scheduling: confirmed 2026-07-07 that SRP fetching needs a local, non-stealth browser (§6), which rules out a clean Render Cron Job for the scraper. Final decision: the entire scraper pipeline, `scrape_batdongsan` followed by `score_listings`, runs locally via Windows Task Scheduler, not split across Render and a local machine. Splitting it, browser fetch on one machine, DB write on another, adds a coordination problem (shipping discovered URLs somewhere Render can read them) for no real benefit at this project's scale. Render's job shrinks to hosting the Django web app and API only, both of which read the same remote Postgres instance the local scraper writes to. This accepts the risk of gaps in `PriceHistory`/delisting detection when the local machine is off.
+Scraper scheduling: the original rationale for keeping the scraper local — SRP fetching needing a local, non-stealth browser, confirmed 2026-07-07 for batdongsan — no longer holds. alonhadat and homedy are both confirmed reachable with plain `requests` (§6), so a Render Cron Job is now technically viable and isn't ruled out for the reason it used to be. The decision stands anyway, restated rather than re-derived 2026-07-10: the entire scraper pipeline, `scrape_listings` (run once per source) followed by `score_listings`, keeps running locally via Windows Task Scheduler, not on Render. Reasons that hold without the browser constraint: it's already built and working this way, migrating a working scheduled job to Render Cron this close to Aug 10 is schedule risk for zero functional gain, and `ScrapeRun` monitoring via `/admin/` works the same either way. Render's job stays hosting the Django web app and API only, both reading the same remote Postgres instance the local scraper writes to. This accepts the risk of gaps in `PriceHistory`/delisting detection when the local machine is off — revisit moving to Render Cron only if that gap actually causes a problem, not preemptively.
 
 ML model: trained locally via `train_model`, the resulting `model.pkl` is committed to the repo (`listings/ml/model.pkl`), loaded at Django startup. Not retrained automatically as part of deployment.
 
@@ -432,16 +455,17 @@ Full view/endpoint test coverage and ML internals are not required to consider a
 ## 14. Definition of Done, Per Phase
 
 **Scraper**
-- `python manage.py scrape_batdongsan` runs end-to-end unattended.
-- Full SRP crawl of the tracked scope + LDP visit per listing, every run.
+- `python manage.py scrape_listings --source alonhadat` and `--source homedy` each run end-to-end unattended.
+- Full SRP crawl of the tracked scope + LDP visit per listing, every run, per source.
 - Retry/backoff and rate limiting implemented as specified in §8.
-- `ScrapeRun` row created and updated every run.
+- `ScrapeRun` row (with `source_site` set) created and updated every run.
 - `(source_site, source_id)` uniqueness enforced at the DB level.
-- Delisting detection working: previously-active listings not touched in a run flip to `is_active=False`. Same for a 404 on a known LDP URL and for `pageTrackingData.products[0].expired == true`.
-- Fetch method matches §6 exactly: plain `requests` where it works, local-only browser (no stealth, no evasion) only where proven necessary.
+- Delisting detection working for alonhadat and homedy: previously-active listings not touched in a run flip to `is_active=False`. Same for a 404 on a known LDP URL and for whatever each site's own expired-listing signal turns out to be (§7).
+- Fetch method matches §6: plain `requests`, no browser, for both alonhadat and homedy.
 - `PriceHistory` row inserted on every detected price change, and on first insert.
-- Has run successfully at least once against the live site producing real data (not seed/fixture data).
-- Running on a schedule unattended via local Windows Task Scheduler (final, §9), not only ever run by hand.
+- Has run successfully at least once against both live sites producing real data (not seed/fixture data).
+- Running on a schedule unattended via local Windows Task Scheduler (§9), not only ever run by hand.
+- `ingest_saved_listings` still works for the batdongsan manual fallback, but is explicitly not required to run on any schedule for this phase to count as done (§6).
 
 **Database**
 - `makemigrations` + `migrate` runs clean from an empty database.
