@@ -95,6 +95,8 @@ Comments: none by default. Add one only where a non-obvious constraint, invarian
 
 Migrations: name them descriptively (`makemigrations listings --name add_tracking_fields`), not the auto-generated `0002_auto_20260706_1830` default.
 
+Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, Opus, or Fable, and never add any of them as a contributor, co-author, or commit trailer (e.g. `Co-Authored-By: Claude ...`). This applies to every commit, regardless of what tool wrote the code.
+
 ## 5. Database Schema
 
 ### 5.1 `Listing`
