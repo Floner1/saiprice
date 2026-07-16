@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}SaiPrice — HCMC listings{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl tracking-wide">SaiPrice</h1>
+  <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ paginator.count }} result{{ paginator.count|pluralize }}</p>
+
+  <ul>
+    {% for listing in page_obj %}
+    <li class="border-b border-line py-3.5">
+      <h2 class="mb-0.5 text-base font-normal">{{ listing.title }}</h2>
+      <p class="text-sm text-muted">
+        <span class="font-bold text-accent">{{ listing.price_display|default:"Thỏa thuận" }}</span>
+        {% if listing.area_sqm %} · {{ listing.area_sqm|floatformat }} m²{% endif %}
+        {% if listing.district %} · {{ listing.district }}{% endif %}
+      </p>
+    </li>
+    {% empty %}
+    <li class="border-b border-line py-3.5">No listings yet.</li>
+    {% endfor %}
+  </ul>
+
+  {% if is_paginated %}
+  <nav class="mt-6 flex justify-between gap-4 text-sm">
+    <span>{% if page_obj.has_previous %}<a class="text-accent" href="?page={{ page_obj.previous_page_number }}">&larr; Previous</a>{% endif %}</span>
+    <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+    <span>{% if page_obj.has_next %}<a class="text-accent" href="?page={{ page_obj.next_page_number }}">Next &rarr;</a>{% endif %}</span>
+  </nav>
+  {% endif %}
+{% endblock %}

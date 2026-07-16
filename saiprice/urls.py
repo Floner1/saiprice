@@ -18,7 +18,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from listings import views
+
 urlpatterns = [
+    path("", views.ListingListView.as_view(), name="listing-list"),
     path("admin/", admin.site.urls),
     path("api/", include("listings.api.urls")),
 ]

@@ -6,3 +6,6 @@ __pycache__/
 batdongsan and maison office stuff/
 testdata/
 project_tests/
+.django_tailwind_cli/
+assets/css/tailwind.css
+staticfiles/

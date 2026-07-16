@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.test import SimpleTestCase
 
-from listings.scraping.currency import parse_vnd
+from listings.scraping.currency import parse_vnd, parse_vnd_unit
 
 
 class ParseVndTests(SimpleTestCase):
@@ -37,3 +37,19 @@ class ParseVndTests(SimpleTestCase):
 
     def test_bare_number_without_unit_returns_none(self):
         self.assertIsNone(parse_vnd("1.200.000"))
+
+
+class ParseVndUnitTests(SimpleTestCase):
+    def test_ty_and_capitalized_ty(self):
+        self.assertEqual(parse_vnd_unit("8 tỷ"), "tỷ")
+        self.assertEqual(parse_vnd_unit("23,5 Tỷ"), "tỷ")
+
+    def test_trieu_and_tr_normalize_to_trieu(self):
+        self.assertEqual(parse_vnd_unit("~129,03 triệu/m²"), "triệu")
+        self.assertEqual(parse_vnd_unit("46,2 tr/m2"), "triệu")
+
+    def test_null_wherever_parse_vnd_is_null(self):
+        self.assertIsNone(parse_vnd_unit("Thỏa thuận"))
+        self.assertIsNone(parse_vnd_unit("2 - 2,1 tỷ"))
+        self.assertIsNone(parse_vnd_unit("1.200.000"))
+        self.assertIsNone(parse_vnd_unit(None))
