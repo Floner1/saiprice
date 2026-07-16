@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from bs4 import BeautifulSoup
 
-from ..currency import parse_vnd
+from ..currency import parse_vnd, parse_vnd_unit
 from ..parsers import ParsedListing, RequiredFieldMissing, _parse_area, _parse_int
 
 BASE_URL = "https://alonhadat.com.vn"
@@ -50,16 +50,26 @@ def parse_ldp_extras(html):
         category = BREADCRUMB_CATEGORIES.get(crumb["href"].rstrip("/"))
         if category:
             break
-    # images is [] (not None) when the LDP parsed but the gallery is empty:
-    # null means "LDP never successfully visited" and triggers a re-visit
-    # on the next crawl pass, [] means "visited, no photos".
-    images = []
-    for img in soup.select("article.property section.images ul.image-list img"):
-        src = img.get("src")
-        if src:
-            url = f"{BASE_URL}{src}" if src.startswith("/") else src
-            if url not in images:
-                images.append(url)
+    # images is [] (not None) only when the LDP's structural anchor
+    # (article.property, present on every real LDP regardless of gallery
+    # state) parsed but the gallery is empty: null means "no real LDP seen
+    # yet" and triggers a re-visit on the next crawl pass, [] means
+    # "visited, no photos". Guarding on the gallery selector itself would
+    # make a markup redesign indistinguishable from zero photos -- the
+    # enrichment gate would mark every visit done and low_photos would
+    # mass-flag the source. The page-level anchor is deliberate over the
+    # gallery container (batdongsan's convention): whether a photo-less
+    # alonhadat LDP keeps an empty container is unconfirmed, and a
+    # container guard would retry those rows forever.
+    images = None
+    if soup.select_one("article.property"):
+        images = []
+        for img in soup.select("article.property section.images ul.image-list img"):
+            src = img.get("src")
+            if src:
+                url = f"{BASE_URL}{src}" if src.startswith("/") else src
+                if url not in images:
+                    images.append(url)
     return {
         "property_type": category[0] if category else None,
         "listing_intent": category[1] if category else None,
@@ -85,16 +95,21 @@ def parse_srp(html, property_type, listing_intent):
 
 
 def _parse_price(card):
+    # Returns (price, price_unit). The unit comes from the visible text even
+    # when the price itself comes from the microdata content attribute.
     tag = card.select_one("[itemprop='price']")
     if tag is None:
-        return None
+        return None, None
+    text = tag.get_text(strip=True)
     if tag.has_attr("content"):
         try:
             # or None: content="0" is how a no-price card would render, not a price
-            return Decimal(tag["content"]) or None
+            price = Decimal(tag["content"]) or None
+            return price, parse_vnd_unit(text) if price else None
         except InvalidOperation:
             pass
-    return parse_vnd(tag.get_text(strip=True))
+    price = parse_vnd(text)
+    return price, parse_vnd_unit(text) if price else None
 
 
 def _parse_posted_date(card):
@@ -120,7 +135,7 @@ def _parse_card(card, property_type, listing_intent):
         if not value:
             raise RequiredFieldMissing(field_name)
 
-    price = _parse_price(card)
+    price, price_unit = _parse_price(card)
     area_tag = card.select_one("[itemprop='floorSize'] [itemprop='value']")
     area_sqm = _parse_area(area_tag.get_text(strip=True)) if area_tag else None
     price_per_sqm = (price / area_sqm).quantize(Decimal("1")) if price and area_sqm else None
@@ -170,6 +185,7 @@ def _parse_card(card, property_type, listing_intent):
         "listing_intent": listing_intent,
         "vip_type": vip_type,
         "price": price,
+        "price_unit": price_unit,
         "price_per_sqm": price_per_sqm,
         "area_sqm": area_sqm,
         "bedrooms": _parse_int(bedroom_tag.get_text(strip=True)) if bedroom_tag else None,

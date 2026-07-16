@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.utils import timezone
 
 from listings.models import Agent, Listing, PriceHistory
+from listings.scraping.parsers import ParsedListing
+from listings.upsert import upsert
 
 
 def _make_listing(**overrides):
@@ -97,6 +99,41 @@ class PriceHistoryUpsertPatternTests(TestCase):
         self.assertEqual(PriceHistory.objects.filter(listing=listing).count(), 2)
 
 
+class NegotiablePriceUpsertTests(TestCase):
+    """§5.3: a negotiable ("Thỏa thuận") listing still gets exactly one
+    PriceHistory row (with null price) at insert time, so the
+    days_on_market posted_date-null fallback has something to compute from."""
+
+    def _parsed(self):
+        return ParsedListing(
+            source_site="alonhadat",
+            source_id="neg1",
+            agent_source_id=None,
+            agent_name=None,
+            expired=False,
+            fields={
+                "url": "https://alonhadat.com.vn/neg1.html",
+                "title": "Negotiable listing",
+                "property_type": "house",
+                "listing_intent": "sale",
+                "price": None,
+            },
+        )
+
+    def test_null_price_insert_creates_one_price_history_row(self):
+        upsert(self._parsed())
+        listing = Listing.objects.get(source_site="alonhadat", source_id="neg1")
+        history = PriceHistory.objects.filter(listing=listing)
+        self.assertEqual(history.count(), 1)
+        self.assertIsNone(history.get().price)
+
+    def test_days_on_market_fallback_works_for_negotiable_listing(self):
+        upsert(self._parsed())
+        listing = Listing.objects.get(source_site="alonhadat", source_id="neg1")
+        self.assertIsNone(listing.posted_date)
+        self.assertEqual(listing.days_on_market, 0)
+
+
 class DaysOnMarketTests(TestCase):
     def test_uses_posted_date_when_present_and_still_active(self):
         posted = (timezone.now() - timedelta(days=10)).date()
@@ -135,3 +172,27 @@ class DaysOnMarketTests(TestCase):
             posted_date=None,
         )
         self.assertIsNone(listing.days_on_market)
+
+
+class PriceDisplayTests(TestCase):
+    def _display(self, price, source_id):
+        return _make_listing(
+            source_id=source_id,
+            url=f"https://batdongsan.com.vn/{source_id}-pr1",
+            price=price,
+        ).price_display
+
+    def test_exactly_one_billion_is_ty(self):
+        self.assertEqual(self._display(1_000_000_000, "pd1"), "1 tỷ")
+
+    def test_just_under_one_billion_is_trieu(self):
+        self.assertEqual(self._display(999_000_000, "pd2"), "999 triệu")
+
+    def test_two_decimals_kept(self):
+        self.assertEqual(self._display(6_280_000_000, "pd3"), "6.28 tỷ")
+
+    def test_trailing_zero_stripped(self):
+        self.assertEqual(self._display(8_500_000_000, "pd4"), "8.5 tỷ")
+
+    def test_null_price_is_none(self):
+        self.assertIsNone(self._display(None, "pd5"))

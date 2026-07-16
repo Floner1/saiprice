@@ -8,3 +8,6 @@ graphify-out/
 .claude/
 testdata/
 project_tests/
+.django_tailwind_cli/
+assets/css/tailwind.css
+staticfiles/

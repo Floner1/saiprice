@@ -85,6 +85,7 @@ class Listing(models.Model):
 
     @property
     def days_on_market(self):
+        # Instance form of the days_on_market_calc annotation in api/views.py.
         # CLAUDE.md §5.5: fall back to earliest PriceHistory.observed_at when
         # posted_date failed to parse, instead of dropping the anomaly signal.
         if self.posted_date is not None:
@@ -96,6 +97,19 @@ class Listing(models.Model):
             start = earliest.observed_at.date()
         end = (self.delisted_at or timezone.now()).date()
         return (end - start).days
+
+    @property
+    def price_display(self):
+        # Standard VND convention: >= 1 tỷ renders in tỷ, below in triệu.
+        # Computed from price, not price_unit, so rows ingested before
+        # price_unit was populated (pre-2026-07-14) render too.
+        if self.price is None:
+            return None
+        if self.price >= 1_000_000_000:
+            value, unit = self.price / 1_000_000_000, "tỷ"
+        else:
+            value, unit = self.price / 1_000_000, "triệu"
+        return f"{f'{value:.2f}'.rstrip('0').rstrip('.')} {unit}"
 
 
 class PriceHistory(models.Model):
@@ -116,3 +130,6 @@ class ScrapeRun(models.Model):
     updated = models.IntegerField(default=0)
     skipped = models.IntegerField(default=0)
     error_count = models.IntegerField(default=0)
+    # A date-label rename nulls posted_date fleet-wide through §8's silent
+    # nullable-field path; error_count never sees it, this counter does.
+    posted_date_nulls = models.IntegerField(default=0)

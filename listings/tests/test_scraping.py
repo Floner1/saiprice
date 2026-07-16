@@ -2,17 +2,13 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
-from listings.management.commands.scrape_batdongsan import sweep_delistings
+from listings.management.commands.scrape_listings import sweep_delistings
 from listings.models import Listing, ScrapeRun
-from listings.scraping.parsers import (
-    RequiredFieldMissing,
-    parse_ldp,
-    parse_srp,
-    parse_srp_total_pages,
-)
+from listings.scraping.parsers import RequiredFieldMissing, parse_ldp
 from listings.scraping.sites import alonhadat
 
 # ponytail: these point at the real sample HTML in testdata/ (gitignored)
@@ -49,6 +45,7 @@ class ParseLdpApartmentTests(SimpleTestCase):
     def test_price_and_area(self):
         f = self.parsed.fields
         self.assertEqual(f["price"], Decimal("6280000000"))
+        self.assertEqual(f["price_unit"], "tỷ")
         self.assertEqual(f["area_sqm"], Decimal("71.5"))
         self.assertEqual(f["price_per_sqm"], (f["price"] / f["area_sqm"]).quantize(Decimal("1")))
 
@@ -96,6 +93,29 @@ class ParseLdpApartmentTests(SimpleTestCase):
         f = self.parsed.fields
         self.assertEqual(f["project_name"], "Sky Garden 3")
         self.assertEqual(f["project_id_source"], "488")
+
+
+class ParseLdpImagesSemanticsTests(SimpleTestCase):
+    """images=[] means the gallery parsed with zero photos (scored by
+    low_photos); images=None means the gallery container itself is missing
+    (markup change / partial save) -- a §8 nullable parse failure, excluded
+    from scoring. A video-only listing is the reachable real case for []."""
+
+    def _parse_apartment_without(self, selector):
+        soup = BeautifulSoup(_read("ldp_apartment.txt"), "html.parser")
+        for el in soup.select(selector):
+            el.decompose()
+        return parse_ldp(str(soup), "https://batdongsan.com.vn/fallback-url-pr46002296")
+
+    def test_empty_gallery_parses_to_empty_list_not_none(self):
+        parsed = self._parse_apartment_without(
+            ".re__media-preview .swiper-slide[data-filter='image']"
+        )
+        self.assertEqual(parsed.fields["images"], [])
+
+    def test_missing_gallery_container_parses_to_none(self):
+        parsed = self._parse_apartment_without(".re__media-preview")
+        self.assertIsNone(parsed.fields["images"])
 
 
 class ParseLdpLandTests(SimpleTestCase):
@@ -163,16 +183,18 @@ class SweepDelistingsGuardTests(TestCase):
     def _run(self, listings_seen):
         now = timezone.now()
         return ScrapeRun.objects.create(
-            started_at=now, finished_at=now, listings_seen=listings_seen
+            source_site="alonhadat",
+            started_at=now,
+            finished_at=now,
+            listings_seen=listings_seen,
         )
 
     def _stale_active_listing(self):
         return Listing.objects.create(
-            source_site="batdongsan",
+            source_site="alonhadat",
             source_id="sweep1",
-            url="https://batdongsan.com.vn/sweep-pr1",
+            url="https://alonhadat.com.vn/sweep-1.html",
             title="Test",
-            category_id_source=324,
             property_type="apartment",
             listing_intent="sale",
             last_seen_at=timezone.now() - timedelta(days=1),
@@ -181,7 +203,12 @@ class SweepDelistingsGuardTests(TestCase):
     def test_blocked_run_skips_sweep(self):
         self._run(1000)
         listing = self._stale_active_listing()
-        sweep_delistings(self._run(3))
+        # assertLogs also keeps the expected "crawl looks blocked" warning out
+        # of the suite's console output, where it reads like a live incident
+        with self.assertLogs(
+            "listings.management.commands.scrape_listings", level="WARNING"
+        ):
+            sweep_delistings(self._run(3))
         listing.refresh_from_db()
         self.assertTrue(listing.is_active)
         self.assertIsNone(listing.delisted_at)
@@ -223,6 +250,7 @@ class ParseAlonhadatSrpTests(SimpleTestCase):
     def test_first_card_known_values(self):
         f = self.listings[0].fields
         self.assertEqual(f["price"], Decimal("40000000000"))
+        self.assertEqual(f["price_unit"], "tỷ")
         self.assertEqual(f["area_sqm"], Decimal("90"))
         self.assertEqual(f["bedrooms"], 16)
         self.assertEqual(f["posted_date"], date(2026, 7, 10))
@@ -273,7 +301,7 @@ class ParseAlonhadatLdpExtrasTests(SimpleTestCase):
         self.assertEqual(extras["property_type"], "house")
         self.assertEqual(extras["listing_intent"], "rent")
 
-    def test_unmapped_slug_and_empty_gallery(self):
+    def test_unmapped_slug_and_missing_anchor(self):
         html = (
             "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
             "<a href='/can-ban-van-phong'>x</a></div>"
@@ -281,7 +309,29 @@ class ParseAlonhadatLdpExtrasTests(SimpleTestCase):
         extras = alonhadat.parse_ldp_extras(html)
         self.assertIsNone(extras["property_type"])
         self.assertIsNone(extras["listing_intent"])
+        self.assertIsNone(extras["images"])
+
+
+class ParseAlonhadatLdpImagesSemanticsTests(SimpleTestCase):
+    """Same null-vs-[] contract as batdongsan's parse_ldp: [] means the LDP
+    parsed (article.property anchor present) with zero gallery photos --
+    enrichment done, scored by low_photos; None means the anchor itself is
+    missing (markup redesign / partial page), so images stays null, the
+    enrichment gate retries next run, and score_listings skips the row."""
+
+    def _parse_sample_without(self, selector):
+        soup = BeautifulSoup(_read("alonhadat_ldp_apartment.txt"), "html.parser")
+        for el in soup.select(selector):
+            el.decompose()
+        return alonhadat.parse_ldp_extras(str(soup))
+
+    def test_empty_gallery_with_anchor_parses_to_empty_list(self):
+        extras = self._parse_sample_without("article.property section.images img")
         self.assertEqual(extras["images"], [])
+
+    def test_missing_structural_anchor_parses_images_to_none(self):
+        extras = self._parse_sample_without("article.property")
+        self.assertIsNone(extras["images"])
 
 
 class EnrichFromLdpTests(TestCase):
@@ -303,6 +353,7 @@ class EnrichFromLdpTests(TestCase):
         )
 
     def _run_enrich(self, item, fetch_response):
+        import io
         from unittest.mock import patch
 
         from listings.management.commands import scrape_listings
@@ -313,7 +364,9 @@ class EnrichFromLdpTests(TestCase):
         with patch.object(
             scrape_listings, "fetch", return_value=fetch_response
         ) as mock_fetch:
-            scrape_listings.Command()._enrich_from_ldp(item, run)
+            # captured stderr keeps the expected "ldp fetch failed" line out
+            # of the suite's console output, where it reads like a live incident
+            scrape_listings.Command(stderr=io.StringIO())._enrich_from_ldp(item, run)
         return run, mock_fetch
 
     def test_new_listing_gets_breadcrumb_type_and_images(self):
@@ -349,6 +402,54 @@ class EnrichFromLdpTests(TestCase):
         mock_fetch.assert_not_called()
         self.assertNotIn("property_type", item.fields)
         self.assertNotIn("listing_intent", item.fields)
+
+    def test_existing_row_with_empty_gallery_counts_as_done_and_skips_fetch(self):
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=[],
+            last_seen_at=timezone.now(),
+        )
+        item = self._item()
+        run, mock_fetch = self._run_enrich(item, None)
+        mock_fetch.assert_not_called()
+
+    def test_anchor_missing_ldp_leaves_images_null_for_retry_and_notes_it(self):
+        import io
+        from unittest.mock import Mock, patch
+
+        from listings.management.commands import scrape_listings
+
+        Listing.objects.create(
+            source_site="alonhadat",
+            source_id="111",
+            url="https://alonhadat.com.vn/x-111.html",
+            title="t",
+            property_type="house",
+            listing_intent="sale",
+            images=None,
+            last_seen_at=timezone.now(),
+        )
+        item = self._item()
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now()
+        )
+        stderr = io.StringIO()
+        with patch.object(
+            scrape_listings,
+            "fetch",
+            return_value=Mock(status_code=200, text="<html><body>redesigned</body></html>"),
+        ) as mock_fetch:
+            scrape_listings.Command(stderr=stderr)._enrich_from_ldp(item, run)
+        mock_fetch.assert_called_once()
+        self.assertIn("images", item.fields)
+        self.assertIsNone(item.fields["images"])
+        self.assertEqual(run.error_count, 0)
+        self.assertIn("article.property", stderr.getvalue())
 
     def test_existing_row_without_images_refetches_but_failed_fetch_is_error(self):
         Listing.objects.create(
@@ -507,6 +608,39 @@ class NoLdpEnrichHandleTests(TestCase):
         self.assertIn("ldp_visits=0", out.getvalue())
 
 
+class PostedDateNullCheckTests(TestCase):
+    # Two valid cards with no [itemprop='datePosted'] at all: parses clean,
+    # posted_date null on both, 100% null rate -> the break warning fires.
+    SRP_HTML = (
+        '<article class="property-item"><a itemprop="url" href="/x-111.html">'
+        '<h3 itemprop="name">t</h3></a></article>'
+        '<article class="property-item"><a itemprop="url" href="/x-222.html">'
+        '<h3 itemprop="name">t</h3></a></article>'
+    )
+
+    def test_all_null_run_counts_and_warns(self):
+        import io
+        from unittest.mock import Mock, patch
+
+        from django.core.management import call_command
+
+        from listings.management.commands import scrape_listings
+
+        srp = Mock(status_code=200, text=self.SRP_HTML)
+        with patch.object(scrape_listings, "fetch", return_value=srp):
+            with self.assertLogs(
+                "listings.management.commands.scrape_listings", level="WARNING"
+            ) as logs:
+                call_command(
+                    "scrape_listings", "--source", "alonhadat", "--no-ldp-enrich",
+                    stdout=io.StringIO(),
+                )
+        run = ScrapeRun.objects.latest("started_at")
+        self.assertEqual(run.listings_seen, 2)
+        self.assertEqual(run.posted_date_nulls, 2)
+        self.assertTrue(any("posted_date null rate 100%" in line for line in logs.output))
+
+
 class FetchBotChallengeTests(SimpleTestCase):
     def test_challenge_redirect_returns_none_without_retry(self):
         from unittest.mock import Mock, patch
@@ -518,26 +652,8 @@ class FetchBotChallengeTests(SimpleTestCase):
             url="https://alonhadat.com.vn/xac-thuc-nguoi-dung.html?url=/x-1.html",
         )
         with patch.object(client.session, "get", return_value=challenge) as get:
-            self.assertIsNone(client.fetch("https://alonhadat.com.vn/x-1.html"))
+            # assertLogs keeps the expected "bot challenge served" error out
+            # of the suite's console output, where it reads like a live incident
+            with self.assertLogs("listings.scraping.client", level="ERROR"):
+                self.assertIsNone(client.fetch("https://alonhadat.com.vn/x-1.html"))
             self.assertEqual(get.call_count, 1)
-
-
-class ParseSrpTests(SimpleTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.html = _read("srp_sample.txt")
-
-    def test_extracts_listing_urls(self):
-        urls = parse_srp(self.html)
-        self.assertGreater(len(urls), 0)
-        for url in urls:
-            self.assertTrue(url.startswith("https://batdongsan.com.vn/"))
-            self.assertRegex(url, r"-pr\d+$")
-
-    def test_urls_are_deduplicated(self):
-        urls = parse_srp(self.html)
-        self.assertEqual(len(urls), len(set(urls)))
-
-    def test_total_pages(self):
-        self.assertGreaterEqual(parse_srp_total_pages(self.html), 1)

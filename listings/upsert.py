@@ -15,10 +15,7 @@ def upsert(parsed):
     existing = Listing.objects.filter(
         source_site=parsed.source_site, source_id=parsed.source_id
     ).first()
-    # PriceHistory.price is NOT NULL (§5.3), so a "Thỏa thuận" (null-price)
-    # observation can't be recorded as a history row; the Listing itself
-    # still gets its price overwritten to null below.
-    if existing and parsed.price != existing.price and parsed.price is not None:
+    if existing and parsed.price != existing.price:
         PriceHistory.objects.create(
             listing=existing,
             price=parsed.price,
@@ -35,7 +32,7 @@ def upsert(parsed):
             "is_active": True,
         },
     )
-    if created and listing.price is not None:
+    if created:
         PriceHistory.objects.create(
             listing=listing,
             price=listing.price,

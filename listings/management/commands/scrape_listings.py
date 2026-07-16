@@ -34,6 +34,32 @@ def sweep_delistings(run):
     ).update(is_active=False, delisted_at=run.finished_at)
 
 
+def check_posted_date_nulls(run):
+    # A renamed date label/attribute parses to null with no error (§8's
+    # nullable-field path), so error_count stays clean while §7's full
+    # overwrite nulls posted_date across the whole source. Warn on the run
+    # where the null rate first jumps past 80%; stay quiet while the prior
+    # run was already that broken (chronic, e.g. a source that never
+    # exposes dates), so a break warns once instead of every run forever.
+    if not run.listings_seen:
+        return
+    rate = run.posted_date_nulls / run.listings_seen
+    if rate < 0.8:
+        return
+    prior = (
+        ScrapeRun.objects.filter(source_site=run.source_site, finished_at__isnull=False)
+        .exclude(pk=run.pk)
+        .order_by("-started_at")
+        .first()
+    )
+    if prior and prior.listings_seen and prior.posted_date_nulls / prior.listings_seen >= 0.8:
+        return
+    logger.warning(
+        f"posted_date null rate {rate:.0%} ({run.posted_date_nulls}/{run.listings_seen}) "
+        f"for {run.source_site} -- date parsing looks broken (label/markup change?)"
+    )
+
+
 class Command(BaseCommand):
     help = (
         "SRP crawl of the alonhadat HCMC tracked scope with plain requests "
@@ -101,6 +127,11 @@ class Command(BaseCommand):
             run.error_count += 1
             return
         extras = alonhadat.parse_ldp_extras(response.text)
+        if extras["images"] is None:
+            self.stderr.write(
+                f"no article.property anchor on {item.fields['url']}; "
+                "images left null for retry (markup change?)"
+            )
         item.fields["images"] = extras["images"]
         if extras["property_type"]:
             item.fields["property_type"] = extras["property_type"]
@@ -141,6 +172,8 @@ class Command(BaseCommand):
                 for item in new:
                     seen.add(item.source_id)
                     run.listings_seen += 1
+                    if item.fields.get("posted_date") is None:
+                        run.posted_date_nulls += 1
                     try:
                         self._enrich_from_ldp(item, run)
                         if upsert(item):
@@ -154,6 +187,7 @@ class Command(BaseCommand):
         run.finished_at = timezone.now()
         if options["pages"] is None:
             sweep_delistings(run)
+        check_posted_date_nulls(run)
         run.save()
         self.stdout.write(
             f"seen={run.listings_seen} inserted={run.inserted} "
