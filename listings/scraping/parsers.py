@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 
-from .currency import parse_vnd
+from .currency import parse_vnd, parse_vnd_unit
 
 # ponytail: only category IDs confirmed from saved HTML are mapped: 324/53
 # from the attached LDP samples, 41 from a saved SRP card (batdongsan search
@@ -118,8 +118,15 @@ def _extract_map_coords(soup):
 
 
 def _extract_images(soup):
+    # Container absent = markup change / partial save -> None (§8 nullable
+    # parse failure, excluded from low_photos scoring). Container present
+    # with zero image slides (e.g. video-only listing) = real zero photos
+    # -> [], scored normally.
+    container = soup.select_one(".re__media-preview")
+    if container is None:
+        return None
     images = []
-    for img in soup.select(".re__media-preview .swiper-slide[data-filter='image'] img"):
+    for img in container.select(".swiper-slide[data-filter='image'] img"):
         src = img.get("data-src") or img.get("src")
         if src and src not in images:
             images.append(src)
@@ -212,7 +219,7 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
         "is_verified": bool(product.get("verified", False)),
         "vip_type": str(product.get("vipType")) if product.get("vipType") is not None else None,
         "price": price,
-        "price_unit": None,
+        "price_unit": parse_vnd_unit(specs.get("Khoảng giá")),
         "price_per_sqm": price_per_sqm,
         "area_sqm": area_sqm,
         "bedrooms": _parse_int(specs.get("Số phòng ngủ")),
@@ -224,7 +231,7 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
         "ward": ward,
         "specs_raw": specs or None,
         "description": description,
-        "images": _extract_images(soup) or None,
+        "images": _extract_images(soup),
         "video_url": _extract_video_url(soup),
         "map_lat": map_lat,
         "map_lng": map_lng,
@@ -242,26 +249,3 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
         expired=bool(product.get("expired", False)),
         fields=fields,
     )
-
-
-def parse_srp(html: str, base_url: str = "https://batdongsan.com.vn") -> list[str]:
-    soup = BeautifulSoup(html, "html.parser")
-    urls = []
-    for link in soup.select("a.js__product-link-for-product-id[href]"):
-        # ponytail: data-product-id="0" marks a sponsored ad card
-        # (re__card-full-ads), not a real listing -- its href points off-site.
-        if link.get("data-product-id") == "0":
-            continue
-        href = link["href"]
-        full_url = href if href.startswith("http") else f"{base_url}{href}"
-        if full_url not in urls:
-            urls.append(full_url)
-    return urls
-
-
-def parse_srp_total_pages(html: str) -> int:
-    soup = BeautifulSoup(html, "html.parser")
-    pages = [
-        int(a["pid"]) for a in soup.select(".re__pagination-number[pid]") if a.get("pid", "").isdigit()
-    ]
-    return max(pages) if pages else 1

@@ -16,10 +16,10 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 
 ### Standard (locked, ships by Aug 10)
 - Primary automated source: **alonhadat.com.vn**. Secondary automated source: **homedy.com**, scraped the same way, for wider coverage and as a cross-check on alonhadat's price/field parsing where a listing happens to appear on both — still exact `(source_site, source_id)` dedup per listing, never a cross-source merge (§7). Both confirmed reachable via plain `requests` on SRP and LDP, no browser, no bot challenge — see §6.
-- **batdongsan.com.vn dropped as the automated source.** Confirmed Cloudflare-gated on every navigation (§6); that finding is unchanged. `ingest_saved_listings` (manual HTML capture) stays in the repo as a rare, opportunistic fallback only — unscheduled, not relied on for volume, not required by any phase's Definition of Done (§14). Decided 2026-07-10: kept rather than deleted because it's already built and tested and costs nothing to leave dormant, not because it's still a launch-data source.
+- **batdongsan.com.vn dropped as the automated source.** Confirmed Cloudflare-gated on every navigation (§6); that finding is unchanged. `ingest_saved_listings` (manual HTML capture) stays in the repo as a rare, opportunistic fallback only — unscheduled, not relied on for volume, not required by any phase's Definition of Done (§15). Decided 2026-07-10: kept rather than deleted because it's already built and tested and costs nothing to leave dormant, not because it's still a launch-data source.
 - `property_type` in `{apartment, house, land, villa}`, `listing_intent` in `{sale, rent}`. `office` is a valid schema value but is never produced by the Standard scraper.
 - Full pipeline: scraper → Postgres → Django backend + REST API → dashboard → ML price model → Render deployment → published research piece.
-- Price history tracking, delisting detection, and anomaly flagging (price-gap, low-photo, stale-listing rules only — see §11) are in Standard scope. They are pipeline requirements, not stretch features.
+- Price history tracking, delisting detection, and anomaly flagging (price-gap, low-photo, stale-listing rules only — see §12) are in Standard scope. They are pipeline requirements, not stretch features.
 
 ### Stretch (Y12, not this summer, no build time until Standard ships)
 - **maisonoffice.vn** scraping (`property_type=office`). The schema already accounts for it (`source_site` choices, `price_unit` column) but the Standard scraper never touches this site.
@@ -40,11 +40,11 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 - Python: scraping (`requests` + `beautifulsoup4` for both SRP and LDP on alonhadat.com.vn and homedy.com — both confirmed to serve full listing HTML to a plain request, no browser needed, see §6), ML (`scikit-learn`, `pandas`, `numpy`)
 - PostgreSQL
 - Django 5.2 + Django REST Framework + `django-filter` for the API
-- Django templates + Tailwind CSS + Chart.js for the dashboard (server-rendered; Chart.js is largely unused in Standard since trend charts are Stretch)
+- Django templates + Tailwind CSS 4 via `django-tailwind-cli` (standalone binary — no Node.js/npm anywhere in the project) + Chart.js for the dashboard (server-rendered; Chart.js is largely unused in Standard since trend charts are Stretch). Theme tokens per §11; `{% tailwind_css %}` loaded in `base.html`. Installed and verified live 2026-07-15
 - `whitenoise` for static file serving in production
 - Render for deployment of the web service and API only. The scraper (SRP fetch + LDP fetch + DB write) runs entirely on the local machine via Windows Task Scheduler, not on Render — see §9 for why, now that the original browser-dependency rationale no longer applies.
 
-Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`. `playwright` is no longer needed anywhere in the pipeline — no remaining source requires a browser (§6). It's already in `requirements.txt` from the earlier batdongsan-browser plan; remove it next time that file is touched.
+Additions needed to `requirements.txt`: `beautifulsoup4`, `requests`, `scikit-learn`, `pandas`, `numpy`, `djangorestframework`, `django-filter`, `whitenoise`. `django-tailwind-cli` added 2026-07-15 (§11). `playwright` is no longer needed anywhere in the pipeline — no remaining source requires a browser (§6). Removed from `requirements.txt` 2026-07-14 together with the dead `scrape_batdongsan` command, its last dependent.
 
 ## 4. Repository / App Structure
 
@@ -63,16 +63,20 @@ saiprice/
         train_model.py                 # one-off/occasional, not scheduled
     scraping/
       client.py                        # HTTP session, retry/backoff, rate limiting
+      parsers.py                       # ParsedListing + shared helpers; batdongsan LDP extraction, manual-fallback path only
       sites/
         alonhadat.py                   # alonhadat SRP/LDP field extraction
         homedy.py                      # homedy SRP/LDP field extraction
-        batdongsan.py                  # batdongsan LDP extraction, manual-fallback path only
       currency.py                      # Vietnamese price-text -> whole VND, shared across all three sites
     api/
       serializers.py
       views.py
       urls.py
     views.py                           # plain Django views for the dashboard (template rendering)
+    templates/
+      base.html                        # single base template, loads {% tailwind_css %} — see §11
+      listings/
+        listing_list.html
     ml/
       train.py
       predict.py
@@ -82,9 +86,16 @@ saiprice/
       test_scraping.py
       test_models.py
       test_api.py
+      test_views.py
+      test_ingest.py
   saiprice/
     settings.py
     urls.py
+  tailwind_src/
+    source.css                         # only hand-written CSS in the project — see §11
+  assets/
+    css/
+      tailwind.css                     # compiled output, gitignored — see §11
 ```
 
 Dashboard views query the ORM directly. They do not call the app's own REST API internally — that would be an unnecessary self-HTTP round trip. The API in `listings/api/` exists as a separate, additional public interface.
@@ -116,7 +127,7 @@ Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, O
 | `is_verified` | `BooleanField(default=False)` | required | |
 | `vip_type` | `CharField(max_length=50)` | nullable | Store the raw code from `pageTrackingData.products[0].vipType` as a string (e.g. `"0"`). If a visible display label exists on the page, a code-to-label mapping can live in the parser for display purposes, but the stored value stays the raw code — same convention as `specs_raw` for other messy source variation. Decided 2026-07-06. |
 | `price` | `DecimalField(max_digits=15, decimal_places=0)` | nullable | Whole VND. Null when source shows "Thỏa thuận" (negotiable) |
-| `price_unit` | `CharField(max_length=50)` | nullable | Unused for batdongsan (VND implicit); populated when maisonoffice scraping starts |
+| `price_unit` | `CharField(max_length=50)` | nullable | Populated at ingest since 2026-07-14 with the source's price-magnitude text, normalized to `tỷ`/`triệu` (`tr` maps to `triệu`); null when `price` is null, and stays null on rows ingested earlier. Display formatting does not depend on it — see `price_display` (§5.5). maisonoffice's real unit semantics (Stretch) unchanged |
 | `price_per_sqm` | `DecimalField(max_digits=15, decimal_places=0)` | nullable | Whole VND |
 | `area_sqm` | `DecimalField(max_digits=10, decimal_places=2)` | nullable | |
 | `bedrooms` | `IntegerField` | nullable | Absent for land/project listings — expected, not an error |
@@ -142,7 +153,7 @@ Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, O
 | `predicted_price` | `DecimalField(max_digits=15, decimal_places=0)` | nullable | Current-state ML output, overwritten each scoring run |
 | `predicted_at` | `DateTimeField` | nullable | Timestamp of the last scoring run that touched this row |
 | `is_anomaly` | `BooleanField(default=False)` | required | |
-| `anomaly_reason` | `JSONField` | nullable | Dict of rule code → `{"triggered": bool, "value": ...}`. See §11 for exact shape. |
+| `anomaly_reason` | `JSONField` | nullable | Dict of rule code → `{"triggered": bool, "value": ...}`. See §12 for exact shape. |
 
 Constraints: `unique_together = (("source_site", "source_id"),)`. `url` has `unique=True`.
 
@@ -198,6 +209,9 @@ One row per scraper invocation, scoped to a single source — one run = one sour
 | `updated` | `IntegerField(default=0)` | required |
 | `skipped` | `IntegerField(default=0)` | required |
 | `error_count` | `IntegerField(default=0)` | required |
+| `posted_date_nulls` | `IntegerField(default=0)` | required |
+
+`posted_date_nulls` (added 2026-07-14) counts this run's listings that parsed with a null `posted_date`. A date-label/markup rename on the source nulls the field fleet-wide through §8's silent nullable-field path — no error, no skip, so `error_count` never shows it, and §7's full overwrite wipes previously-good dates within one run. At end of run, `scrape_listings` warns when the null rate passes 80%, unless the source's prior finished run was already past 80% (a fresh break warns once; a chronically date-less source doesn't warn forever). Run-level pipeline health only — deliberately not a fourth §12 anomaly rule, which would flag every listing in a broken run.
 
 ### 5.5 Computed values (not stored)
 
@@ -217,7 +231,7 @@ Listing.objects.annotate(
 
 If `posted_date` is null (parse miss — batdongsan's LDP reliably exposes it, so a null here is almost always a parsing failure, not a genuinely unknown date), fall back to the listing's earliest `PriceHistory.observed_at` instead of leaving `days_on_market` null. This gives an honest floor ("at least N days," possibly an undercount for a listing that existed before it was first scraped) rather than silently dropping the anomaly signal on exactly the listings — old, messy, individually-sold — that signal is meant to catch.
 
-**`price_change_pct`** (used by the anomaly price-gap rule is a separate thing — see §11 — this is the general-purpose stat): previous-vs-latest, from the two most recent `PriceHistory` rows for a listing:
+**`price_change_pct`** (used by the anomaly price-gap rule is a separate thing — see §12 — this is the general-purpose stat): previous-vs-latest, from the two most recent `PriceHistory` rows for a listing:
 
 ```python
 def price_change_pct(listing):
@@ -227,6 +241,8 @@ def price_change_pct(listing):
     latest, previous = history
     return (latest.price - previous.price) / previous.price
 ```
+
+**`price_display`** (added 2026-07-14): human-readable price, a `Listing` property exposed as a read-only field on the API serializer. Computed from `price` directly — deliberately not from `price_unit`, so rows ingested before `price_unit` was populated render too. Null `price` → null; `price >= 1_000_000_000` → `X.XX tỷ`; below → `X.XX triệu`; trailing zeros stripped (`8 tỷ`, `8.5 tỷ`, `999 triệu`). `min_price`/`max_price` filtering stays raw whole-VND integers — the shipped filter contract is unchanged.
 
 ## 6. Data Acquisition
 
@@ -247,7 +263,7 @@ alonhadat.com.vn and homedy.com, by contrast, are confirmed live 2026-07-10 with
 - alonhadat SRP (`/can-ban-nha-dat/ho-chi-minh`) and a real LDP linked from it: both `200`, full server-rendered HTML, no Cloudflare/captcha markers. Listing cards carry schema.org microdata (`itemprop="price"`, `itemprop="floorSize"`, etc.) — a genuine parsing convenience over batdongsan's inline JSON blob.
 - homedy SRP (`/ban-nha-dat-tp-ho-chi-minh`) and a real LDP linked from it: both `200`, full server-rendered HTML, no Cloudflare/captcha markers. A `recaptcha/api.js` tag is present but inert on these pages — it's a defensive include for the site's own login form, not an active challenge; both requests returned complete listing content without solving anything.
 
-This was one manual request per page, not a sustained crawl — §8's retry/backoff and randomized rate limiting still apply once `scrape_listings` runs for real, and "has run successfully at least once against the live site" (§14) is the actual bar, not this spot-check. Update 2026-07-10: for alonhadat this clean-reachability finding describes the pre-escalation state — see the dated blocking status in the `Agent.source_id` bullet below.
+This was one manual request per page, not a sustained crawl — §8's retry/backoff and randomized rate limiting still apply once `scrape_listings` runs for real, and "has run successfully at least once against the live site" (§15) is the actual bar, not this spot-check. Update: alonhadat's SRP reachability was interrupted by the 2026-07-10 robot-verify escalation, then re-confirmed clean by the 2026-07-13 ten-page re-test — this finding is current state again for SRP crawling. LDP-side caution still applies; full dated history in the `Agent.source_id` bullet below.
 
 Not yet confirmed, and needed before `scraping/sites/alonhadat.py`/`homedy.py` are written — do not assume these mirror batdongsan:
 - Each site's exact category/property-type signal. batdongsan used `pageTrackingData.products[0].cateId`; alonhadat's URL slugs look like a clean signal (`/ban-can-ho-chung-cu`, `/ban-biet-thu`, `/ban-dat`), but this needs confirming against a full category list, not assumed from three examples.
@@ -262,7 +278,7 @@ Not yet confirmed, and needed before `scraping/sites/alonhadat.py`/`homedy.py` a
 
 batdongsan.com.vn stays reachable exactly one way: a human browses it normally and saves individual LDPs as "HTML Only." `ingest_saved_listings <folder>` reads every file in the folder (no filename convention), parses each with the existing `parse_ldp`, and upserts through the same verified sequence in `listings/upsert.py` the crawler uses (Agent resolution, PriceHistory on first insert and on price change, null-price guard). One bad file logs as an error and never stops the batch. Property type comes from each file's own `cateId` via `parse_ldp`, never from folder structure.
 
-This is no longer the launch data path — alonhadat/homedy automation is. It's a rare, opportunistic top-up when a specific batdongsan listing is worth having and nothing else covers it: not scheduled, not weekly, not required by any phase's Definition of Done (§14).
+This is no longer the launch data path — alonhadat/homedy automation is. It's a rare, opportunistic top-up when a specific batdongsan listing is worth having and nothing else covers it: not scheduled, not weekly, not required by any phase's Definition of Done (§15).
 
 Consequences, accepted:
 - Coverage is partial by definition. A listing absent from a folder means nothing, so `ingest_saved_listings` performs no delisting sweep and never flips `is_active`. Delisting detection (§7) only runs against sources with full-coverage automated crawls — batdongsan is permanently excluded from it now, not just dormant.
@@ -289,7 +305,7 @@ def parse_vnd(text: str) -> Decimal | None:
     return (number * UNITS[match.group(2)]).quantize(Decimal("1"))
 ```
 
-`price_unit` stays null/unused for alonhadat, homedy, and batdongsan — VND is implicit for all three. It stays reserved for maisonoffice (Stretch).
+Reversed 2026-07-14 (previously "stays null/unused, reserved for maisonoffice"): `price_unit` is now populated at ingest for every source from the matched unit text, via `parse_vnd_unit` in `currency.py` — it shares `parse_vnd`'s exact match so price and unit can never disagree, and normalizes `tr` to `triệu`. `price` itself stays normalized whole VND for all sources; maisonoffice's Stretch semantics (a real per-period unit string) are unchanged.
 
 ## 7. Deduplication and Upsert Semantics
 
@@ -383,6 +399,8 @@ Must be fixed before deploying (standard practice, not a judgment call):
 - `DEBUG = config("DEBUG", default=False, cast=bool)`.
 - `ALLOWED_HOSTS` from an env var (comma-split), including the Render-assigned domain.
 - `whitenoise` added to `MIDDLEWARE` (right after `SecurityMiddleware`) and `requirements.txt` for static file serving — Render doesn't serve Django static files on its own.
+- `STATIC_ROOT = BASE_DIR / "staticfiles"` — already set in `settings.py`, required for `collectstatic` to run at all. Added 2026-07-15 alongside the `source.css` move out of `STATICFILES_DIRS` (§11).
+- Render build command must run `python manage.py tailwind build` before `collectstatic` — the compiled stylesheet (`assets/css/tailwind.css`) is gitignored, not committed, so it has to be built on deploy. The standalone Tailwind CLI downloads automatically at build time (version pinned via `TAILWIND_CLI_VERSION` in `settings.py`); no Node.js/npm on Render. See §11.
 
 Scraper scheduling: the original rationale for keeping the scraper local — SRP fetching needing a local, non-stealth browser, confirmed 2026-07-07 for batdongsan — no longer holds. alonhadat and homedy are both confirmed reachable with plain `requests` (§6), so a Render Cron Job is now technically viable and isn't ruled out for the reason it used to be. The decision stands anyway, restated rather than re-derived 2026-07-10: the entire scraper pipeline, `scrape_listings` (run once per source) followed by `score_listings`, keeps running locally via Windows Task Scheduler, not on Render. Reasons that hold without the browser constraint: it's already built and working this way, migrating a working scheduled job to Render Cron this close to Aug 10 is schedule risk for zero functional gain, and `ScrapeRun` monitoring via `/admin/` works the same either way. Render's job stays hosting the Django web app and API only, both reading the same remote Postgres instance the local scraper writes to. This accepts the risk of gaps in `PriceHistory`/delisting detection when the local machine is off — revisit moving to Render Cron only if that gap actually causes a problem, not preemptively.
 
@@ -411,19 +429,45 @@ class ListingListView(generics.ListAPIView):
 
 No dedicated filter-options-discovery endpoint (e.g. a `/districts/` list) — the dashboard's own filter sidebar queries `Listing.objects.values_list("district", flat=True).distinct()` directly from its own view; API consumers filter by value directly.
 
-## 11. Anomaly Detection
+## 11. Frontend / Design System
 
-Computed by `score_listings`, run after every scrape, over all `is_active=True` listings with both `price` and `predicted_price` populated. Requires at least 20 such listings to compute the price-gap percentile meaningfully — below that, skip the price-gap rule for this run (too small a sample for a percentile to mean anything) but still compute the other two rules.
+Tailwind CSS 4 via `django-tailwind-cli` (in `requirements.txt`). It downloads the standalone Tailwind CLI binary — no Node.js, no npm, no `package.json`, no `tailwind.config.js` anywhere in the project, ever. Set up 2026-07-15, configured manually in `settings.py` rather than via the interactive `tailwind setup` wizard: `django_tailwind_cli` in `INSTALLED_APPS`, `STATICFILES_DIRS = [BASE_DIR / "assets"]`, `TAILWIND_CLI_SRC_CSS = "tailwind_src/source.css"`, `TAILWIND_CLI_VERSION` pinned (no `latest` drift on deploy).
+
+Files:
+- `tailwind_src/source.css` — the only hand-written CSS in the project: `@import "tailwindcss"` plus the `@theme` token block below. Committed. Moved out of `assets/` 2026-07-15: it must live outside every `STATICFILES_DIRS` path, because manifest static-file storage (Django's `ManifestStaticFilesStorage`, which whitenoise's production storage subclasses) post-processes CSS during `collectstatic` and crashes trying to resolve `@import "tailwindcss"` as a static-file reference — reproduced live before the move (`Post-processing 'css\source.css' failed!`), confirmed clean after (`155 post-processed`).
+- `assets/css/tailwind.css` — compiled output, gitignored, rebuilt by `python manage.py tailwind build` (locally and in Render's build command, §9). The downloaded CLI binary lands in `.django_tailwind_cli/`, also gitignored.
+- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes.
+
+Theme tokens — this is the entire palette, defined once in `@theme` and used as `bg-paper`, `text-ink`, `text-muted`, `border-line`, `text-accent`:
+
+| Token | Value | Role |
+|---|---|---|
+| `--color-paper` | `#faf9f7` | page background |
+| `--color-ink` | `#1c1917` | text, strong borders |
+| `--color-muted` | `#78716c` | secondary text |
+| `--color-line` | `#e7e5e4` | hairline borders |
+| `--color-accent` | `#9a3412` | prices, links |
+
+Rules for all Standard-scope templates:
+- Colors and fonts come only from these five tokens plus Tailwind's built-in `font-serif` stack. No raw hex in templates, no arbitrary color values (`text-[#...]`), no second palette family. A new color means a new token in `source.css`, not a one-off utility.
+- Spacing and type sizes use Tailwind's standard scale (`text-sm`, `py-3.5`, `mb-6`), no arbitrary values (`text-[0.95rem]`).
+- Dev loop: `python manage.py tailwind watch` alongside `runserver`, or `tailwind runserver` which runs both. One-off rebuild: `tailwind build`.
+
+Deliberately not built, add only when a real page needs it: component/partial library, dark mode, webfont loading (system serif stack only), Chart.js theming (trend charts are Stretch, §2).
+
+## 12. Anomaly Detection
+
+Computed by `score_listings`, run after every scrape, over `is_active=True` listings. Each rule scopes its own population from there (amended 2026-07-16; the previous "with both `price` and `predicted_price` populated" qualifier described only the price-gap rule's population, and applied literally to a pre-ML build it would score zero rows): `price_gap` needs `price` and `predicted_price` both populated; `low_photos` needs `images` non-null (see rule 2); `stale_listing` needs `days_on_market` computable (§5.5). Requires at least 20 listings with both `price` and `predicted_price` to compute the price-gap percentile meaningfully — below that, skip the price-gap rule for this run (too small a sample for a percentile to mean anything) but still compute the other two rules.
 
 Three rules, each independently computed:
 
 1. **`price_gap`**: `(predicted_price - price) / price`. Flag if in the top 5% of this ratio across all qualifying active listings this run (recomputed each run with `numpy.percentile`, not a fixed cutoff — there's no data yet to justify a fixed percentage, and this adapts to whatever the model's real accuracy turns out to be).
-2. **`low_photos`**: `len(images or []) < 3`.
+2. **`low_photos`**: `len(images) < 3`, computed only over listings with `images` non-null (amended 2026-07-16 from `len(images or []) < 3`, which treated null as 0). Null and `[]` mean different things and only `[]` is a real photo count. `images` is null when the gallery was never parsed: an alonhadat/homedy row still awaiting LDP enrichment under the `--max-ldp-visits` budget (§6), an alonhadat LDP visit that served a page without the `article.property` anchor — the structural wrapper on every real LDP regardless of gallery state (parser fixed 2026-07-16: `parse_ldp_extras` previously returned `[]` on any gallery-selector miss, so a markup redesign would have read as enrichment-done — the `images IS NULL` retry gate never re-visits an `[]` row — and mass-flagged the source as `low_photos`; anchor-less pages now parse to null, stay retry-eligible, and are skipped by scoring), or a batdongsan LDP whose gallery container (`.re__media-preview`) is absent — markup change or partial save, §8's nullable parse failure (parser fixed 2026-07-16: `parse_ldp` previously collapsed `[]` to null via `or None`). Null rows are skipped — `is_anomaly`/`anomaly_reason` untouched — and enter scoring once enrichment or re-ingest fills `images`. `[]` is a parsed gallery with zero photos (reachable for real: a video-only listing keeps the container with no image slides; for alonhadat, the `article.property` anchor parsed with no gallery images — visited once, done, never re-fetched) and flags at 0. Accepted residual gap (2026-07-16): a partial redesign that keeps `article.property` but renames the gallery markup still parses to `[]`, silently indistinguishable from a genuine zero-photo listing — accepted rather than closed because guarding the gallery container instead would retry genuinely photo-less rows forever (whether alonhadat keeps an empty container on such listings is unconfirmed). Validated against live data 2026-07-16: treating null as 0 would have flagged 63 of 93 active listings, almost all on missing data; the actual scored set was 31, flagging 1.
 3. **`stale_listing`**: `days_on_market > 90` (see §5.5 for the computed value, including its `posted_date`-null fallback).
 
 `individual_seller` is explicitly not a rule — see §2.
 
-`is_anomaly = True` if any rule trips. `anomaly_reason` shape (all three rules always present, so the "why flagged" dashboard tooltip can show the full picture, not just the triggered ones):
+`is_anomaly = True` if any rule trips. `anomaly_reason` holds one key per rule that actually ran this scoring run — a partial build stores a partial dict, no faked `triggered: false` entries for rules that don't exist yet (decided 2026-07-16; as of that date only `low_photos` is built, so stored rows carry a one-key dict). Once all three rules exist, every scored row carries the full shape below, so the "why flagged" dashboard tooltip can show the full picture, not just the triggered ones. No migration is needed to get there: `score_listings` assigns a whole new dict each run (full replacement, verified — not a key merge), so one-key rows self-heal to the three-key shape on the first scoring run after the remaining rules land. Rows that leave the scored population (delisted, or `images` reverting to null) keep their last-written dict until they re-enter it:
 
 ```json
 {
@@ -433,15 +477,15 @@ Three rules, each independently computed:
 }
 ```
 
-`predicted_at` is set to the scoring run's timestamp whenever a listing's `predicted_price`/`is_anomaly`/`anomaly_reason` are (re)computed.
+`predicted_at` is set to the scoring run's timestamp only when the run actually computes `predicted_price` for that row (amended 2026-07-16 from "whenever `predicted_price`/`is_anomaly`/`anomaly_reason` are (re)computed"). A run that only recomputes anomaly fields — today's low_photos-only build — leaves `predicted_at` untouched: a timestamp next to a null `predicted_price` would read as "model ran and returned nothing," which never happened.
 
-## 12. ML Model
+## 13. ML Model
 
 Two candidates: linear regression and random forest (`scikit-learn`), trained on `district`, `area_sqm`, `property_type` at minimum. Pick whichever has the better RMSE/R² on a held-out test split. No fixed accuracy floor (see §2) — whatever it achieves ships, and gets reported honestly in the research piece.
 
 Serialize with `pickle` (not `joblib`) per the existing plan. `train_model` is a manual/occasional command, not part of the scheduled pipeline — retrain by re-running it and committing the new `model.pkl` when there's meaningfully more data.
 
-## 13. Testing
+## 14. Testing
 
 Django's built-in `TestCase` (`python manage.py test`) — ships with Django, zero new dependencies, no reason to add `pytest` for this project's size.
 
@@ -454,7 +498,7 @@ Required coverage for "done," not full coverage everywhere:
 
 Full view/endpoint test coverage and ML internals are not required to consider a phase done.
 
-## 14. Definition of Done, Per Phase
+## 15. Definition of Done, Per Phase
 
 **Scraper**
 - `python manage.py scrape_listings --source alonhadat` and `--source homedy` each run end-to-end unattended.
@@ -478,7 +522,7 @@ Full view/endpoint test coverage and ML internals are not required to consider a
 - DRF installed and configured.
 - `GET /api/listings/` and `GET /api/listings/<id>/` live, filtering/pagination/ordering working as specified in §10.
 - Endpoints return real data from the live DB, not fixtures.
-- Tests from §13 passing.
+- Tests from §14 passing.
 
 **Frontend dashboard**
 - Listing list page: filter sidebar (district, property_type, price range) + search, paginated, mobile-responsive.
