@@ -15,7 +15,7 @@ In development. Build started July 2026.
 | Scraper (batdongsan.com.vn) | Manual fallback only, Cloudflare blocks automation (see CLAUDE.md §6) |
 | Database (Postgres) | Live: `Listing`, `Agent`, `PriceHistory`, `ScrapeRun` |
 | Django backend + API | `GET /api/listings/` live |
-| Frontend dashboard | Not started |
+| Frontend dashboard | Listing list page live (Tailwind, paginated); filter sidebar, detail page, and anomaly summary not built yet |
 | ML price model | Not started |
 | Deployment (Render) | Not started |
 | Research writeup | Not started |
@@ -30,14 +30,31 @@ In development. Build started July 2026.
 
 `GET /api/listings/`: active listings, paginated at 20 per page.
 
-Filters: `min_price`, `max_price`, `min_area`, `max_area`, `district_id`.
+Filters: `district`, `property_type`, `listing_intent`, `min_price`, `max_price`, `min_area`, `max_area`, `is_anomaly`, `agent`, `district_id`.
+
+`GET /api/listings/<id>/`: single listing detail (active listings only).
+
+Anomaly fields, populated by `score_listings` (CLAUDE.md §12):
+
+- `is_anomaly` (boolean): true when any anomaly rule flagged the listing. Filterable: `GET /api/listings/?is_anomaly=true`.
+- `anomaly_reason` (dict or null): one key per rule that ran in the last scoring pass — `price_gap`, `low_photos`, `stale_listing` — each mapping to `{"triggered": bool, "value": ...}`. Currently only `low_photos` runs, so stored dicts have one key; the dict fills out as the remaining rules ship. Null on listings not yet scored. Read-only, not filterable.
+
+A flagged listing:
+
+```json
+{
+  "id": 31,
+  "is_anomaly": true,
+  "anomaly_reason": {"low_photos": {"triggered": true, "value": 2}}
+}
+```
 
 ## Tech stack
 
 - Python: `requests` + `beautifulsoup4` for scraping; `scikit-learn` planned for the price model
 - PostgreSQL
 - Django 5.2 + Django REST Framework + `django-filter`
-- Django templates + Tailwind CSS + Chart.js for the dashboard (planned)
+- Django templates + Tailwind CSS 4 via `django-tailwind-cli` (standalone binary, no Node.js/npm) for the dashboard; Chart.js only if trend charts ship (stretch)
 - Render for deployment (planned)
 
 ## Setup
