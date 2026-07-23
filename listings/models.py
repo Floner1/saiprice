@@ -24,6 +24,16 @@ class Agent(models.Model):
         unique_together = (("source_site", "source_id"),)
 
 
+def _format_vnd(value):
+    if value is None:
+        return None
+    if value >= 1_000_000_000:
+        value, unit = value / 1_000_000_000, "tỷ"
+    else:
+        value, unit = value / 1_000_000, "triệu"
+    return f"{f'{value:.2f}'.rstrip('0').rstrip('.')} {unit}"
+
+
 class Listing(models.Model):
     PROPERTY_TYPE_CHOICES = [
         ("apartment", "apartment"),
@@ -103,13 +113,15 @@ class Listing(models.Model):
         # Standard VND convention: >= 1 tỷ renders in tỷ, below in triệu.
         # Computed from price, not price_unit, so rows ingested before
         # price_unit was populated (pre-2026-07-14) render too.
-        if self.price is None:
-            return None
-        if self.price >= 1_000_000_000:
-            value, unit = self.price / 1_000_000_000, "tỷ"
-        else:
-            value, unit = self.price / 1_000_000, "triệu"
-        return f"{f'{value:.2f}'.rstrip('0').rstrip('.')} {unit}"
+        return _format_vnd(self.price)
+
+    @property
+    def predicted_price_display(self):
+        return _format_vnd(self.predicted_price)
+
+    @property
+    def price_per_sqm_display(self):
+        return _format_vnd(self.price_per_sqm)
 
 
 class PriceHistory(models.Model):
