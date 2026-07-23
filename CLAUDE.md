@@ -1,6 +1,6 @@
 # SaiPrice — Technical Specification
 
-This document is the single source of truth for how SaiPrice is built. It is written for an AI coding agent, not a human collaborator. Rules here are facts, not suggestions. Where the source plan (`combined-plan-2026-v47.html`) and this document conflict, this document wins — it resolves every ambiguity the plan left open.
+This document is the single source of truth for how SaiPrice is built. It is written for an AI coding agent, not a human collaborator. Rules here are facts, not suggestions.
 
 Deadline: Standard scope must be deployed with a live public URL by **August 10, 2026**.
 

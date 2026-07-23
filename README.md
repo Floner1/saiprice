@@ -1,6 +1,6 @@
 # SaiPrice
 
-A pricing-transparency pipeline for the Ho Chi Minh City residential property market. It scrapes public listings, stores them in Postgres, tracks price changes over time, and serves the results through a Django REST API. A price-prediction model and dashboard are planned but not built yet.
+A pricing-transparency pipeline for the Ho Chi Minh City residential property market. It scrapes public listings, stores them in Postgres, tracks price changes over time, and serves the results through a Django REST API and a server-rendered dashboard. A price-prediction model is planned but not built yet.
 
 It only ever sees what's publicly listed. This isn't a lead-generation tool and doesn't surface off-market inventory.
 
@@ -14,8 +14,8 @@ In development. Build started July 2026.
 | Scraper (homedy.com, secondary) | Not built yet |
 | Scraper (batdongsan.com.vn) | Manual fallback only, Cloudflare blocks automation (see CLAUDE.md §6) |
 | Database (Postgres) | Live: `Listing`, `Agent`, `PriceHistory`, `ScrapeRun` |
-| Django backend + API | `GET /api/listings/` live |
-| Frontend dashboard | Listing list page live (Tailwind, paginated); filter sidebar, detail page, and anomaly summary not built yet |
+| Django backend + API | `GET /api/listings/` and `GET /api/listings/<id>/` live |
+| Frontend dashboard | Listing list, filters (district, property type, price, search), and detail page live (Tailwind, paginated); anomaly summary view not built yet |
 | ML price model | Not started |
 | Deployment (Render) | Not started |
 | Research writeup | Not started |
@@ -37,7 +37,7 @@ Filters: `district`, `property_type`, `listing_intent`, `min_price`, `max_price`
 Anomaly fields, populated by `score_listings` (CLAUDE.md §12):
 
 - `is_anomaly` (boolean): true when any anomaly rule flagged the listing. Filterable: `GET /api/listings/?is_anomaly=true`.
-- `anomaly_reason` (dict or null): one key per rule that ran in the last scoring pass — `price_gap`, `low_photos`, `stale_listing` — each mapping to `{"triggered": bool, "value": ...}`. Currently only `low_photos` runs, so stored dicts have one key; the dict fills out as the remaining rules ship. Null on listings not yet scored. Read-only, not filterable.
+- `anomaly_reason` (dict or null): one key per rule that ran in the last scoring pass (`price_gap`, `low_photos`, `stale_listing`), each mapping to `{"triggered": bool, "value": ...}`. `low_photos` and `stale_listing` run today, so stored dicts carry two keys; `price_gap` joins once the ML model ships. Null on listings not yet scored. Read-only, not filterable.
 
 A flagged listing:
 
@@ -45,7 +45,10 @@ A flagged listing:
 {
   "id": 31,
   "is_anomaly": true,
-  "anomaly_reason": {"low_photos": {"triggered": true, "value": 2}}
+  "anomaly_reason": {
+    "low_photos": {"triggered": true, "value": 2},
+    "stale_listing": {"triggered": false, "value": 14}
+  }
 }
 ```
 
