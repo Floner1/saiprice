@@ -22,6 +22,7 @@ from listings import views
 
 urlpatterns = [
     path("", views.ListingListView.as_view(), name="listing-list"),
+    path("listing/<int:pk>/", views.ListingDetailView.as_view(), name="listing-detail"),
     path("admin/", admin.site.urls),
     path("api/", include("listings.api.urls")),
 ]
