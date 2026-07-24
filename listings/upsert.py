@@ -30,6 +30,7 @@ def upsert(parsed):
             "agent": agent,
             "last_seen_at": timezone.now(),
             "is_active": True,
+            "delisted_at": None,
         },
     )
     if created:
