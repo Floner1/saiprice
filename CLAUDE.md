@@ -149,7 +149,7 @@ Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, O
 | `scraped_at` | `DateTimeField(auto_now_add=True)` | required | Set once, at first insert. Never updated again. |
 | `last_seen_at` | `DateTimeField` | required | Set explicitly in ingestion code on every scrape pass that confirms the listing still exists. **Not** `auto_now` — an automatic field would also fire when the ML job updates `predicted_price`, which is not a re-confirmation that the listing is still live. |
 | `is_active` | `BooleanField(default=True)` | required | |
-| `delisted_at` | `DateTimeField` | nullable | Set when `is_active` flips to `False` |
+| `delisted_at` | `DateTimeField` | nullable | Set when `is_active` flips to `False`. Cleared back to `null` on reactivation (fixed 2026-07-24 — previously stayed frozen and silently undercounted `days_on_market` for any listing that had ever delisted and relisted) |
 | `predicted_price` | `DecimalField(max_digits=15, decimal_places=0)` | nullable | Current-state ML output, overwritten each scoring run |
 | `predicted_at` | `DateTimeField` | nullable | Timestamp of the last scoring run that touched this row |
 | `is_anomaly` | `BooleanField(default=False)` | required | |
@@ -337,7 +337,7 @@ def upsert(parsed):
         )
     listing, created = Listing.objects.update_or_create(
         source_site=parsed.source_site, source_id=parsed.source_id,
-        defaults={**parsed.fields, "agent": agent, "last_seen_at": timezone.now(), "is_active": True},
+        defaults={**parsed.fields, "agent": agent, "last_seen_at": timezone.now(), "is_active": True, "delisted_at": None},
     )
     if created:
         PriceHistory.objects.create(
@@ -351,13 +351,27 @@ def upsert(parsed):
 
 ### Delisting detection
 
-Because every run does a full crawl of the tracked scope for its one source, a listing that has genuinely been removed simply won't be touched this run. At the end of `scrape_listings` for a given (single-source) `run`:
+Because every run does a full crawl of the tracked scope for its one source, a listing that has genuinely been removed simply won't be touched this run. At the end of `scrape_listings` for a given (single-source) `run`, call `sweep_delistings(run)`:
 
 ```python
-Listing.objects.filter(
-    source_site=run.source_site, is_active=True, last_seen_at__lt=run.started_at,
-).update(is_active=False, delisted_at=run.finished_at)
+def sweep_delistings(run):
+    last_finished = ScrapeRun.objects.filter(
+        source_site=run.source_site, finished_at__isnull=False,
+    ).exclude(pk=run.pk).order_by("-finished_at").first()
+
+    if last_finished and run.listings_seen < last_finished.listings_seen / 2:
+        logger.warning(
+            f"{run.source_site}: skipping delisting sweep, listings_seen="
+            f"{run.listings_seen} is under half of last run's {last_finished.listings_seen}"
+        )
+        return
+
+    Listing.objects.filter(
+        source_site=run.source_site, is_active=True, last_seen_at__lt=run.started_at,
+    ).update(is_active=False, delisted_at=run.finished_at)
 ```
+
+A run that saw under half the listings the last finished run for that same `source_site` saw is treated as blocked (bot-challenge, network failure, partial crawl), not as a real drop in inventory, and skips the sweep entirely rather than mass-delisting live listings. This is what protects the table during an alonhadat bot-challenge escalation (§9) — a run stuck on challenges returns a near-zero `listings_seen` and the guard holds the previous sweep's state instead of wiping it out.
 
 This only ever runs for `alonhadat` or `homedy` — batdongsan has no full-coverage automated crawl to make the sweep meaningful (§6), so it's permanently excluded, not conditionally skipped.
 
@@ -403,6 +417,12 @@ Must be fixed before deploying (standard practice, not a judgment call):
 - Render build command must run `python manage.py tailwind build` before `collectstatic` — the compiled stylesheet (`assets/css/tailwind.css`) is gitignored, not committed, so it has to be built on deploy. The standalone Tailwind CLI downloads automatically at build time (version pinned via `TAILWIND_CLI_VERSION` in `settings.py`); no Node.js/npm on Render. See §11.
 
 Scraper scheduling: the original rationale for keeping the scraper local — SRP fetching needing a local, non-stealth browser, confirmed 2026-07-07 for batdongsan — no longer holds. alonhadat and homedy are both confirmed reachable with plain `requests` (§6), so a Render Cron Job is now technically viable and isn't ruled out for the reason it used to be. The decision stands anyway, restated rather than re-derived 2026-07-10: the entire scraper pipeline, `scrape_listings` (run once per source) followed by `score_listings`, keeps running locally via Windows Task Scheduler, not on Render. Reasons that hold without the browser constraint: it's already built and working this way, migrating a working scheduled job to Render Cron this close to Aug 10 is schedule risk for zero functional gain, and `ScrapeRun` monitoring via `/admin/` works the same either way. Render's job stays hosting the Django web app and API only, both reading the same remote Postgres instance the local scraper writes to. This accepts the risk of gaps in `PriceHistory`/delisting detection when the local machine is off — revisit moving to Render Cron only if that gap actually causes a problem, not preemptively.
+
+Local Task Scheduler automation (built 2026-07-24): `run_scraper.ps1` in the project root runs `scrape_listings --source alonhadat` then `score_listings` unconditionally, redirecting all streams (`*>>`, not stdout-only — stderr carries the per-URL error detail) into a timestamped file in `folding_reports/` (gitignored). Registered as Windows scheduled task "SaiPrice Daily Scrape": daily 9:00 AM trigger, Interactive logon as the current user (no stored credentials, no elevation), `-WindowStyle Hidden`, `-AllowStartIfOnBatteries -DontStopIfGoingOnBatteries` (the cmdlet defaults otherwise skip or kill a run whenever the laptop is unplugged, silently breaking the missed-start recovery below), `StartWhenAvailable: True` so a missed 9 AM fire (laptop off/asleep) runs at next logon instead of waiting a full day.
+
+Two of the first three fires that day crashed ~15-25s in, exit `0xC000013A` (killed console process), leaving orphaned `ScrapeRun` rows 11 and 12 (unfinished, `seen=0`, harmless — the delisting sweep only reads rows with `finished_at` set, so these don't affect it). Root cause still open as of 2026-07-24. First theory (visible console window closed at the keyboard) doesn't fit — the user was away from the machine for both crashes. Sleep/idle was the next hypothesis; ruled out by the System event log: `ScrapeRun` 11 (started 2026-07-24 06:24:55 UTC / 13:24:55 local) and 12 (started 06:28:34 UTC / 13:28:34 local) both crashed in the middle of a continuous awake stretch (last wake 13:03:30, next sleep entry 13:39:09) — no sleep, wake, or power event within minutes of either kill. Both crashed with exit code `0xC000013A` (`STATUS_CONTROL_C_EXIT`), consistent with something sending a close/interrupt signal to the console, but the sender is unidentified — the only System event in the 13:20-13:33 window is an unrelated SQL Server PolyBase service crash at 13:24:36, 19s before run 11 even started. Standing mitigations, kept regardless of which theory turns out right: `-WindowStyle Hidden` (removes the visible console entirely, whatever the actual trigger is) and plugged-in sleep set to Never (sound practice on its own, not confirmed as the fix for this incident). The real test is the unattended 9 AM runs going forward — a clean run is evidence, not proof, until the actual mechanism is identified; if one crashes again, pull the event log for that exact timestamp the same way. Separately, confirmed from the same log: this laptop enters Modern Standby after a few minutes idle, and the task has no wake timer, so a 9 AM fire while asleep waits for the next login/wake via `StartWhenAvailable` rather than firing on time — `folding_reports` timestamps trailing 09:00 is expected, not a bug.
+
+Do not manually run `run_scraper.ps1` or manually fire the scheduled task while alonhadat's bot-challenge wall is active. Four crawl starts within ~12 minutes on 2026-07-24 (manual test + two crashed fires + one clean fire) re-triggered the same escalation seen on 2026-07-10 — challenges on every LDP and on SRP page 2+, `sweep_delistings` correctly skipped (`listings_seen` under half the prior run's). Expect low-count runs for a few days after a trigger event; the 2026-07-10 episode took roughly until 2026-07-27 to clear, though that's a pattern observed once, not a confirmed fixed cooldown. Let scheduled runs come in on their own rather than testing manually — every extra manual fire extends the wall.
 
 ML model: trained locally via `train_model`, the resulting `model.pkl` is committed to the repo (`listings/ml/model.pkl`), loaded at Django startup. Not retrained automatically as part of deployment.
 

@@ -8,28 +8,28 @@
 
   <form method="get" class="mb-6 space-y-2 text-sm">
     <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search address or building"
-           class="w-full border border-line bg-paper px-2 py-1.5">
+           class="w-full border border-line bg-paper px-2 py-2.5 text-base">
     <div class="grid grid-cols-2 gap-2">
-      <select name="district" class="border border-line bg-paper px-2 py-1.5">
+      <select name="district" class="w-full border border-line bg-paper px-2 py-2.5 text-base">
         <option value="">All districts</option>
         {% for d in districts %}
         <option value="{{ d }}"{% if request.GET.district == d %} selected{% endif %}>{{ d }}</option>
         {% endfor %}
       </select>
-      <select name="property_type" class="border border-line bg-paper px-2 py-1.5">
+      <select name="property_type" class="w-full border border-line bg-paper px-2 py-2.5 text-base">
         <option value="">All types</option>
         {% for value, label in property_types %}
         <option value="{{ value }}"{% if request.GET.property_type == value %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
       <input type="number" name="min_price" value="{{ request.GET.min_price }}" placeholder="Min price (VND)"
-             class="border border-line bg-paper px-2 py-1.5">
+             class="w-full border border-line bg-paper px-2 py-2.5 text-base">
       <input type="number" name="max_price" value="{{ request.GET.max_price }}" placeholder="Max price (VND)"
-             class="border border-line bg-paper px-2 py-1.5">
+             class="w-full border border-line bg-paper px-2 py-2.5 text-base">
     </div>
     <div class="flex gap-4">
-      <button type="submit" class="border border-ink px-3 py-1.5">Filter</button>
-      <a href="{% url 'listing-list' %}" class="py-1.5 text-accent">Clear</a>
+      <button type="submit" class="border border-ink px-4 py-3">Filter</button>
+      <a href="{% url 'listing-list' %}" class="py-3 text-accent">Clear</a>
     </div>
   </form>
 
@@ -49,10 +49,10 @@
   </ul>
 
   {% if is_paginated %}
-  <nav class="mt-6 flex justify-between gap-4 text-sm">
-    <span>{% if page_obj.has_previous %}<a class="text-accent" href="{% querystring page=page_obj.previous_page_number %}">&larr; Previous</a>{% endif %}</span>
+  <nav class="mt-6 flex items-center justify-between gap-4 text-sm">
+    <span>{% if page_obj.has_previous %}<a class="inline-block py-3 text-accent" href="{% querystring page=page_obj.previous_page_number %}">&larr; Previous</a>{% endif %}</span>
     <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-    <span>{% if page_obj.has_next %}<a class="text-accent" href="{% querystring page=page_obj.next_page_number %}">Next &rarr;</a>{% endif %}</span>
+    <span>{% if page_obj.has_next %}<a class="inline-block py-3 text-accent" href="{% querystring page=page_obj.next_page_number %}">Next &rarr;</a>{% endif %}</span>
   </nav>
   {% endif %}
 {% endblock %}
