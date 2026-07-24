@@ -11,3 +11,4 @@ project_tests/
 .django_tailwind_cli/
 assets/css/tailwind.css
 staticfiles/
+scraper_run_reports/

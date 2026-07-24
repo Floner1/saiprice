@@ -174,6 +174,47 @@ class DaysOnMarketTests(TestCase):
         self.assertIsNone(listing.days_on_market)
 
 
+class ReactivationTests(TestCase):
+    """§7: a listing that was delisted, then reappears on a later crawl, must
+    have delisted_at cleared by upsert() so days_on_market falls through to
+    now() again. Otherwise the stale delisted_at caps the age and silently
+    suppresses the stale_listing anomaly rule."""
+
+    def test_reactivation_clears_stale_delisted_at(self):
+        posted = (timezone.now() - timedelta(days=95)).date()
+        delisted = timezone.now() - timedelta(days=10)
+        _make_listing(
+            source_site="alonhadat",
+            source_id="react1",
+            url="https://alonhadat.com.vn/react1.html",
+            posted_date=posted,
+            is_active=False,
+            delisted_at=delisted,
+        )
+
+        parsed = ParsedListing(
+            source_site="alonhadat",
+            source_id="react1",
+            agent_source_id=None,
+            agent_name=None,
+            expired=False,
+            fields={
+                "url": "https://alonhadat.com.vn/react1.html",
+                "title": "Reactivated listing",
+                "property_type": "house",
+                "listing_intent": "sale",
+                "price": 1000,
+                "posted_date": posted,
+            },
+        )
+        upsert(parsed)
+
+        listing = Listing.objects.get(source_site="alonhadat", source_id="react1")
+        self.assertTrue(listing.is_active)
+        self.assertIsNone(listing.delisted_at)
+        self.assertGreater(listing.days_on_market, 90)
+
+
 class PriceDisplayTests(TestCase):
     def _display(self, price, source_id):
         return _make_listing(
