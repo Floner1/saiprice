@@ -1,9 +1,10 @@
 from datetime import timedelta
 
+from django.template.loader import render_to_string
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Agent
+from listings.models import Agent, PriceHistory
 from listings.tests.test_models import _make_listing
 
 
@@ -234,6 +235,96 @@ class DashboardFilterPaginationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["paginator"].count, 21)
         self.assertEqual(len(response.context["page_obj"]), 1)
+
+
+class ListingCardTests(TestCase):
+    # Rendered standalone, not through the page: the card's contract is that a
+    # listing is the only context it needs. A test client GET would hide a
+    # dependency on the list view's filter context.
+    def _card(self, **overrides):
+        listing = _make_listing(
+            source_id="c1", url="https://alonhadat.com.vn/c1.html", **overrides
+        )
+        return render_to_string("listings/_listing_card.html", {"listing": listing})
+
+    def test_renders_every_populated_field(self):
+        card = self._card(
+            price=3_750_000_000, price_per_sqm=73_530_000, area_sqm=51,
+            bedrooms=2, district="Quận Bình Tân",
+            posted_date=(timezone.now() - timedelta(days=3)).date(),
+        )
+        self.assertIn("apartment for sale", card)
+        self.assertIn("3.75 tỷ", card)
+        self.assertIn("73.53 triệu/m²", card)
+        self.assertIn("51 m²", card)
+        self.assertIn("2 beds", card)
+        self.assertIn("Quận Bình Tân", card)
+        self.assertIn("3 days listed", card)
+
+    def test_links_to_detail(self):
+        listing = _make_listing(
+            source_id="c2", url="https://alonhadat.com.vn/c2.html"
+        )
+        card = render_to_string("listings/_listing_card.html", {"listing": listing})
+        self.assertIn(f'href="/listing/{listing.pk}/"', card)
+
+    def test_nullable_fields_omitted_not_rendered_empty(self):
+        card = self._card(
+            price=None, price_per_sqm=None, area_sqm=None, bedrooms=None,
+            district=None, posted_date=None,
+        )
+        self.assertIn("Thỏa thuận", card)
+        for absent in ("m²", "bed", "listed", "None"):
+            self.assertNotIn(absent, card)
+
+    def test_zero_bedrooms_not_hidden(self):
+        self.assertIn("0 beds", self._card(bedrooms=0))
+
+    def test_days_on_market_falls_back_when_posted_date_null(self):
+        listing = _make_listing(
+            source_id="c3", url="https://alonhadat.com.vn/c3.html", posted_date=None
+        )
+        PriceHistory.objects.create(
+            listing=listing, price=None, price_per_sqm=None,
+            observed_at=timezone.now() - timedelta(days=4),
+        )
+        card = render_to_string("listings/_listing_card.html", {"listing": listing})
+        self.assertIn("4 days listed", card)
+
+
+class ListingCardContactAgentTests(TestCase):
+    def _card(self, **overrides):
+        listing = _make_listing(
+            source_id="k1", url="https://alonhadat.com.vn/k1.html", **overrides
+        )
+        return listing, render_to_string(
+            "listings/_listing_card.html", {"listing": listing}
+        )
+
+    def test_contact_control_does_not_navigate_the_row(self):
+        # Markup proxy for the click. Two invariants make the tap land on the
+        # control instead of the row link: the control is a sibling of that link
+        # (closed before it opens, so not a descendant that inherits its href),
+        # and relative z-10 puts it above the after:inset-0 overlay. A literal
+        # click needs a browser, which the project deliberately has no
+        # dependency for (CLAUDE.md §3) — verified by hand in the dev server.
+        agent = Agent.objects.create(
+            source_site="alonhadat", source_id="k-ag", name="Chị Hoa"
+        )
+        listing, card = self._card(agent=agent, phone_number="090 123 4567")
+        self.assertIn('href="tel:0901234567"', card)
+        self.assertIn("Call Chị Hoa", card)
+        self.assertIn("relative z-10", card)
+        row_link_end = card.index("</a>", card.index(f'href="/listing/{listing.pk}/"'))
+        self.assertLess(row_link_end, card.index('href="tel:'))
+
+    def test_no_agent_contact_info_renders_no_control(self):
+        agent = Agent.objects.create(
+            source_site="alonhadat", source_id="k-anon", name=None
+        )
+        _, card = self._card(agent=agent, phone_number=None)
+        for absent in ("tel:", "Call", "aria-label"):
+            self.assertNotIn(absent, card)
 
 
 class DashboardAnomalyBadgeTests(TestCase):
