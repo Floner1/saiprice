@@ -25,7 +25,9 @@ def _to_decimal(value):
 
 class ListingListView(ListView):
     # Same page size as the API — one config value, not a second pagination setup.
-    queryset = Listing.objects.filter(is_active=True)
+    # select_related: the card's contact control reads agent.name, which is one
+    # query per row without it.
+    queryset = Listing.objects.filter(is_active=True).select_related("agent")
     ordering = ["-id"]
     paginate_by = settings.REST_FRAMEWORK["PAGE_SIZE"]
 
