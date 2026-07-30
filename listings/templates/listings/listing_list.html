@@ -35,14 +35,7 @@
 
   <ul>
     {% for listing in page_obj %}
-    <li class="border-b border-line py-3.5">
-      <h2 class="mb-0.5 text-base font-normal"><a href="{% url 'listing-detail' listing.pk %}">{{ listing.title }}</a>{% if listing.is_anomaly %}<span class="ml-2 align-middle text-xs font-bold uppercase tracking-wide text-accent">anomaly</span>{% endif %}</h2>
-      <p class="text-sm text-muted">
-        <span class="font-bold text-accent">{{ listing.price_display|default:"Thỏa thuận" }}</span>
-        {% if listing.area_sqm %} · {{ listing.area_sqm|floatformat }} m²{% endif %}
-        {% if listing.district %} · {{ listing.district }}{% endif %}
-      </p>
-    </li>
+    <li>{% include "listings/_listing_card.html" %}</li>
     {% empty %}
     <li class="border-b border-line py-3.5">No listings match.</li>
     {% endfor %}

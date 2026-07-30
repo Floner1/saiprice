@@ -1,4 +1,11 @@
-@import "tailwindcss";
+/* source(none) disables automatic content detection, which scanned from the repo
+   root and read any Tailwind-looking token in any file as a real class: agent skill
+   docs, scraped property HTML, and CLAUDE.md's own prohibition on arbitrary color
+   values, which compiled into an invalid rule. Allowlist on purpose, so the next
+   stray root-level file stays out unattended. One line per real source directory. */
+@import "tailwindcss" source(none);
+
+@source "../listings/templates";
 
 @theme {
   --color-paper: #faf9f7;

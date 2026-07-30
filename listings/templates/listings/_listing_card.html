@@ -1,0 +1,46 @@
+{% comment %}
+One result row. Takes `listing` and nothing else — no filter/search context.
+
+property_type and listing_intent lead the spec line because both are
+required fields: every later item can carry a leading separator without
+risking an orphan " · " when it parses null.
+{% endcomment %}
+<article class="relative border-b border-line py-3.5">
+  <h2 class="mb-0.5 text-base font-normal">
+    {# after:inset-0 stretches the hit area over the whole row: it holds no other link. #}
+    <a href="{% url 'listing-detail' listing.pk %}"
+       class="after:absolute after:inset-0 hover:text-accent">{{ listing.title }}</a>
+    {% if listing.is_anomaly %}<span class="ml-2 align-middle text-xs font-bold uppercase tracking-wide text-accent">anomaly</span>{% endif %}
+  </h2>
+  <p>
+    <span class="font-bold text-accent">{{ listing.price_display|default:"Thỏa thuận" }}</span>
+    {% if listing.price_per_sqm_display %}<span class="text-sm text-muted"> · {{ listing.price_per_sqm_display }}/m²</span>{% endif %}
+  </p>
+  <p class="text-sm text-muted">
+    {{ listing.property_type }} for {{ listing.listing_intent }}
+    {% if listing.area_sqm %} · {{ listing.area_sqm|floatformat }} m²{% endif %}
+    {# 0 bedrooms is a studio, not a parse miss — only null hides the field. #}
+    {% if listing.bedrooms is not None %} · {{ listing.bedrooms }} bed{{ listing.bedrooms|pluralize }}{% endif %}
+    {% if listing.district %} · {{ listing.district }}{% endif %}
+    {# ponytail: 1 query per card while posted_date is null (§5.4's fleet-wide break), free otherwise; annotate with api/views.py's DAYS_ON_MARKET_CALC if that lands #}
+    {% with days=listing.days_on_market %}{% if days is not None %} · {{ days }} day{{ days|pluralize }} listed{% endif %}{% endwith %}
+  </p>
+  {# Gated on phone_number, not on agent: Agent holds name only (§5.2 keeps phone
+     off it), so the listing's own field is the only dialable target. No number
+     means no control at all — same rule as every other missing field here.
+     relative z-10 lifts it over the title link's after:inset-0 overlay; without
+     it the row link swallows the tap. #}
+  {% if listing.phone_number %}
+  {# py-3 not py-2: 46px tall, over the 44px touch-target floor the row links
+     already hold. aria-label opens with the visible text so voice control can
+     match it (WCAG 2.5.3), then adds the title to tell 20 identical "Call"
+     links apart in a screen-reader link list. #}
+  {% with who=listing.agent.name|default:"agent" %}
+  <p class="mt-2">
+    <a href="tel:{{ listing.phone_number|cut:' ' }}"
+       aria-label="Call {{ who }} about {{ listing.title }}"
+       class="relative z-10 inline-block border border-ink px-3 py-3 text-sm hover:text-accent">Call {{ who }}</a>
+  </p>
+  {% endwith %}
+  {% endif %}
+</article>
