@@ -11,4 +11,3 @@ assets/css/tailwind.css
 staticfiles/
 scraper_run_reports/
 scrape_test_output/
-listings/ml/model.pkl
