@@ -15,4 +15,3 @@ staticfiles/
 scraper_run_reports/
 scrape_test_output/
 skills-lock.json
-listings/ml/model.pkl
