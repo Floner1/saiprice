@@ -67,15 +67,15 @@ if __name__ == "__main__":  # python -m listings.ml.predict
     # train._design plus the bundle directly, independently of this module.
     # Not an accuracy claim -- it fails if the design matrix, the fitted column
     # order, the exp() back-transform or as_of handling drift, which is what a
-    # loader can actually get wrong. The held-out RMSE this model won on was
-    # never persisted, and the split behind it is unreconstructable: the
-    # cleaned set was 1,123 rows at fit time and keeps growing, so a fixed
+    # loader can actually get wrong. The held-out RMSE this model won on is not
+    # stored in the bundle, and the split behind it is unreconstructable: the
+    # cleaned set was 1,226 rows at fit time and keeps growing, so a fixed
     # random_state no longer selects the same test rows.
     #
     # posted_date sits 14 days before as_of deliberately. Every fitted
-    # listing_age split threshold is under ~30 (the training set topped out at
-    # 46 days), so an older sample saturates and the prediction stops moving --
-    # verified, a sample at age 58 scored identically at age 1310, which left
+    # listing_age split threshold is under ~50 (the training set topped out at
+    # 50 days), so an older sample saturates and the prediction stops moving --
+    # verified, a sample at age 48 scored identically at age 1266, which left
     # as_of drift undetectable.
     rows = pd.DataFrame(
         [
@@ -89,6 +89,6 @@ if __name__ == "__main__":  # python -m listings.ml.predict
         ]
     )
     small, large = predict(rows, as_of=pd.Timestamp("2026-07-29"))
-    assert math.isclose(small, 4_680_714_203.7144375, rel_tol=1e-9), small
-    assert math.isclose(large, 21_062_755_974.597, rel_tol=1e-9), large
+    assert math.isclose(small, 4_302_344_966.893654, rel_tol=1e-9), small
+    assert math.isclose(large, 12_022_580_496.960297, rel_tol=1e-9), large
     print(f"ok  70sqm={small:,.0f} VND  150sqm={large:,.0f} VND")
