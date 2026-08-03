@@ -255,6 +255,24 @@ class ListingDetailTests(TestCase):
         self.assertEqual(body["district"], "Quận 3")
         self.assertEqual(body["price"], "7000000000")
 
+    def test_phone_number_not_exposed(self):
+        # Populated on purpose: ListingSerializer's field list is what withholds
+        # this, not the column happening to be null. homedy's LDP serves the
+        # agent phone ungated, so this starts filling once that source is wired
+        # into scrape_listings.
+        listing = _make_listing(
+            source_id="d3", url="https://alonhadat.com.vn/d3.html",
+            phone_number="0901234567",
+        )
+        detail = self.client.get(f"/api/listings/{listing.pk}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertNotIn("phone_number", detail.json())
+        row = next(
+            r for r in self.client.get("/api/listings/").json()["results"]
+            if r["source_id"] == "d3"
+        )
+        self.assertNotIn("phone_number", row)
+
     def test_detail_missing_id_returns_404(self):
         response = self.client.get("/api/listings/999999/")
         self.assertEqual(response.status_code, 404)
