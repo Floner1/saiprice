@@ -237,3 +237,25 @@ class PriceDisplayTests(TestCase):
 
     def test_null_price_is_none(self):
         self.assertIsNone(self._display(None, "pd5"))
+
+
+class AnomalyStalenessTests(TestCase):
+    """anomaly_reason is a snapshot; days_on_market ticks every day. Comparing
+    the scoring date to today is what tells a reader the two have diverged."""
+
+    def _listing(self, source_id, scored_at):
+        return _make_listing(
+            source_id=source_id,
+            url=f"https://batdongsan.com.vn/{source_id}-pr1",
+            anomaly_scored_at=scored_at,
+        )
+
+    def test_never_scored_is_not_stale(self):
+        self.assertFalse(self._listing("as1", None).anomaly_is_stale)
+
+    def test_scored_today_is_not_stale(self):
+        self.assertFalse(self._listing("as2", timezone.now()).anomaly_is_stale)
+
+    def test_scored_on_an_earlier_day_is_stale(self):
+        listing = self._listing("as3", timezone.now() - timedelta(days=2))
+        self.assertTrue(listing.anomaly_is_stale)
