@@ -339,3 +339,34 @@ class DashboardAnomalyBadgeTests(TestCase):
             source_id="n1", url="https://alonhadat.com.vn/n1.html", is_anomaly=False,
         )
         self.assertNotContains(self.client.get("/"), "anomaly")
+
+
+class DetailAnomalyStalenessLabelTests(TestCase):
+    def _detail(self, source_id, scored_at):
+        listing = _make_listing(
+            source_id=source_id,
+            url=f"https://alonhadat.com.vn/{source_id}.html",
+            posted_date=(timezone.now() - timedelta(days=100)).date(),
+            is_anomaly=True,
+            anomaly_reason={"stale_listing": {"triggered": True, "value": 97}},
+            anomaly_scored_at=scored_at,
+        )
+        return self.client.get(f"/listing/{listing.pk}/")
+
+    def test_stale_scoring_labelled(self):
+        response = self._detail("sx1", timezone.now() - timedelta(days=3))
+        self.assertContains(response, "Scored")
+        self.assertContains(response, "stale by")
+
+    def test_fresh_scoring_shows_date_without_stale_label(self):
+        response = self._detail("sx2", timezone.now())
+        self.assertContains(response, "Scored")
+        self.assertNotContains(response, "stale by")
+
+    def test_unscored_listing_shows_no_scoring_line(self):
+        listing = _make_listing(
+            source_id="sx3", url="https://alonhadat.com.vn/sx3.html"
+        )
+        response = self.client.get(f"/listing/{listing.pk}/")
+        self.assertNotContains(response, "Scored")
+        self.assertContains(response, "Not scored yet.")
