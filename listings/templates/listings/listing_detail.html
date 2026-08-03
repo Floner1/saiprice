@@ -34,6 +34,9 @@
 
   <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg">Anomaly check</h2>
   {% if listing.anomaly_reason %}
+    {% if listing.anomaly_scored_at %}
+    <p class="mb-2 text-xs text-muted">Scored {{ listing.anomaly_scored_at|date:"Y-m-d H:i" }}{% if listing.anomaly_is_stale %} · <span class="font-bold text-accent">stale by {{ listing.anomaly_scored_at|timesince }}</span> — values below predate today&rsquo;s days on market{% endif %}</p>
+    {% endif %}
     {% if listing.is_anomaly %}<p class="mb-1 text-sm font-bold text-accent">Flagged as anomaly</p>{% endif %}
     <ul class="text-sm">
       {% for rule, info in listing.anomaly_reason.items %}

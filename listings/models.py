@@ -89,6 +89,10 @@ class Listing(models.Model):
     predicted_at = models.DateTimeField(null=True)
     is_anomaly = models.BooleanField(default=False)
     anomaly_reason = models.JSONField(null=True)
+    # Dates anomaly_reason's contents. Separate from predicted_at because the
+    # two populations diverge: §12 skips the rules for a row with null images
+    # and no computable days_on_market, but the model can still price it.
+    anomaly_scored_at = models.DateTimeField(null=True)
 
     class Meta:
         unique_together = (("source_site", "source_id"),)
@@ -107,6 +111,16 @@ class Listing(models.Model):
             start = earliest.observed_at.date()
         end = (self.delisted_at or timezone.now()).date()
         return (end - start).days
+
+    @property
+    def anomaly_is_stale(self):
+        # Day granularity, not hours: the only §12 value that drifts on its own
+        # is days_on_market, which ticks once a day. localdate on both sides so
+        # this agrees with the |date filter rendering the same field.
+        return (
+            self.anomaly_scored_at is not None
+            and timezone.localdate(self.anomaly_scored_at) < timezone.localdate()
+        )
 
     @property
     def price_display(self):

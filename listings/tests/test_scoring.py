@@ -1,5 +1,6 @@
 import io
 from datetime import timedelta
+from decimal import Decimal
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -168,3 +169,171 @@ class StaleListingRuleTests(TestCase):
                 "stale_listing": {"triggered": True, "value": 100},
             },
         )
+
+
+class AnomalyScoredAtTests(TestCase):
+    """anomaly_scored_at dates anomaly_reason's stored values, so a reader can
+    tell how far they have drifted from live fields like days_on_market."""
+
+    def test_set_when_a_rule_runs(self):
+        before = timezone.now()
+        listing = _make_listing(
+            source_id="ax1",
+            url="https://batdongsan.com.vn/ax1-pr1",
+            images=["a.jpg"],
+        )
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNotNone(listing.anomaly_scored_at)
+        self.assertGreaterEqual(listing.anomaly_scored_at, before)
+
+    def test_left_null_when_no_rule_covers_the_listing(self):
+        listing = _make_listing(
+            source_id="ax2",
+            url="https://batdongsan.com.vn/ax2-pr1",
+            images=None,
+            posted_date=None,
+        )
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.anomaly_reason)
+        self.assertIsNone(listing.anomaly_scored_at)
+
+    def test_advances_on_rerun(self):
+        listing = _make_listing(
+            source_id="ax3",
+            url="https://batdongsan.com.vn/ax3-pr1",
+            images=["a.jpg"],
+        )
+        _score()
+        listing.refresh_from_db()
+        first = listing.anomaly_scored_at
+        _score()
+        listing.refresh_from_db()
+        self.assertGreater(listing.anomaly_scored_at, first)
+
+    def test_anomaly_only_row_leaves_predicted_at_null(self):
+        # §12: predicted_at marks a run that actually produced a prediction. A
+        # row the model skipped must not carry one just because rules ran.
+        listing = _make_listing(
+            source_id="ax4",
+            url="https://batdongsan.com.vn/ax4-pr1",
+            images=["a.jpg"],
+        )
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNotNone(listing.anomaly_scored_at)
+        self.assertIsNone(listing.predicted_at)
+        self.assertIsNone(listing.predicted_price)
+
+
+class PredictionTests(TestCase):
+    """score_listings runs the committed model over the rows it can score.
+
+    Population is forced by the model, not chosen: listing_age has no null
+    fallback so a null posted_date reaches sklearn as NaN, and the fit was
+    sale-only because rent prices are monthly (ml/dataset.py).
+    """
+
+    def _eligible(self, source_id, **overrides):
+        defaults = dict(
+            area_sqm=Decimal("80"),
+            district="Quận 7",
+            posted_date=(timezone.now() - timedelta(days=14)).date(),
+        )
+        defaults.update(overrides)
+        return _make_listing(
+            source_id=source_id,
+            url=f"https://alonhadat.com.vn/{source_id}.html",
+            **defaults,
+        )
+
+    def test_populates_predicted_price_and_predicted_at(self):
+        before = timezone.now()
+        listing = self._eligible("pr1")
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNotNone(listing.predicted_price)
+        self.assertGreater(listing.predicted_price, 0)
+        self.assertGreaterEqual(listing.predicted_at, before)
+
+    def test_larger_area_predicts_higher_price(self):
+        small = self._eligible("pr2", area_sqm=Decimal("60"))
+        large = self._eligible("pr3", area_sqm=Decimal("150"))
+        _score()
+        small.refresh_from_db()
+        large.refresh_from_db()
+        self.assertGreater(large.predicted_price, small.predicted_price)
+
+    def test_skips_listing_without_area(self):
+        listing = self._eligible("pr4", area_sqm=None)
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_skips_listing_without_posted_date(self):
+        listing = self._eligible("pr5", posted_date=None)
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_skips_rent_listing(self):
+        listing = self._eligible("pr6", listing_intent="rent")
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_skips_inactive_listing(self):
+        listing = self._eligible("pr7", is_active=False)
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_null_district_falls_back_instead_of_failing(self):
+        # features.district_median_price fills an unknown district with the
+        # train-wide median, so a null district is scoreable, not a skip.
+        listing = self._eligible("pr8", district=None)
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNotNone(listing.predicted_price)
+
+    def test_prediction_does_not_move_last_seen_at(self):
+        listing = self._eligible("pr9")
+        before = listing.last_seen_at
+        _score()
+        listing.refresh_from_db()
+        self.assertEqual(listing.last_seen_at, before)
+
+    def test_skips_listing_past_the_training_area_cap(self):
+        # A random forest cannot extrapolate -- past dataset.MAX_AREA_SQM it
+        # returns its top leaf, a confident number for a whole building.
+        listing = self._eligible("pr10", area_sqm=Decimal("900"))
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_skips_listing_past_the_training_bedroom_cap(self):
+        listing = self._eligible("pr11", bedrooms=40)
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
+
+    def test_clears_prediction_when_row_leaves_the_population(self):
+        # §12: predicted_price is current-state output, overwritten each run.
+        # A row that drops out must not keep the last run's number forever.
+        listing = self._eligible("pr12")
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNotNone(listing.predicted_price)
+        listing.area_sqm = Decimal("900")
+        listing.save(update_fields=["area_sqm"])
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)
