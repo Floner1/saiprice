@@ -13,5 +13,7 @@ project_tests/
 assets/css/tailwind.css
 staticfiles/
 scraper_run_reports/
+stats_reports/
 scrape_test_output/
 skills-lock.json
+taskscheduler_backup_*.evtx
