@@ -341,6 +341,77 @@ class DashboardAnomalyBadgeTests(TestCase):
         self.assertNotContains(self.client.get("/"), "anomaly")
 
 
+class DashboardAnomalySummaryTests(TestCase):
+    def _flag(self, source_id, photos, scored_at, **overrides):
+        return _make_listing(
+            source_id=source_id,
+            url=f"https://alonhadat.com.vn/{source_id}.html",
+            is_anomaly=True,
+            anomaly_reason={"low_photos": {"triggered": True, "value": photos}},
+            anomaly_scored_at=scored_at,
+            **overrides,
+        )
+
+    def _ids(self, response):
+        return [listing.source_id for listing in response.context["listings"]]
+
+    def test_orders_by_fewest_photos_then_most_recently_scored(self):
+        now = timezone.now()
+        self._flag("s2", 2, now)
+        self._flag("s1-old", 1, now - timedelta(days=2))
+        self._flag("s0", 0, now - timedelta(days=1))
+        self._flag("s1-new", 1, now)
+        self.assertEqual(
+            self._ids(self.client.get("/flagged/")),
+            ["s0", "s1-new", "s1-old", "s2"],
+        )
+
+    def test_caps_at_ten_and_reports_the_full_count(self):
+        for i in range(12):
+            self._flag(f"c{i}", i, timezone.now())
+        response = self.client.get("/flagged/")
+        self.assertEqual(len(response.context["listings"]), 10)
+        self.assertEqual(response.context["flagged_count"], 12)
+        self.assertContains(response, "10 of 12 flagged")
+
+    def test_excludes_unflagged_and_delisted(self):
+        self._flag("keep", 1, timezone.now())
+        _make_listing(source_id="clean", url="https://alonhadat.com.vn/clean.html")
+        self._flag(
+            "gone", 0, timezone.now(), is_active=False, delisted_at=timezone.now()
+        )
+        self.assertEqual(self._ids(self.client.get("/flagged/")), ["keep"])
+
+    def test_renders_photo_count_and_links_to_detail(self):
+        listing = self._flag("p1", 0, timezone.now())
+        response = self.client.get("/flagged/")
+        self.assertContains(response, "0 photos")
+        self.assertContains(response, f'href="/listing/{listing.pk}/"')
+
+    def test_row_flagged_by_another_rule_sorts_last_with_no_photo_count(self):
+        self._flag("lp", 3, timezone.now())
+        _make_listing(
+            source_id="other", url="https://alonhadat.com.vn/other.html",
+            is_anomaly=True,
+            anomaly_reason={"stale_listing": {"triggered": True, "value": 104}},
+            anomaly_scored_at=timezone.now(),
+        )
+        response = self.client.get("/flagged/")
+        self.assertEqual(self._ids(response), ["lp", "other"])
+        self.assertContains(response, "3 photos")
+        self.assertContains(response, "—")
+
+    def test_nothing_flagged_renders_empty_state(self):
+        _make_listing(source_id="q1", url="https://alonhadat.com.vn/q1.html")
+        response = self.client.get("/flagged/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "0 of 0 flagged")
+        self.assertContains(response, "Nothing flagged.")
+
+    def test_reachable_from_the_listing_page(self):
+        self.assertContains(self.client.get("/"), 'href="/flagged/"')
+
+
 class DetailAnomalyStalenessLabelTests(TestCase):
     def _detail(self, source_id, scored_at):
         listing = _make_listing(

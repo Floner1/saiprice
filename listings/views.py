@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import F, Q
 from django.views.generic import DetailView, ListView
 
 from listings.models import Listing
@@ -67,3 +67,29 @@ class ListingListView(ListView):
 class ListingDetailView(DetailView):
     # Same is_active scoping as the API detail view.
     queryset = Listing.objects.filter(is_active=True)
+
+
+class AnomalySummaryView(ListView):
+    template_name = "listings/listing_summary.html"
+    context_object_name = "listings"
+    # The ranking value is a JSON key, not a column: §12 writes one key per rule
+    # that ran, so a row flagged by some other rule has no low_photos key and
+    # resolves to SQL NULL. nulls_last is explicit rather than inherited from
+    # the backend's default ASC placement.
+    queryset = (
+        Listing.objects.filter(is_active=True, is_anomaly=True)
+        .select_related("agent")
+        .order_by(
+            F("anomaly_reason__low_photos__value").asc(nulls_last=True),
+            "-anomaly_scored_at",
+        )[:10]
+    )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # The page shows 10 of however many there are; without the total it
+        # reads as "10 flagged", which is a different claim.
+        ctx["flagged_count"] = Listing.objects.filter(
+            is_active=True, is_anomaly=True
+        ).count()
+        return ctx
