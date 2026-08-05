@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Flagged listings — SaiPrice{% endblock %}
+
+{% block content %}
+  <p class="mb-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
+
+  <h1 class="text-2xl tracking-wide">Flagged listings</h1>
+  <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listings|length }} of {{ flagged_count }} flagged · fewest photos first</p>
+
+  <ul>
+    {% for listing in listings %}
+    {# The photo count sits in a gutter, not in the card: the card is shared with
+       the list page, which isn't ranked by it. The li border lands on the same
+       line as the card's own bottom rule, so the gutter isn't left un-ruled. #}
+    <li class="flex gap-4 border-b border-line">
+      <span class="w-16 shrink-0 pt-4 text-sm text-muted">{% with lp=listing.anomaly_reason.low_photos %}{% if lp %}{{ lp.value }} photo{{ lp.value|pluralize }}{% else %}—{% endif %}{% endwith %}</span>
+      <div class="min-w-0 flex-1">{% include "listings/_listing_card.html" %}</div>
+    </li>
+    {% empty %}
+    <li class="border-b border-line py-3.5">Nothing flagged.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}
