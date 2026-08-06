@@ -19,8 +19,9 @@
         title="{{ day.day|date:'Y-m-d' }} · {{ day.seen }} seen · {{ day.runs }} run{{ day.runs|pluralize }} · {{ day.status }}">
       <span class="w-16 shrink-0 text-muted tabular-nums">{{ day.day|date:"M j" }}</span>
       <span class="flex-1 h-2 bg-line">
-        {% if day.pct %}
-        <span class="block h-2 rounded-r-sm bg-accent" style="width: {{ day.pct }}%"></span>
+        {% if day.seen %}
+        <span class="block h-2 rounded-r-sm bg-accent"
+              style="width: {% widthratio day.seen scrape_max 100 %}%"></span>
         {% endif %}
       </span>
       <span class="w-12 shrink-0 text-right tabular-nums">{{ day.seen }}</span>
@@ -45,7 +46,8 @@
         title="{{ run.started_at|date:'Y-m-d H:i' }} · {{ run.median_ape_pct|floatformat:2 }}% over {{ run.n_compared }} listings · model {{ run.fingerprint|default:'unknown' }}">
       <span class="w-16 shrink-0 text-muted tabular-nums">{{ run.started_at|date:"M j" }}</span>
       <span class="flex-1 h-2 bg-line">
-        <span class="block h-2 rounded-r-sm bg-accent" style="width: {{ run.pct }}%"></span>
+        <span class="block h-2 rounded-r-sm bg-accent"
+              style="width: {% widthratio run.median_ape_pct accuracy_max 100 %}%"></span>
       </span>
       <span class="w-12 shrink-0 text-right tabular-nums">{{ run.median_ape_pct|floatformat:1 }}%</span>
       <span class="w-24 shrink-0 text-right text-muted">
