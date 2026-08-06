@@ -154,3 +154,25 @@ TAILWIND_CLI_SRC_CSS = "tailwind_src/source.css"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# No LOGGING block existed before 2026-08-06: listings.* loggers propagated to
+# a root logger with no handler, so only WARNING+ survived via Python's
+# lastResort handler and every logger.info call was discarded. The pipeline's
+# per-failure status lines are INFO, so they need a real handler.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "pipeline": {"format": "%(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "pipeline",
+        },
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "listings": {"level": "INFO", "propagate": True},
+    },
+}
