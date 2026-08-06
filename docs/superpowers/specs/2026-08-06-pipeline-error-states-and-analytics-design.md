@@ -73,6 +73,7 @@ today changes behaviour.
 | `bot_challenge` | `client.fetch` logs ERROR and returns `None`, indistinguishable to the caller from a give-up | `fetch` reports a distinguishable outcome; counted on its own |
 | `fetch_gave_up` | same `None` after 3 attempts | counted separately from `bot_challenge` |
 | `ldp_fetch_failed` | stderr write, `error_count += 1` | same, plus counted |
+| `ldp_404` | folded into the non-200 branch and counted as a generic error | named on its own and **not** counted as an error; CLAUDE.md §7 calls a 404 a delisting signal, not a scrape failure |
 | `ldp_no_anchor` | stderr write only, counted nowhere | counted; this is the alonhadat markup-change tripwire |
 | `unmapped_breadcrumb` | stderr write only, counted nowhere | counted |
 | `soft_gone_placeholder` | undetectable | detected and counted; treated as a delisting signal, not an error |
@@ -82,6 +83,13 @@ today changes behaviour.
 `bot_challenge` versus `fetch_gave_up` is the distinction that matters in
 practice: a wall incident and a flaky connection currently produce an identical
 `error_count = 1`.
+
+Neither `ldp_404` nor `soft_gone_placeholder` delists the listing, despite §7's
+404 rule. The listing appeared on the SRP during this same run, which is live
+evidence it is listed, and `upsert()` runs immediately afterwards and
+unconditionally sets `is_active=True` — a delisting written at that point would
+be reversed microseconds later. Enrichment is skipped, `images` stays null, and
+the row retries on the next pass.
 
 `soft_gone_placeholder` detects a dead LDP URL that returns 200 with
 `article.property` present and `itemprop="name"` reading `Trang chủ` — a real
