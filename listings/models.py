@@ -159,3 +159,34 @@ class ScrapeRun(models.Model):
     # A date-label rename nulls posted_date fleet-wide through §8's silent
     # nullable-field path; error_count never sees it, this counter does.
     posted_date_nulls = models.IntegerField(default=0)
+    # {status code: count} for the run, one key per failure mode (CLAUDE.md §8).
+    # error_count stays what it always was -- a single total that cannot say
+    # whether the failure was a bot wall, a timeout or a dead URL. This can.
+    # Same dict-of-codes shape as Listing.anomaly_reason, not a second convention.
+    status_counts = models.JSONField(null=True)
+
+
+class ScoringRun(models.Model):
+    """One row per score_listings invocation, mirroring ScrapeRun.
+
+    Accuracy has to be stored per run, not derived: predicted_price and
+    predicted_at are current-state columns overwritten on every run, so every
+    active priced row shares one predicted_at and grouping by it yields a
+    single bucket rather than a trend.
+    """
+
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField(null=True)
+    predicted = models.IntegerField(default=0)
+    scored = models.IntegerField(default=0)
+    flagged = models.IntegerField(default=0)
+    # rows behind mae_vnd/median_ape: the accuracy population, which is smaller
+    # than `predicted` because it also requires a non-null, non-zero price.
+    n_compared = models.IntegerField(default=0)
+    mae_vnd = models.DecimalField(max_digits=15, decimal_places=0, null=True)
+    # In-sample: train_model fits on these same rows, so this reads better than
+    # the model's held-out medAPE and must not be quoted as held-out accuracy.
+    median_ape = models.DecimalField(max_digits=6, decimal_places=4, null=True)
+    model_fingerprint = models.CharField(max_length=12, null=True)
+    error_count = models.IntegerField(default=0)
+    status_counts = models.JSONField(null=True)

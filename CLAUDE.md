@@ -53,8 +53,9 @@ One Django app: `listings`. Do not split into multiple apps — there is no team
 ```
 saiprice/
   listings/
-    models.py                          # Listing, PriceHistory, ScrapeRun, Agent
-    admin.py                           # register all four models
+    models.py                          # Listing, PriceHistory, ScrapeRun, ScoringRun, Agent
+    admin.py                           # register all five models
+    analytics.py                       # read-side aggregation for the /health/ dashboard
     management/
       commands/
         scrape_listings.py             # scraper entrypoint, takes --source (alonhadat|homedy)
@@ -194,7 +195,7 @@ One row per observed price change. Not a mirror of every scrape, only inserted w
 
 A new `Listing` always gets exactly one `PriceHistory` row at insert time (its first observed price).
 
-### 5.4 `ScrapeRun`
+### 5.4 `ScrapeRun` and `ScoringRun`
 
 One row per scraper invocation, scoped to a single source — one run = one source, `scrape_listings` is invoked once per source (§9). This is the primary way to notice a site's parser silently broke (e.g. alonhadat changed its HTML structure) — check this table, don't rely on reading log files. `source_site` was added 2026-07-10 when the pipeline moved from one automated source to two (§6); collapsing both sites' numbers into one row would hide a break in either parser behind the other's healthy numbers, defeating the point of this table.
 
@@ -210,8 +211,21 @@ One row per scraper invocation, scoped to a single source — one run = one sour
 | `skipped` | `IntegerField(default=0)` | required |
 | `error_count` | `IntegerField(default=0)` | required |
 | `posted_date_nulls` | `IntegerField(default=0)` | required |
+| `status_counts` | `JSONField` | nullable |
+
+`status_counts` (added 2026-08-06) is `{status code: count}`, one key per failure mode, same dict-of-codes shape as `Listing.anomaly_reason` rather than a second convention. `error_count` keeps its original meaning exactly — a single total that cannot say *which* failure happened; this can. Each failure increments exactly one key, so the values always sum to the number of failures. Null (not `{}`) when a run had none. Codes and which of them count as errors are in §8.
+
+`finished_at` means **completed**. A run aborted by a Python-level exception leaves it null and records `run_aborted` in `status_counts`; a hard kill (`0xC000013A`, §9) leaves it null with nothing recorded. Both read as aborted. This is load-bearing beyond labelling: `sweep_delistings` picks its prior-run baseline with `finished_at__isnull=False`, so stamping an aborted run would let a partial count become the floor the next run is measured against.
 
 `posted_date_nulls` (added 2026-07-14) counts this run's listings that parsed with a null `posted_date`. A date-label/markup rename on the source nulls the field fleet-wide through §8's silent nullable-field path — no error, no skip, so `error_count` never shows it, and §7's full overwrite wipes previously-good dates within one run. At end of run, `scrape_listings` warns when the null rate passes 80%, unless the source's prior finished run was already past 80% (a fresh break warns once; a chronically date-less source doesn't warn forever). Run-level pipeline health only — deliberately not a fourth §12 anomaly rule, which would flag every listing in a broken run.
+
+`ScoringRun` (added 2026-08-06) is the same idea for `score_listings`: one row per invocation, `started_at`/`finished_at`, `predicted`/`scored`/`flagged`/`n_compared` counters, `mae_vnd`, `median_ape`, `model_fingerprint`, `error_count`, `status_counts`. Codes: `model_load_failed`, `inference_failed`, `listing_save_failed`, `run_aborted`.
+
+It exists because accuracy cannot be derived after the fact. `predicted_price`/`predicted_at` are current-state columns overwritten on every run (§5.1), so every active priced row shares one `predicted_at` and grouping by it yields a single bucket, not a trend. One aggregate row per run is stored instead; no per-listing prediction history is kept.
+
+`median_ape` is `median(|predicted_price - price| / price)` over active sale listings with both prices set. Median APE rather than a mean because the fit is on log(price) and a VND mean is dominated by a handful of very large listings; it is also the metric already reported for the shipped model. **This number is in-sample** — `train_model` fits on these same rows — so it reads better than the model's held-out figure and must never be quoted as one. Measured 2026-08-06: 15.38% in-sample against 22.87% held-out. `model_fingerprint` is `sha256(model.pkl)[:12]`, so a retrain shows as a labelled boundary rather than an unexplained step change.
+
+A caught model failure must not clear stored predictions: `_predictions()` returning `{}` means either "no row qualified" or "the model failed", and only the first justifies nulling `predicted_price`. Wiping the table because `model.pkl` was unreadable would do more damage than the crash the handler replaced.
 
 ### 5.5 Computed values (not stored)
 
@@ -375,7 +389,9 @@ A run that saw under half the listings the last finished run for that same `sour
 
 This only ever runs for `alonhadat` or `homedy` — batdongsan has no full-coverage automated crawl to make the sweep meaningful (§6), so it's permanently excluded, not conditionally skipped.
 
-A 404 on a previously-known LDP URL during the crawl is also treated as an immediate delisting signal (`is_active=False`, `delisted_at=now()`) for that listing, not a scrape failure.
+A 404 on an LDP URL is **not** a scrape failure — it is counted as `ldp_404` and excluded from `error_count` (§8). It does **not** delist the listing, and the original "immediate delisting signal" wording here was unreachable by construction, corrected 2026-08-06: every LDP fetch originates from a card parsed off the SRP in the same run, and there is no revisit-known-URLs pass. So the SRP is asserting the listing is live at the moment the LDP 404s. Worse, `_enrich_from_ldp` runs *before* `upsert`, which unconditionally sets `is_active=True, delisted_at=None` — a delisting written there is reversed microseconds later in the same iteration.
+
+Deferring the delist to after the loop was considered and rejected: the row would flip-flop every run (delisted after the loop, reactivated by upsert on the next pass), churning `delisted_at` and `PriceHistory` for no gain. Trusting the SRP and retrying next run is the decision. Same reasoning applies to `ldp_soft_gone` (the placeholder shell, §6). Accepted cost: a permanently-dead LDP keeps `images IS NULL`, stays retry-eligible, and re-consumes `--max-ldp-visits` budget every run. A monotonically rising `ldp_soft_gone`/`ldp_404` count run over run is the signal that the dead set is accumulating and needs a marker; nothing tracks it today by design.
 
 batdongsan exposed a `pageTrackingData.products[0].expired` boolean on every LDP, which made "still listed but marked expired" cheap to detect without an extra check. Whether alonhadat or homedy expose an equivalent signal (a banner, a status field, or nothing beyond a 404) is unconfirmed — check while building `scraping/sites/alonhadat.py`/`homedy.py`. If neither has one, a 404 plus the end-of-run sweep above is the whole delisting signal for that source, and that's an acceptable outcome, not a degraded one.
 
@@ -404,6 +420,16 @@ def fetch(url):
 
 **Nullable-field parse failure**: store null, continue. Not counted as a skip or an error.
 
+**Status codes** (added 2026-08-06): every failure mode increments exactly one key in `ScrapeRun.status_counts` (§5.4) and logs one line. `client.fetch` returns `(response, error_code)` rather than a bare `None`, which is what makes a bot wall, a timeout and a dead URL distinguishable at the call site instead of three identical `error_count += 1`s.
+
+Scraper codes: `srp_bot_challenge`, `srp_fetch_gave_up`, `srp_http_error`, `srp_http_404`, `ldp_bot_challenge`, `ldp_fetch_gave_up`, `ldp_http_error`, `ldp_404`, `ldp_no_anchor`, `ldp_soft_gone`, `unmapped_breadcrumb`, `required_field_missing`, `upsert_exception`, `run_aborted`.
+
+Four are counted but deliberately **excluded from `error_count`**: `ldp_404` and `ldp_soft_gone` describe a page that is not real content rather than a malfunction (§7); `ldp_no_anchor` and `unmapped_breadcrumb` are nullable-field parse failures, which this section already states are neither a skip nor an error.
+
+`handle()` wraps the crawl in `try/except BaseException/finally` so an unexpected exception still surfaces but the run's counters always persist. Before 2026-08-06 `run` was saved only on the last line, so anything raising mid-loop discarded the entire run's numbers, not just the tail. `sweep_delistings` sits inside the `try` — a partial crawl must never sweep.
+
+`sweep_delistings` also refuses to sweep when `run.listings_seen` is zero, independently of the half-of-prior ratio. The ratio alone is inert when the prior run was itself blocked (`0 < 0/2` is False), and two consecutive walled runs is the normal shape of an alonhadat wall incident, not a corner case — without this guard the second one delists the entire active table.
+
 **Run tracking**: create a `ScrapeRun` row at the start of `scrape_listings` (`source_site` from the invocation's `--source`, `started_at=now()`), update it at the end (`finished_at`, `listings_seen`, `inserted`, `updated`, `skipped`, `error_count`). This is how a structural break in a site's HTML (e.g. a redesign that breaks every selector) becomes visible — check this table (via `/admin/`) periodically, filtered by `source_site`; a run with `listings_seen` near zero or `error_count` spiking relative to that source's own history means that site changed and its parser needs attention, not that the data is real.
 
 ## 9. Deployment
@@ -413,6 +439,7 @@ Must be fixed before deploying (standard practice, not a judgment call):
 - `DEBUG = config("DEBUG", default=False, cast=bool)`.
 - `ALLOWED_HOSTS` from an env var (comma-split), including the Render-assigned domain.
 - `whitenoise` added to `MIDDLEWARE` (right after `SecurityMiddleware`) and `requirements.txt` for static file serving — Render doesn't serve Django static files on its own.
+- `LOGGING` — added 2026-08-06. There was none, so `listings.*` loggers propagated to a root logger with no handler and only WARNING+ survived via Python's lastResort; every `logger.info` was discarded. Root console handler at INFO, `listings` at INFO, `django` left on Django's own default.
 - `STATIC_ROOT = BASE_DIR / "staticfiles"` — already set in `settings.py`, required for `collectstatic` to run at all. Added 2026-07-15 alongside the `source.css` move out of `STATICFILES_DIRS` (§11).
 - Render build command must run `python manage.py tailwind build` before `collectstatic` — the compiled stylesheet (`assets/css/tailwind.css`) is gitignored, not committed, so it has to be built on deploy. The standalone Tailwind CLI downloads automatically at build time (version pinned via `TAILWIND_CLI_VERSION` in `settings.py`); no Node.js/npm on Render. See §11.
 
@@ -456,7 +483,7 @@ Tailwind CSS 4 via `django-tailwind-cli` (in `requirements.txt`). It downloads t
 Files:
 - `tailwind_src/source.css` — the only hand-written CSS in the project: `@import "tailwindcss" source(none)`, one `@source` line per real source directory, plus the `@theme` token block below. Committed. **Content scanning is an allowlist, not the default.** `source(none)` disables Tailwind 4's automatic detection, which scans from the repo root and treats any Tailwind-looking token in any file as a real class. Left on, it compiled 290 selectors from 80 real ones (2026-07-26): utilities out of `.agents/skills/*` skill docs, classes out of the scraped property HTML in `scrape_test_output/`, and — from §11's own "no arbitrary color values (`text-[#...]`)" line in this file — the invalid rule `.text-\[\#\.\.\.\]{color:#...}`, shipped to production. Scoping to `@source "../listings/templates"` cut the stylesheet 29,810 → 8,573 bytes with zero classes lost. Adding a source means adding an `@source` line here; **do not** add per-file exclusions, which was the retired approach and only ever caught leaks already discovered. `@source` paths resolve relative to this file, not the project root. Moved out of `assets/` 2026-07-15: it must live outside every `STATICFILES_DIRS` path, because manifest static-file storage (Django's `ManifestStaticFilesStorage`, which whitenoise's production storage subclasses) post-processes CSS during `collectstatic` and crashes trying to resolve `@import "tailwindcss"` as a static-file reference — reproduced live before the move (`Post-processing 'css\source.css' failed!`), confirmed clean after (`155 post-processed`).
 - `assets/css/tailwind.css` — compiled output, gitignored, rebuilt by `python manage.py tailwind build` (locally and in Render's build command, §9). The downloaded CLI binary lands in `.django_tailwind_cli/`, also gitignored.
-- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes.
+- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes. **One carve-out** (2026-08-06): a chart bar's width is data, not design, so it cannot be a utility class — `pipeline_health.html` sets `style="width: {% widthratio value max 100 %}%"`. Django's built-in `widthratio` tag does the arithmetic (it returns `"0"` on a zero denominator, so no guard is needed) and no other inline style is permitted.
 
 Theme tokens — this is the entire palette, defined once in `@theme` and used as `bg-paper`, `text-ink`, `text-muted`, `border-line`, `text-accent`:
 

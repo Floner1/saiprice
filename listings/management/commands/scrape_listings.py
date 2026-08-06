@@ -10,6 +10,30 @@ from listings.upsert import upsert
 
 logger = logging.getLogger(__name__)
 
+# Codes that describe a page rather than a malfunction, so they must not
+# inflate error_count. ldp_404/ldp_soft_gone mean the LDP is not real content;
+# ldp_no_anchor/unmapped_breadcrumb are CLAUDE.md §8 nullable-field parse
+# failures, which §8 states explicitly are neither a skip nor an error.
+NON_ERROR_CODES = {"ldp_404", "ldp_soft_gone", "ldp_no_anchor", "unmapped_breadcrumb"}
+
+
+def record(run, code):
+    """Bump one status code on the run, and error_count unless it's benign.
+
+    Each failure increments exactly one key, so status_counts values always
+    sum to the number of failures.
+    """
+    counts = run.status_counts or {}
+    counts[code] = counts.get(code, 0) + 1
+    run.status_counts = counts
+    if code in NON_ERROR_CODES:
+        logger.info(f"{run.source_site}: {code}")
+    else:
+        # A bot wall or an abort at INFO is under-levelled; these are the lines
+        # someone greps for after a bad night.
+        run.error_count += 1
+        logger.warning(f"{run.source_site}: {code}")
+
 
 def sweep_delistings(run):
     # Same blocked-crawl floor as the old batdongsan crawler, scoped per
@@ -21,10 +45,16 @@ def sweep_delistings(run):
         .order_by("-started_at")
         .first()
     )
-    if prior and run.listings_seen < prior.listings_seen / 2:
+    # The zero case needs its own guard, not just the ratio: when a prior run
+    # was itself blocked (listings_seen=0), `0 < 0/2` is False and the sweep
+    # proceeds, delisting the whole active table. Two consecutive walled runs
+    # is the normal shape of an alonhadat wall incident, not a corner case.
+    if not run.listings_seen or (
+        prior and run.listings_seen < prior.listings_seen / 2
+    ):
         logger.warning(
-            f"skipping delist sweep: listings_seen={run.listings_seen} is under "
-            f"half of prior run's {prior.listings_seen} -- crawl looks broken"
+            f"skipping delist sweep: listings_seen={run.listings_seen}, prior run "
+            f"saw {prior.listings_seen if prior else 'n/a'} -- crawl looks broken"
         )
         return
     Listing.objects.filter(
@@ -121,17 +151,28 @@ class Command(BaseCommand):
         if self.ldp_budget <= 0:
             return
         self.ldp_budget -= 1
-        response = fetch(item.fields["url"])
-        if response is None or response.status_code != 200:
-            self.stderr.write(f"ldp fetch failed for {item.fields['url']}")
-            run.error_count += 1
+        response, error = fetch(item.fields["url"])
+        if error:
+            # http_404 -> ldp_404, bot_challenge -> ldp_bot_challenge, etc.
+            code = "ldp_404" if error == "http_404" else f"ldp_{error}"
+            self.stderr.write(f"ldp {error} for {item.fields['url']}")
+            record(run, code)
             return
         extras = alonhadat.parse_ldp_extras(response.text)
+        if extras["soft_gone"]:
+            # A placeholder shell, not a listing: leave images null so the row
+            # stays retry-eligible instead of parsing as a zero-photo LDP. No
+            # delisting -- the SRP listed it this run, and upsert() reactivates
+            # unconditionally moments later anyway.
+            self.stderr.write(f"soft-gone placeholder at {item.fields['url']}")
+            record(run, "ldp_soft_gone")
+            return
         if extras["images"] is None:
             self.stderr.write(
                 f"no article.property anchor on {item.fields['url']}; "
                 "images left null for retry (markup change?)"
             )
+            record(run, "ldp_no_anchor")
         item.fields["images"] = extras["images"]
         if extras["property_type"]:
             item.fields["property_type"] = extras["property_type"]
@@ -141,6 +182,7 @@ class Command(BaseCommand):
                 f"unmapped breadcrumb category on {item.fields['url']}, "
                 "property_type left as-is"
             )
+            record(run, "unmapped_breadcrumb")
 
     def handle(self, *args, **options):
         run = ScrapeRun.objects.create(
@@ -150,48 +192,68 @@ class Command(BaseCommand):
         max_visits = self.ldp_budget
         seen = set()
         duplicates = 0
-        for root, (property_type, listing_intent) in alonhadat.CATEGORY_ROOTS.items():
-            page = 1
-            while options["pages"] is None or page <= options["pages"]:
-                response = fetch(alonhadat.page_url(root, page))
-                if response is None or response.status_code != 200:
-                    run.error_count += 1
-                    break
-                parsed, skips = alonhadat.parse_srp(
-                    response.text, property_type, listing_intent
-                )
-                for ref, field in skips:
-                    self.stderr.write(f"skipped {ref}: required field missing: {field}")
-                    run.skipped += 1
-                # out-of-range trang-N pages re-serve earlier content, so a
-                # page with no unseen ids means the category is exhausted
-                new = [p for p in parsed if p.source_id not in seen]
-                duplicates += len(parsed) - len(new)
-                if not new:
-                    break
-                for item in new:
-                    seen.add(item.source_id)
-                    run.listings_seen += 1
-                    if item.fields.get("posted_date") is None:
-                        run.posted_date_nulls += 1
-                    try:
-                        self._enrich_from_ldp(item, run)
-                        if upsert(item):
-                            run.inserted += 1
-                        else:
-                            run.updated += 1
-                    except Exception as exc:
-                        self.stderr.write(f"error {item.fields['url']}: {exc}")
-                        run.error_count += 1
-                page += 1
-        run.finished_at = timezone.now()
-        if options["pages"] is None:
-            sweep_delistings(run)
-        check_posted_date_nulls(run)
-        run.save()
+        # try/finally, not try/except: an unexpected exception must still
+        # surface, but the run's counters must survive it. Before this, `run`
+        # was saved only on the last line, so anything raising mid-loop
+        # discarded the whole run's numbers rather than just the tail.
+        try:
+            for root, (property_type, listing_intent) in alonhadat.CATEGORY_ROOTS.items():
+                page = 1
+                while options["pages"] is None or page <= options["pages"]:
+                    response, error = fetch(alonhadat.page_url(root, page))
+                    if error:
+                        record(run, f"srp_{error}")
+                        break
+                    parsed, skips = alonhadat.parse_srp(
+                        response.text, property_type, listing_intent
+                    )
+                    for ref, field in skips:
+                        self.stderr.write(
+                            f"skipped {ref}: required field missing: {field}"
+                        )
+                        run.skipped += 1
+                        record(run, "required_field_missing")
+                    # out-of-range trang-N pages re-serve earlier content, so a
+                    # page with no unseen ids means the category is exhausted
+                    new = [p for p in parsed if p.source_id not in seen]
+                    duplicates += len(parsed) - len(new)
+                    if not new:
+                        break
+                    for item in new:
+                        seen.add(item.source_id)
+                        run.listings_seen += 1
+                        if item.fields.get("posted_date") is None:
+                            run.posted_date_nulls += 1
+                        try:
+                            self._enrich_from_ldp(item, run)
+                            if upsert(item):
+                                run.inserted += 1
+                            else:
+                                run.updated += 1
+                        except Exception as exc:
+                            self.stderr.write(f"error {item.fields['url']}: {exc}")
+                            record(run, "upsert_exception")
+                    page += 1
+            # set before the sweep: sweep_delistings stamps delisted_at from it
+            run.finished_at = timezone.now()
+            if options["pages"] is None:
+                sweep_delistings(run)
+        except BaseException:
+            # A partial crawl must not sweep, so the sweep above sits inside
+            # the try. finished_at is deliberately left null here: it means
+            # "completed", and an aborted run did not. That also keeps the run
+            # out of sweep_delistings' prior-run baseline, which filters on
+            # finished_at -- stamping it would let a 4-listing abort become the
+            # floor the next run is measured against.
+            record(run, "run_aborted")
+            raise
+        finally:
+            check_posted_date_nulls(run)
+            run.save()
         self.stdout.write(
             f"seen={run.listings_seen} inserted={run.inserted} "
             f"updated={run.updated} skipped={run.skipped} "
             f"duplicates={duplicates} errors={run.error_count} "
-            f"ldp_visits={max_visits - self.ldp_budget}"
+            f"ldp_visits={max_visits - self.ldp_budget} "
+            f"status={run.status_counts or '{}'}"
         )
