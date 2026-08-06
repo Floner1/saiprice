@@ -43,6 +43,14 @@ BREADCRUMB_CATEGORIES.update(
 )
 
 
+# A dead LDP URL can return 200 with article.property present while the page
+# title reads literally "Trang chủ" and no real listing content is served
+# (observed 2026-07-28, 4 of a 5-URL sample). article.property alone is not
+# proof of content, so the title is checked too -- otherwise the shell parses
+# as a valid zero-photo LDP and gets flagged low_photos.
+SOFT_GONE_TITLE = "Trang chủ"
+
+
 def parse_ldp_extras(html):
     soup = BeautifulSoup(html, "html.parser")
     category = None
@@ -62,7 +70,12 @@ def parse_ldp_extras(html):
     # alonhadat LDP keeps an empty container is unconfirmed, and a
     # container guard would retry those rows forever.
     images = None
-    if soup.select_one("article.property"):
+    soft_gone = False
+    anchor = soup.select_one("article.property")
+    if anchor:
+        name = anchor.select_one("[itemprop='name']")
+        soft_gone = name is not None and name.get_text(strip=True) == SOFT_GONE_TITLE
+    if anchor and not soft_gone:
         images = []
         for img in soup.select("article.property section.images ul.image-list img"):
             src = img.get("src")
@@ -74,6 +87,7 @@ def parse_ldp_extras(html):
         "property_type": category[0] if category else None,
         "listing_intent": category[1] if category else None,
         "images": images,
+        "soft_gone": soft_gone,
     }
 
 

@@ -728,3 +728,42 @@ class FetchErrorCodeTests(SimpleTestCase):
         self.assertIsNone(got)
         self.assertEqual(error, "fetch_gave_up")
         self.assertEqual(get.call_count, 3)
+
+
+class SoftGonePlaceholderTests(SimpleTestCase):
+    REAL_LDP = """
+      <div itemtype="http://schema.org/BreadcrumbList">
+        <a href="/can-ban-can-ho-chung-cu">Căn hộ</a>
+      </div>
+      <article class="property">
+        <h1 itemprop="name">Bán căn hộ Quận 7</h1>
+        <section class="images"><ul class="image-list">
+          <li><img src="/img/a.jpg"></li>
+        </ul></section>
+      </article>
+    """
+    SOFT_GONE = """
+      <article class="property">
+        <h1 itemprop="name">Trang chủ</h1>
+      </article>
+    """
+
+    def test_real_ldp_is_not_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras(self.REAL_LDP)
+        self.assertFalse(extras["soft_gone"])
+        self.assertEqual(extras["images"], ["https://alonhadat.com.vn/img/a.jpg"])
+
+    def test_placeholder_shell_is_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras(self.SOFT_GONE)
+        self.assertTrue(extras["soft_gone"])
+
+    def test_soft_gone_leaves_images_null_not_empty(self):
+        # [] would mark enrichment done and mass-flag low_photos; null keeps
+        # the row retry-eligible.
+        extras = alonhadat.parse_ldp_extras(self.SOFT_GONE)
+        self.assertIsNone(extras["images"])
+
+    def test_page_without_the_anchor_is_not_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras("<html><body>nothing</body></html>")
+        self.assertFalse(extras["soft_gone"])
+        self.assertIsNone(extras["images"])
