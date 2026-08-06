@@ -7,9 +7,9 @@ from django.utils import timezone
 from listings.analytics import (
     accuracy_metrics,
     accuracy_trend,
+    bar_max,
     run_status,
     scrapes_per_day,
-    with_bar_pct,
 )
 from listings.models import ScoringRun, ScrapeRun
 
@@ -105,17 +105,16 @@ class ScrapesPerDayTests(TestCase):
         self.assertEqual(sum(r["seen"] for r in scrapes_per_day(days=7)), 0)
 
 
-class BarPctTests(SimpleTestCase):
-    def test_largest_value_is_full_width_and_others_scale_to_it(self):
-        rows = with_bar_pct([{"seen": 50}, {"seen": 100}], "seen")
-        self.assertEqual([r["pct"] for r in rows], [50.0, 100.0])
+class BarMaxTests(SimpleTestCase):
+    def test_returns_the_largest_value(self):
+        self.assertEqual(bar_max([{"seen": 50}, {"seen": 100}], "seen"), 100)
 
-    def test_all_zero_rows_do_not_divide_by_zero(self):
-        rows = with_bar_pct([{"seen": 0}, {"seen": 0}], "seen")
-        self.assertEqual([r["pct"] for r in rows], [0, 0])
+    def test_all_zero_rows_return_zero(self):
+        # widthratio turns a 0 denominator into "0", so no guard is needed here.
+        self.assertEqual(bar_max([{"seen": 0}, {"seen": 0}], "seen"), 0)
 
-    def test_empty_input_is_handled(self):
-        self.assertEqual(with_bar_pct([], "seen"), [])
+    def test_empty_input_returns_zero(self):
+        self.assertEqual(bar_max([], "seen"), 0)
 
 
 class RunStatusTests(TestCase):
