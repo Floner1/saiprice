@@ -230,3 +230,11 @@ class ScrapesPerDayBlockedTests(TestCase):
             listings_seen=0, error_count=1,
         )
         self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "blocked")
+
+    def test_a_single_error_is_not_pluralised(self):
+        started = timezone.now()
+        ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=started, finished_at=started,
+            listings_seen=800, error_count=1,
+        )
+        self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "ok, 1 error")

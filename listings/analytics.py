@@ -79,7 +79,7 @@ def scrapes_per_day(days=30):
         elif not row["seen"]:
             status = "empty"
         elif row["errors"]:
-            status = f"ok, {row['errors']} errors"
+            status = f"ok, {row['errors']} error{'s' if row['errors'] != 1 else ''}"
         else:
             status = "ok"
         out.append(
