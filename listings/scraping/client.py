@@ -24,7 +24,19 @@ session.headers.update(
 )
 
 
+BOT_CHALLENGE = "bot_challenge"
+FETCH_GAVE_UP = "fetch_gave_up"
+HTTP_404 = "http_404"
+HTTP_ERROR = "http_error"
+
+
 def fetch(url):
+    """Return (response, error_code). error_code is None only on a 200.
+
+    The reason is returned rather than collapsed into None because the caller
+    counts failures by mode: a bot wall, a timeout and a dead URL are three
+    different operational facts and used to be one indistinguishable None.
+    """
     for attempt in range(3):
         try:
             response = session.get(url, timeout=10)
@@ -39,7 +51,7 @@ def fetch(url):
         # or routing around it is the evasion CLAUDE.md §6 rules out.
         if "xac-thuc-nguoi-dung" in response.url:
             logger.error(f"bot challenge served for {url}")
-            return None
+            return None, BOT_CHALLENGE
 
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
@@ -50,7 +62,15 @@ def fetch(url):
             continue
 
         time.sleep(random.uniform(1, 3))
-        return response
+        if response.status_code == 404:
+            # CLAUDE.md §7 calls a 404 a delisting signal, not a scrape
+            # failure. Named separately so the caller can act on that.
+            logger.info(f"404 for {url}")
+            return None, HTTP_404
+        if response.status_code != 200:
+            logger.warning(f"HTTP {response.status_code} for {url}")
+            return None, HTTP_ERROR
+        return response, None
 
     logger.error(f"gave up on {url} after 3 attempts")
-    return None
+    return None, FETCH_GAVE_UP

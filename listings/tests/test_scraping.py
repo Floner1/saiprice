@@ -1,15 +1,21 @@
+import io
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from bs4 import BeautifulSoup
+from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
+from listings.management.commands import scrape_listings
 from listings.management.commands.scrape_listings import sweep_delistings
 from listings.models import Listing, ScrapeRun
+from listings.scraping import client
 from listings.scraping.parsers import RequiredFieldMissing, parse_ldp
 from listings.scraping.sites import alonhadat
+from listings.tests.test_models import _make_listing
 
 # ponytail: these point at the real sample HTML in testdata/ (gitignored)
 # rather than a duplicated fixtures/ copy. If those files move, repoint
@@ -380,7 +386,7 @@ class EnrichFromLdpTests(TestCase):
             "</section></article>"
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, Mock(status_code=200, text=ldp_html))
+        run, mock_fetch = self._run_enrich(item, (Mock(text=ldp_html), None))
         mock_fetch.assert_called_once()
         self.assertEqual(item.fields["property_type"], "house")
         self.assertEqual(item.fields["images"], ["https://alonhadat.com.vn/files/a.jpg"])
@@ -398,7 +404,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
         self.assertNotIn("property_type", item.fields)
         self.assertNotIn("listing_intent", item.fields)
@@ -415,7 +421,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
 
     def test_anchor_missing_ldp_leaves_images_null_for_retry_and_notes_it(self):
@@ -442,7 +448,7 @@ class EnrichFromLdpTests(TestCase):
         with patch.object(
             scrape_listings,
             "fetch",
-            return_value=Mock(status_code=200, text="<html><body>redesigned</body></html>"),
+            return_value=(Mock(text="<html><body>redesigned</body></html>"), None),
         ) as mock_fetch:
             scrape_listings.Command(stderr=stderr)._enrich_from_ldp(item, run)
         mock_fetch.assert_called_once()
@@ -463,7 +469,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_called_once()
         self.assertEqual(run.error_count, 1)
         self.assertNotIn("property_type", item.fields)
@@ -520,7 +526,7 @@ class LdpBudgetTests(TestCase):
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
         first, second = self._item("111"), self._item("222")
         with patch.object(
-            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+            scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
             cmd._enrich_from_ldp(first, run)
             cmd._enrich_from_ldp(second, run)
@@ -549,7 +555,7 @@ class LdpBudgetTests(TestCase):
         cmd = self._command_with_budget(1)
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
         with patch.object(
-            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+            scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
             cmd._enrich_from_ldp(self._item("111"), run)
             cmd._enrich_from_ldp(self._item("222"), run)
@@ -590,9 +596,9 @@ class NoLdpEnrichHandleTests(TestCase):
 
         from listings.management.commands import scrape_listings
 
-        srp = Mock(status_code=200, text=_read("alonhadat_srp_apartment.txt"))
+        srp = Mock(text=_read("alonhadat_srp_apartment.txt"))
         out = io.StringIO()
-        with patch.object(scrape_listings, "fetch", return_value=srp) as mock_fetch:
+        with patch.object(scrape_listings, "fetch", return_value=(srp, None)) as mock_fetch:
             call_command(
                 "scrape_listings",
                 "--source", "alonhadat",
@@ -626,8 +632,8 @@ class PostedDateNullCheckTests(TestCase):
 
         from listings.management.commands import scrape_listings
 
-        srp = Mock(status_code=200, text=self.SRP_HTML)
-        with patch.object(scrape_listings, "fetch", return_value=srp):
+        srp = Mock(text=self.SRP_HTML)
+        with patch.object(scrape_listings, "fetch", return_value=(srp, None)):
             with self.assertLogs(
                 "listings.management.commands.scrape_listings", level="WARNING"
             ) as logs:
@@ -655,5 +661,268 @@ class FetchBotChallengeTests(SimpleTestCase):
             # assertLogs keeps the expected "bot challenge served" error out
             # of the suite's console output, where it reads like a live incident
             with self.assertLogs("listings.scraping.client", level="ERROR"):
-                self.assertIsNone(client.fetch("https://alonhadat.com.vn/x-1.html"))
+                self.assertEqual(
+                    client.fetch("https://alonhadat.com.vn/x-1.html"),
+                    (None, "bot_challenge"),
+                )
             self.assertEqual(get.call_count, 1)
+
+
+class FetchErrorCodeTests(SimpleTestCase):
+    def _response(self, status_code=200, url="https://alonhadat.com.vn/x-1.html"):
+        return Mock(status_code=status_code, url=url, headers={})
+
+    def test_success_returns_response_and_no_error(self):
+        response = self._response()
+        with patch.object(client.session, "get", return_value=response):
+            with patch.object(client.time, "sleep"):
+                got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIs(got, response)
+        self.assertIsNone(error)
+
+    def test_bot_challenge_redirect_reports_bot_challenge(self):
+        response = self._response(
+            url="https://alonhadat.com.vn/xac-thuc-nguoi-dung.html"
+        )
+        with patch.object(client.session, "get", return_value=response):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "bot_challenge")
+
+    def test_404_reports_http_404_not_a_generic_error(self):
+        with patch.object(client.session, "get", return_value=self._response(404)):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="INFO"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "http_404")
+
+    def test_other_non_200_reports_http_error(self):
+        with patch.object(client.session, "get", return_value=self._response(403)):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="WARNING"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "http_error")
+
+    def test_repeated_timeout_reports_fetch_gave_up_after_three_attempts(self):
+        from requests.exceptions import Timeout
+
+        with patch.object(client.session, "get", side_effect=Timeout) as get:
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "fetch_gave_up")
+        self.assertEqual(get.call_count, 3)
+
+    def test_persistent_500_reports_fetch_gave_up(self):
+        with patch.object(
+            client.session, "get", return_value=self._response(500)
+        ) as get:
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "fetch_gave_up")
+        self.assertEqual(get.call_count, 3)
+
+
+class SoftGonePlaceholderTests(SimpleTestCase):
+    REAL_LDP = """
+      <div itemtype="http://schema.org/BreadcrumbList">
+        <a href="/can-ban-can-ho-chung-cu">Căn hộ</a>
+      </div>
+      <article class="property">
+        <h1 itemprop="name">Bán căn hộ Quận 7</h1>
+        <section class="images"><ul class="image-list">
+          <li><img src="/img/a.jpg"></li>
+        </ul></section>
+      </article>
+    """
+    SOFT_GONE = """
+      <article class="property">
+        <h1 itemprop="name">Trang chủ</h1>
+      </article>
+    """
+
+    def test_real_ldp_is_not_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras(self.REAL_LDP)
+        self.assertFalse(extras["soft_gone"])
+        self.assertEqual(extras["images"], ["https://alonhadat.com.vn/img/a.jpg"])
+
+    def test_placeholder_shell_is_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras(self.SOFT_GONE)
+        self.assertTrue(extras["soft_gone"])
+
+    def test_soft_gone_leaves_images_null_not_empty(self):
+        # [] would mark enrichment done and mass-flag low_photos; null keeps
+        # the row retry-eligible.
+        extras = alonhadat.parse_ldp_extras(self.SOFT_GONE)
+        self.assertIsNone(extras["images"])
+
+    def test_page_without_the_anchor_is_not_soft_gone(self):
+        extras = alonhadat.parse_ldp_extras("<html><body>nothing</body></html>")
+        self.assertFalse(extras["soft_gone"])
+        self.assertIsNone(extras["images"])
+
+
+class ScrapeRunStatusCountsTests(TestCase):
+    SRP_HTML = """
+      <article class="property-item">
+        <a itemprop="url" href="/x-777.html" data-memberid="m1">link</a>
+        <span itemprop="name">Bán căn hộ</span>
+      </article>
+    """
+
+    def _run(self, fetch_side_effect):
+        with patch.object(scrape_listings, "fetch", side_effect=fetch_side_effect):
+            call_command(
+                "scrape_listings", "--source", "alonhadat", "--pages", "1",
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        return ScrapeRun.objects.latest("id")
+
+    def test_srp_bot_challenge_is_counted_by_name(self):
+        run = self._run([(None, "bot_challenge")])
+        self.assertEqual(run.status_counts, {"srp_bot_challenge": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_srp_timeout_is_counted_separately_from_the_wall(self):
+        run = self._run([(None, "fetch_gave_up")])
+        self.assertEqual(run.status_counts, {"srp_fetch_gave_up": 1})
+
+    def test_ldp_404_is_counted_but_is_not_an_error(self):
+        run = self._run([(Mock(text=self.SRP_HTML), None), (None, "http_404")])
+        self.assertEqual(run.status_counts.get("ldp_404"), 1)
+        self.assertEqual(run.error_count, 0)
+
+    def test_ldp_404_does_not_delist_a_listing_seen_on_the_srp(self):
+        self._run([(Mock(text=self.SRP_HTML), None), (None, "http_404")])
+        listing = Listing.objects.get(source_site="alonhadat", source_id="777")
+        self.assertTrue(listing.is_active)
+
+    def test_soft_gone_ldp_is_counted_and_leaves_images_null(self):
+        soft_gone = (
+            '<article class="property"><h1 itemprop="name">Trang chủ</h1></article>'
+        )
+        run = self._run(
+            [(Mock(text=self.SRP_HTML), None), (Mock(text=soft_gone), None)]
+        )
+        self.assertEqual(run.status_counts.get("ldp_soft_gone"), 1)
+        self.assertEqual(run.error_count, 0)
+        listing = Listing.objects.get(source_site="alonhadat", source_id="777")
+        self.assertIsNone(listing.images)
+
+    def test_no_anchor_is_counted_but_is_not_an_error(self):
+        run = self._run(
+            [
+                (Mock(text=self.SRP_HTML), None),
+                (Mock(text="<html><body>redesigned</body></html>"), None),
+            ]
+        )
+        self.assertEqual(run.status_counts.get("ldp_no_anchor"), 1)
+        self.assertEqual(run.error_count, 0)
+
+    def test_no_failures_stores_null_not_an_empty_dict(self):
+        real_ldp = (
+            "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+            "<a href='/can-ban-can-ho-chung-cu'>x</a></div>"
+            '<article class="property"><h1 itemprop="name">Real</h1>'
+            "<section class='images'><ul class='image-list'>"
+            "<li><img src='/files/a.jpg'></li></ul></section></article>"
+        )
+        run = self._run([(Mock(text=self.SRP_HTML), None), (Mock(text=real_ldp), None)])
+        self.assertIsNone(run.status_counts)
+        self.assertEqual(run.error_count, 0)
+
+
+class ScrapeRunAbortTests(TestCase):
+    def _abort(self):
+        with patch.object(
+            scrape_listings.alonhadat, "parse_srp", side_effect=RuntimeError("boom")
+        ):
+            with patch.object(
+                scrape_listings, "fetch", return_value=(Mock(text="<html></html>"), None)
+            ):
+                with self.assertRaises(RuntimeError):
+                    call_command(
+                        "scrape_listings", "--source", "alonhadat",
+                        stdout=io.StringIO(), stderr=io.StringIO(),
+                    )
+
+    def test_counters_survive_an_exception_mid_run(self):
+        self._abort()
+        run = ScrapeRun.objects.latest("id")
+        self.assertEqual(run.status_counts, {"run_aborted": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_aborted_run_leaves_finished_at_null(self):
+        # finished_at means "completed". Stamping it would also let the
+        # aborted run's partial count become sweep_delistings' baseline.
+        self._abort()
+        self.assertIsNone(ScrapeRun.objects.latest("id").finished_at)
+
+    def test_aborted_run_is_not_used_as_the_next_sweep_baseline(self):
+        healthy = ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(days=2),
+            finished_at=timezone.now() - timedelta(days=2),
+            listings_seen=800,
+        )
+        self._abort()
+        aborted = ScrapeRun.objects.latest("id")
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=3,
+        )
+        prior = (
+            ScrapeRun.objects.filter(
+                source_site="alonhadat", finished_at__isnull=False
+            )
+            .exclude(pk=run.pk)
+            .order_by("-started_at")
+            .first()
+        )
+        self.assertNotEqual(prior.pk, aborted.pk)
+        self.assertEqual(prior.pk, healthy.pk)
+
+    def test_aborted_run_does_not_sweep_delistings(self):
+        stale = _make_listing(
+            source_site="alonhadat", source_id="old",
+            url="https://alonhadat.com.vn/old-1.html",
+            last_seen_at=timezone.now() - timedelta(days=3),
+        )
+        self._abort()
+        stale.refresh_from_db()
+        self.assertTrue(stale.is_active)
+
+
+class SweepZeroSeenGuardTests(TestCase):
+    def test_a_run_that_saw_nothing_never_sweeps(self):
+        # Two consecutive blocked runs: `0 < 0/2` is False, so the ratio guard
+        # alone lets the sweep through and delists the whole active table.
+        ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(days=1),
+            finished_at=timezone.now() - timedelta(days=1),
+            listings_seen=0,
+        )
+        live = _make_listing(
+            source_site="alonhadat", source_id="keep",
+            url="https://alonhadat.com.vn/keep-1.html",
+            last_seen_at=timezone.now() - timedelta(days=3),
+        )
+        blocked = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=0,
+            error_count=1, status_counts={"srp_bot_challenge": 1},
+        )
+        with self.assertLogs(
+            "listings.management.commands.scrape_listings", level="WARNING"
+        ):
+            sweep_delistings(blocked)
+        live.refresh_from_db()
+        self.assertTrue(live.is_active)

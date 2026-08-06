@@ -2,9 +2,10 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db.models import F, Q
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, TemplateView
 
-from listings.models import Listing
+from listings.analytics import accuracy_trend, bar_max, recent_runs, scrapes_per_day
+from listings.models import Listing, ScoringRun, ScrapeRun
 
 
 def _to_decimal(value):
@@ -92,4 +93,18 @@ class AnomalySummaryView(ListView):
         ctx["flagged_count"] = Listing.objects.filter(
             is_active=True, is_anomaly=True
         ).count()
+        return ctx
+
+
+class PipelineHealthView(TemplateView):
+    template_name = "listings/pipeline_health.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["scrape_days"] = scrapes_per_day()
+        ctx["scrape_max"] = bar_max(ctx["scrape_days"], "seen")
+        ctx["accuracy_runs"] = accuracy_trend()
+        ctx["accuracy_max"] = bar_max(ctx["accuracy_runs"], "median_ape_pct")
+        ctx["recent_scrapes"] = recent_runs(ScrapeRun)
+        ctx["recent_scorings"] = recent_runs(ScoringRun)
         return ctx
