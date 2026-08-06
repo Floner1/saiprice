@@ -1,10 +1,11 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.template.loader import render_to_string
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Agent, PriceHistory
+from listings.models import Agent, PriceHistory, ScoringRun, ScrapeRun
 from listings.tests.test_models import _make_listing
 
 
@@ -441,3 +442,68 @@ class DetailAnomalyStalenessLabelTests(TestCase):
         response = self.client.get(f"/listing/{listing.pk}/")
         self.assertNotContains(response, "Scored")
         self.assertContains(response, "Not scored yet.")
+
+
+class PipelineHealthViewTests(TestCase):
+    def test_renders_with_an_empty_database(self):
+        # The page must not 500 before the first run ever happens.
+        response = self.client.get("/health/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_shows_scrape_volume_for_a_day_with_a_run(self):
+        started = timezone.now()
+        ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=started,
+            finished_at=started, listings_seen=799, error_count=1,
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "799")
+
+    def test_marks_an_unfinished_old_run_as_aborted(self):
+        ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(hours=8),
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "aborted")
+
+    def test_shows_median_ape_as_a_percentage(self):
+        now = timezone.now()
+        ScoringRun.objects.create(
+            started_at=now, finished_at=now,
+            median_ape=Decimal("0.2287"), n_compared=700,
+            model_fingerprint="abc123abc123",
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "22.9")
+
+    def test_labels_the_accuracy_figure_as_in_sample(self):
+        # Non-negotiable: this number must never be read as held-out accuracy.
+        now = timezone.now()
+        ScoringRun.objects.create(
+            started_at=now, finished_at=now, median_ape=Decimal("0.2287"),
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "in-sample")
+
+    def test_says_lower_is_better_so_a_long_bar_is_not_misread(self):
+        now = timezone.now()
+        ScoringRun.objects.create(
+            started_at=now, finished_at=now, median_ape=Decimal("0.2287"),
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "lower is better")
+
+    def test_expands_status_counts_into_readable_rows(self):
+        started = timezone.now()
+        ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=started, finished_at=started,
+            listings_seen=10, error_count=1,
+            status_counts={"srp_bot_challenge": 1},
+        )
+        response = self.client.get("/health/")
+        self.assertContains(response, "srp_bot_challenge")
+
+    def test_a_day_with_no_run_is_shown_not_omitted(self):
+        response = self.client.get("/health/")
+        self.assertEqual(len(response.context["scrape_days"]), 30)
