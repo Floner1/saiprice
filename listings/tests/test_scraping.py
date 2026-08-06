@@ -853,12 +853,41 @@ class ScrapeRunAbortTests(TestCase):
                         stdout=io.StringIO(), stderr=io.StringIO(),
                     )
 
-    def test_counters_and_finished_at_survive_an_exception_mid_run(self):
+    def test_counters_survive_an_exception_mid_run(self):
         self._abort()
         run = ScrapeRun.objects.latest("id")
-        self.assertIsNotNone(run.finished_at)
         self.assertEqual(run.status_counts, {"run_aborted": 1})
         self.assertEqual(run.error_count, 1)
+
+    def test_aborted_run_leaves_finished_at_null(self):
+        # finished_at means "completed". Stamping it would also let the
+        # aborted run's partial count become sweep_delistings' baseline.
+        self._abort()
+        self.assertIsNone(ScrapeRun.objects.latest("id").finished_at)
+
+    def test_aborted_run_is_not_used_as_the_next_sweep_baseline(self):
+        healthy = ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(days=2),
+            finished_at=timezone.now() - timedelta(days=2),
+            listings_seen=800,
+        )
+        self._abort()
+        aborted = ScrapeRun.objects.latest("id")
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=3,
+        )
+        prior = (
+            ScrapeRun.objects.filter(
+                source_site="alonhadat", finished_at__isnull=False
+            )
+            .exclude(pk=run.pk)
+            .order_by("-started_at")
+            .first()
+        )
+        self.assertNotEqual(prior.pk, aborted.pk)
+        self.assertEqual(prior.pk, healthy.pk)
 
     def test_aborted_run_does_not_sweep_delistings(self):
         stale = _make_listing(
@@ -869,3 +898,31 @@ class ScrapeRunAbortTests(TestCase):
         self._abort()
         stale.refresh_from_db()
         self.assertTrue(stale.is_active)
+
+
+class SweepZeroSeenGuardTests(TestCase):
+    def test_a_run_that_saw_nothing_never_sweeps(self):
+        # Two consecutive blocked runs: `0 < 0/2` is False, so the ratio guard
+        # alone lets the sweep through and delists the whole active table.
+        ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(days=1),
+            finished_at=timezone.now() - timedelta(days=1),
+            listings_seen=0,
+        )
+        live = _make_listing(
+            source_site="alonhadat", source_id="keep",
+            url="https://alonhadat.com.vn/keep-1.html",
+            last_seen_at=timezone.now() - timedelta(days=3),
+        )
+        blocked = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=0,
+            error_count=1, status_counts={"srp_bot_challenge": 1},
+        )
+        with self.assertLogs(
+            "listings.management.commands.scrape_listings", level="WARNING"
+        ):
+            sweep_delistings(blocked)
+        live.refresh_from_db()
+        self.assertTrue(live.is_active)

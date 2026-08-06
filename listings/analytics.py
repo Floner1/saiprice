@@ -70,8 +70,12 @@ def scrapes_per_day(days=30):
                 {"day": day, "seen": 0, "runs": 0, "errors": 0, "status": "no run"}
             )
             continue
+        # Same ordering rule as run_status: a day whose runs saw nothing *and*
+        # errored was blocked, which is a different fact from a quiet day.
         if not row["finished"]:
             status = "aborted"
+        elif not row["seen"] and row["errors"]:
+            status = "blocked"
         elif not row["seen"]:
             status = "empty"
         elif row["errors"]:
@@ -102,13 +106,22 @@ def bar_max(rows, key):
 def run_status(run):
     """Plain-language status for one ScrapeRun or ScoringRun row.
 
-    getattr with a default of 1 is what lets this serve both models: ScoringRun
-    has no listings_seen, so the "empty" branch stays scrape-only.
+    Order matters. "blocked" and "aborted" are the two states this dashboard
+    exists to surface, and both present as zero volume -- checking "empty"
+    first would collapse a bot wall and a quiet day into the same word.
     """
-    now = timezone.now()
+    counts = run.status_counts or {}
+    if counts.get("run_aborted"):
+        return "aborted"
     if run.finished_at is None:
-        return "aborted" if now - run.started_at > ABORT_AFTER else "running"
-    if not getattr(run, "listings_seen", 1):
+        # No run_aborted key and no finish: a hard kill (0xC000013A, §9) had no
+        # chance to record anything, so elapsed time is the only evidence left.
+        return "aborted" if timezone.now() - run.started_at > ABORT_AFTER else "running"
+    # ScrapeRun only: ScoringRun has no listings_seen and must not be "blocked".
+    seen = getattr(run, "listings_seen", None)
+    if seen == 0 and run.error_count:
+        return "blocked"
+    if seen == 0:
         return "empty"
     if run.error_count:
         return f"ok, {run.error_count} error{'s' if run.error_count != 1 else ''}"

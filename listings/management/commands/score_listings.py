@@ -105,6 +105,11 @@ class Command(BaseCommand):
         scored = flagged = 0
         try:
             predictions = _predictions(statuses)
+            # An empty dict means either "no row qualified" or "the model
+            # failed". Only the first justifies clearing stored predictions:
+            # nulling the whole table because model.pkl was unreadable would do
+            # more damage than the crash this handler replaced.
+            model_ran = not statuses.keys() & {"model_load_failed", "inference_failed"}
             # §12: each rule scopes its own population from is_active=True.
             # anomaly_reason holds one key per rule that ran; a listing no rule
             # covers is left untouched, not written with an empty dict.
@@ -117,7 +122,7 @@ class Command(BaseCommand):
                     listing.predicted_price = predictions[listing.pk]
                     listing.predicted_at = now
                     fields += ["predicted_price", "predicted_at"]
-                elif listing.predicted_price is not None:
+                elif model_ran and listing.predicted_price is not None:
                     # §12 calls predicted_price current-state output. A row that
                     # left the population (area re-parsed past the cap,
                     # posted_date nulled by a markup change) must not keep the

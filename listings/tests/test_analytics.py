@@ -178,3 +178,55 @@ class AccuracyTrendTests(TestCase):
         self.assertEqual(
             [r["new_model"] for r in accuracy_trend()], [False, False, True]
         )
+
+
+class RunStatusDistinguishesBlockedFromQuietTests(TestCase):
+    """The two states this dashboard exists to surface both present as zero
+    volume. Checking "empty" first collapses them into one word."""
+
+    def test_a_walled_run_reads_blocked_not_empty(self):
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=0, error_count=1,
+            status_counts={"srp_bot_challenge": 1},
+        )
+        self.assertEqual(run_status(run), "blocked")
+
+    def test_a_quiet_finished_run_still_reads_empty(self):
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=0, error_count=0,
+        )
+        self.assertEqual(run_status(run), "empty")
+
+    def test_a_run_aborted_key_reads_aborted_immediately_not_running(self):
+        # Definitive evidence beats the 6h elapsed-time heuristic.
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            listings_seen=4, error_count=1,
+            status_counts={"run_aborted": 1},
+        )
+        self.assertEqual(run_status(run), "aborted")
+
+    def test_a_scoring_run_is_never_called_empty_or_blocked(self):
+        run = ScoringRun.objects.create(
+            started_at=timezone.now(), finished_at=timezone.now(),
+        )
+        self.assertEqual(run_status(run), "ok")
+
+    def test_a_scoring_run_with_errors_reports_them(self):
+        run = ScoringRun.objects.create(
+            started_at=timezone.now(), finished_at=timezone.now(),
+            error_count=1, status_counts={"model_load_failed": 1},
+        )
+        self.assertEqual(run_status(run), "ok, 1 error")
+
+
+class ScrapesPerDayBlockedTests(TestCase):
+    def test_a_day_whose_runs_saw_nothing_and_errored_reads_blocked(self):
+        started = timezone.now()
+        ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=started, finished_at=started,
+            listings_seen=0, error_count=1,
+        )
+        self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "blocked")
