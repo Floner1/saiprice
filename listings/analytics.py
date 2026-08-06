@@ -40,7 +40,7 @@ def accuracy_metrics(pairs):
     return mae, median_ape, len(usable)
 
 
-def scrapes_per_day(days=30, now=None):
+def scrapes_per_day(days=30):
     """One dict per calendar day, oldest first, with no gaps.
 
     Days with no run are returned as zero-volume rows rather than omitted: a
@@ -48,8 +48,7 @@ def scrapes_per_day(days=30, now=None):
     row hides it. Bucketing is by TruncDate on started_at, which uses the
     project timezone (UTC).
     """
-    now = now or timezone.now()
-    start = timezone.localdate(now) - timedelta(days=days - 1)
+    start = timezone.localdate() - timedelta(days=days - 1)
     rows = (
         ScrapeRun.objects.filter(started_at__date__gte=start)
         .annotate(day=TruncDate("started_at"))
@@ -91,21 +90,22 @@ def scrapes_per_day(days=30, now=None):
     return out
 
 
-def with_bar_pct(rows, key):
-    """Add a `pct` to each row, scaled so the largest value is 100."""
-    top = max((row[key] or 0 for row in rows), default=0)
-    for row in rows:
-        row["pct"] = round(float(row[key] or 0) / float(top) * 100, 1) if top else 0
-    return rows
+def bar_max(rows, key):
+    """Largest value in `rows`, the denominator for {% widthratio %}.
+
+    Bar widths themselves are the template's job: Django's widthratio tag is
+    built for this and already returns "0" when the max is 0.
+    """
+    return max((row[key] or 0 for row in rows), default=0)
 
 
-def run_status(run, now=None):
+def run_status(run):
     """Plain-language status for one ScrapeRun or ScoringRun row.
 
     getattr with a default of 1 is what lets this serve both models: ScoringRun
     has no listings_seen, so the "empty" branch stays scrape-only.
     """
-    now = now or timezone.now()
+    now = timezone.now()
     if run.finished_at is None:
         return "aborted" if now - run.started_at > ABORT_AFTER else "running"
     if not getattr(run, "listings_seen", 1):
