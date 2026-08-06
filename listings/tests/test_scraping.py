@@ -1,15 +1,21 @@
+import io
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from bs4 import BeautifulSoup
+from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
+from listings.management.commands import scrape_listings
 from listings.management.commands.scrape_listings import sweep_delistings
 from listings.models import Listing, ScrapeRun
+from listings.scraping import client
 from listings.scraping.parsers import RequiredFieldMissing, parse_ldp
 from listings.scraping.sites import alonhadat
+from listings.tests.test_models import _make_listing
 
 # ponytail: these point at the real sample HTML in testdata/ (gitignored)
 # rather than a duplicated fixtures/ copy. If those files move, repoint
@@ -655,5 +661,70 @@ class FetchBotChallengeTests(SimpleTestCase):
             # assertLogs keeps the expected "bot challenge served" error out
             # of the suite's console output, where it reads like a live incident
             with self.assertLogs("listings.scraping.client", level="ERROR"):
-                self.assertIsNone(client.fetch("https://alonhadat.com.vn/x-1.html"))
+                self.assertEqual(
+                    client.fetch("https://alonhadat.com.vn/x-1.html"),
+                    (None, "bot_challenge"),
+                )
             self.assertEqual(get.call_count, 1)
+
+
+class FetchErrorCodeTests(SimpleTestCase):
+    def _response(self, status_code=200, url="https://alonhadat.com.vn/x-1.html"):
+        return Mock(status_code=status_code, url=url, headers={})
+
+    def test_success_returns_response_and_no_error(self):
+        response = self._response()
+        with patch.object(client.session, "get", return_value=response):
+            with patch.object(client.time, "sleep"):
+                got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIs(got, response)
+        self.assertIsNone(error)
+
+    def test_bot_challenge_redirect_reports_bot_challenge(self):
+        response = self._response(
+            url="https://alonhadat.com.vn/xac-thuc-nguoi-dung.html"
+        )
+        with patch.object(client.session, "get", return_value=response):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "bot_challenge")
+
+    def test_404_reports_http_404_not_a_generic_error(self):
+        with patch.object(client.session, "get", return_value=self._response(404)):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="INFO"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "http_404")
+
+    def test_other_non_200_reports_http_error(self):
+        with patch.object(client.session, "get", return_value=self._response(403)):
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="WARNING"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "http_error")
+
+    def test_repeated_timeout_reports_fetch_gave_up_after_three_attempts(self):
+        from requests.exceptions import Timeout
+
+        with patch.object(client.session, "get", side_effect=Timeout) as get:
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "fetch_gave_up")
+        self.assertEqual(get.call_count, 3)
+
+    def test_persistent_500_reports_fetch_gave_up(self):
+        with patch.object(
+            client.session, "get", return_value=self._response(500)
+        ) as get:
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch("https://alonhadat.com.vn/x-1.html")
+        self.assertIsNone(got)
+        self.assertEqual(error, "fetch_gave_up")
+        self.assertEqual(get.call_count, 3)
