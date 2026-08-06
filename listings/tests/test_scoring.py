@@ -436,9 +436,61 @@ class ScoringFailureTests(TestCase):
                 raise DatabaseError("write failed")
             return original(self, *args, **kwargs)
 
+        # assertLogs keeps the expected "listing_save_failed" error out of the
+        # suite's console output, where it reads like a live incident
         with patch.object(Listing, "save", flaky):
-            _score()
+            with self.assertLogs(
+                "listings.management.commands.score_listings", level="ERROR"
+            ):
+                _score()
         run = ScoringRun.objects.latest("id")
         self.assertEqual(run.status_counts, {"listing_save_failed": 1})
         good.refresh_from_db()
         self.assertIsNotNone(good.anomaly_scored_at)
+
+
+class ModelFailureDoesNotWipePredictionsTests(TestCase):
+    """A caught model failure must degrade, not destroy.
+
+    The null-out branch exists for a row that left the model's population; it
+    cannot tell that from "the model never ran", and an empty predictions dict
+    looks identical to both.
+    """
+
+    def test_load_failure_leaves_existing_predictions_intact(self):
+        # area_sqm + posted_date are required for the row to reach the model at
+        # all; without them _predictions returns early and load() never runs.
+        listing = _make_listing(
+            source_id="mw1", url="https://alonhadat.com.vn/mw1.html",
+            images=["a.jpg"], area_sqm=Decimal("70"),
+            posted_date=timezone.localdate(),
+            predicted_price=Decimal("3720083477"),
+        )
+        with patch.object(score_listings, "load", side_effect=OSError("no model.pkl")):
+            _score()
+        listing.refresh_from_db()
+        self.assertEqual(listing.predicted_price, Decimal("3720083477"))
+
+    def test_inference_failure_leaves_existing_predictions_intact(self):
+        listing = _make_listing(
+            source_id="mw2", url="https://alonhadat.com.vn/mw2.html",
+            images=["a.jpg"], area_sqm=Decimal("70"),
+            posted_date=timezone.localdate(),
+            predicted_price=Decimal("3720083477"),
+        )
+        with patch.object(score_listings, "predict", side_effect=ValueError("nan")):
+            _score()
+        listing.refresh_from_db()
+        self.assertEqual(listing.predicted_price, Decimal("3720083477"))
+
+    def test_a_healthy_run_still_clears_a_row_that_left_the_population(self):
+        # The null-out branch must keep working when the model did run.
+        listing = _make_listing(
+            source_id="mw3", url="https://alonhadat.com.vn/mw3.html",
+            images=["a.jpg"], posted_date=None,
+            predicted_price=Decimal("3720083477"),
+        )
+        _score()
+        listing.refresh_from_db()
+        self.assertIsNone(listing.predicted_price)
+        self.assertIsNone(listing.predicted_at)

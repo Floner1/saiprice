@@ -26,9 +26,13 @@ def record(run, code):
     counts = run.status_counts or {}
     counts[code] = counts.get(code, 0) + 1
     run.status_counts = counts
-    if code not in NON_ERROR_CODES:
+    if code in NON_ERROR_CODES:
+        logger.info(f"{run.source_site}: {code}")
+    else:
+        # A bot wall or an abort at INFO is under-levelled; these are the lines
+        # someone greps for after a bad night.
         run.error_count += 1
-    logger.info(f"{run.source_site}: {code}")
+        logger.warning(f"{run.source_site}: {code}")
 
 
 def sweep_delistings(run):
@@ -41,10 +45,16 @@ def sweep_delistings(run):
         .order_by("-started_at")
         .first()
     )
-    if prior and run.listings_seen < prior.listings_seen / 2:
+    # The zero case needs its own guard, not just the ratio: when a prior run
+    # was itself blocked (listings_seen=0), `0 < 0/2` is False and the sweep
+    # proceeds, delisting the whole active table. Two consecutive walled runs
+    # is the normal shape of an alonhadat wall incident, not a corner case.
+    if not run.listings_seen or (
+        prior and run.listings_seen < prior.listings_seen / 2
+    ):
         logger.warning(
-            f"skipping delist sweep: listings_seen={run.listings_seen} is under "
-            f"half of prior run's {prior.listings_seen} -- crawl looks broken"
+            f"skipping delist sweep: listings_seen={run.listings_seen}, prior run "
+            f"saw {prior.listings_seen if prior else 'n/a'} -- crawl looks broken"
         )
         return
     Listing.objects.filter(
@@ -230,13 +240,14 @@ class Command(BaseCommand):
                 sweep_delistings(run)
         except BaseException:
             # A partial crawl must not sweep, so the sweep above sits inside
-            # the try. run_aborted only covers Python-level aborts; a hard kill
-            # (0xC000013A) leaves finished_at null, which the reader side reads
-            # as aborted instead.
+            # the try. finished_at is deliberately left null here: it means
+            # "completed", and an aborted run did not. That also keeps the run
+            # out of sweep_delistings' prior-run baseline, which filters on
+            # finished_at -- stamping it would let a 4-listing abort become the
+            # floor the next run is measured against.
             record(run, "run_aborted")
             raise
         finally:
-            run.finished_at = run.finished_at or timezone.now()
             check_posted_date_nulls(run)
             run.save()
         self.stdout.write(
