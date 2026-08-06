@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Pipeline health — SaiPrice{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl mb-1">Pipeline health</h1>
+<p class="text-sm text-muted mb-8">
+  Crawl volume and model residuals, read straight from ScrapeRun and ScoringRun.
+</p>
+
+<section class="mb-12">
+  <h2 class="text-lg mb-1">Listings seen per day</h2>
+  <p class="text-sm text-muted mb-4">
+    Last 30 days. A day with no bar had no run at all — the gap is the signal,
+    so empty days are shown rather than skipped.
+  </p>
+  <ul>
+    {% for day in scrape_days %}
+    <li class="flex items-center gap-3 py-1 border-b border-line text-sm"
+        title="{{ day.day|date:'Y-m-d' }} · {{ day.seen }} seen · {{ day.runs }} run{{ day.runs|pluralize }} · {{ day.status }}">
+      <span class="w-16 shrink-0 text-muted tabular-nums">{{ day.day|date:"M j" }}</span>
+      <span class="flex-1 h-2 bg-line">
+        {% if day.seen %}
+        <span class="block h-2 rounded-r-sm bg-accent"
+              style="width: {% widthratio day.seen scrape_max 100 %}%"></span>
+        {% endif %}
+      </span>
+      <span class="w-12 shrink-0 text-right tabular-nums">{{ day.seen }}</span>
+      <span class="w-24 shrink-0 text-right text-muted">{{ day.status }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="mb-12">
+  <h2 class="text-lg mb-1">Model error per scoring run</h2>
+  <p class="text-sm text-muted mb-4">
+    Median absolute percentage error, predicted against listed price
+    (lower is better, so a shorter bar is a better run).
+    <strong class="text-ink">This is in-sample</strong> — the model is fit on
+    these same listings, so it reads better than its held-out accuracy and must
+    not be quoted as one.
+  </p>
+  <ul>
+    {% for run in accuracy_runs %}
+    <li class="flex items-center gap-3 py-1 border-b border-line text-sm"
+        title="{{ run.started_at|date:'Y-m-d H:i' }} · {{ run.median_ape_pct|floatformat:2 }}% over {{ run.n_compared }} listings · model {{ run.fingerprint|default:'unknown' }}">
+      <span class="w-16 shrink-0 text-muted tabular-nums">{{ run.started_at|date:"M j" }}</span>
+      <span class="flex-1 h-2 bg-line">
+        <span class="block h-2 rounded-r-sm bg-accent"
+              style="width: {% widthratio run.median_ape_pct accuracy_max 100 %}%"></span>
+      </span>
+      <span class="w-12 shrink-0 text-right tabular-nums">{{ run.median_ape_pct|floatformat:1 }}%</span>
+      <span class="w-24 shrink-0 text-right text-muted">
+        n={{ run.n_compared }}{% if run.new_model %} · new model{% endif %}
+      </span>
+    </li>
+    {% empty %}
+    <li class="text-sm text-muted">No scoring run has produced a metric yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="mb-12">
+  <h2 class="text-lg mb-4">Recent scrape runs</h2>
+  {% for entry in recent_scrapes %}
+  <div class="py-2 border-b border-line text-sm">
+    <div class="flex justify-between">
+      <span>{{ entry.run.started_at|date:"Y-m-d H:i" }} · {{ entry.run.source_site }}</span>
+      <span class="text-muted">{{ entry.status }}</span>
+    </div>
+    <div class="text-muted">
+      seen {{ entry.run.listings_seen }} · new {{ entry.run.inserted }} ·
+      updated {{ entry.run.updated }} · skipped {{ entry.run.skipped }}
+    </div>
+    {% for code, count in entry.run.status_counts.items %}
+    <div class="text-muted pl-4">{{ code }} × {{ count }}</div>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <p class="text-sm text-muted">No scrape runs recorded.</p>
+  {% endfor %}
+</section>
+
+<section>
+  <h2 class="text-lg mb-4">Recent scoring runs</h2>
+  {% for entry in recent_scorings %}
+  <div class="py-2 border-b border-line text-sm">
+    <div class="flex justify-between">
+      <span>{{ entry.run.started_at|date:"Y-m-d H:i" }}</span>
+      <span class="text-muted">{{ entry.status }}</span>
+    </div>
+    <div class="text-muted">
+      predicted {{ entry.run.predicted }} · scored {{ entry.run.scored }} ·
+      flagged {{ entry.run.flagged }} · compared {{ entry.run.n_compared }}
+      {% if entry.run.model_fingerprint %} · model {{ entry.run.model_fingerprint }}{% endif %}
+    </div>
+    {% for code, count in entry.run.status_counts.items %}
+    <div class="text-muted pl-4">{{ code }} × {{ count }}</div>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <p class="text-sm text-muted">No scoring runs recorded.</p>
+  {% endfor %}
+</section>
+{% endblock %}

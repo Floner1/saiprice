@@ -259,3 +259,51 @@ class AnomalyStalenessTests(TestCase):
     def test_scored_on_an_earlier_day_is_stale(self):
         listing = self._listing("as3", timezone.now() - timedelta(days=2))
         self.assertTrue(listing.anomaly_is_stale)
+
+
+class ScoringRunSchemaTests(TestCase):
+    def test_scrape_run_status_counts_defaults_to_null(self):
+        from listings.models import ScrapeRun
+
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now()
+        )
+        run.refresh_from_db()
+        self.assertIsNone(run.status_counts)
+
+    def test_scrape_run_status_counts_round_trips_a_dict(self):
+        from listings.models import ScrapeRun
+
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now(),
+            status_counts={"ldp_404": 2, "srp_bot_challenge": 1},
+        )
+        run.refresh_from_db()
+        self.assertEqual(run.status_counts, {"ldp_404": 2, "srp_bot_challenge": 1})
+
+    def test_scoring_run_counters_default_to_zero_and_metrics_to_null(self):
+        from listings.models import ScoringRun
+
+        run = ScoringRun.objects.create(started_at=timezone.now())
+        run.refresh_from_db()
+        self.assertEqual(
+            (run.predicted, run.scored, run.flagged, run.n_compared, run.error_count),
+            (0, 0, 0, 0, 0),
+        )
+        self.assertIsNone(run.finished_at)
+        self.assertIsNone(run.mae_vnd)
+        self.assertIsNone(run.median_ape)
+        self.assertIsNone(run.model_fingerprint)
+        self.assertIsNone(run.status_counts)
+
+    def test_scoring_run_median_ape_keeps_four_decimal_places(self):
+        from decimal import Decimal
+
+        from listings.models import ScoringRun
+
+        run = ScoringRun.objects.create(
+            started_at=timezone.now(), median_ape=Decimal("0.2287")
+        )
+        run.refresh_from_db()
+        self.assertEqual(run.median_ape, Decimal("0.2287"))
