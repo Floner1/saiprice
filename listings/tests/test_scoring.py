@@ -1,12 +1,15 @@
 import io
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.management import call_command
+from django.db import DatabaseError
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import PriceHistory
+from listings.management.commands import score_listings
+from listings.models import Listing, PriceHistory, ScoringRun
 from listings.tests.test_models import _make_listing
 
 
@@ -337,3 +340,105 @@ class PredictionTests(TestCase):
         listing.refresh_from_db()
         self.assertIsNone(listing.predicted_price)
         self.assertIsNone(listing.predicted_at)
+
+
+class ScoringRunTests(TestCase):
+    def test_a_run_row_is_written_with_finished_at_set(self):
+        _make_listing(
+            source_id="sr1", url="https://alonhadat.com.vn/sr1.html", images=["a.jpg"]
+        )
+        _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertIsNotNone(run.finished_at)
+        self.assertEqual(run.scored, 1)
+
+    def test_model_fingerprint_is_recorded(self):
+        _make_listing(
+            source_id="sr2", url="https://alonhadat.com.vn/sr2.html", images=["a.jpg"]
+        )
+        _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertIsNotNone(run.model_fingerprint)
+        self.assertEqual(len(run.model_fingerprint), 12)
+
+    def test_empty_accuracy_population_stores_null_metrics(self):
+        _make_listing(
+            source_id="sr3", url="https://alonhadat.com.vn/sr3.html",
+            images=["a.jpg"], price=None,
+        )
+        _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertEqual(run.n_compared, 0)
+        self.assertIsNone(run.median_ape)
+        self.assertIsNone(run.mae_vnd)
+
+    def test_no_failures_stores_null_status_counts(self):
+        _make_listing(
+            source_id="sr4", url="https://alonhadat.com.vn/sr4.html", images=["a.jpg"]
+        )
+        _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertIsNone(run.status_counts)
+        self.assertEqual(run.error_count, 0)
+
+
+class ScoringFailureTests(TestCase):
+    def _scorable(self, source_id):
+        return _make_listing(
+            source_id=source_id,
+            url=f"https://alonhadat.com.vn/{source_id}.html",
+            images=["a.jpg"],
+            area_sqm=Decimal("70"),
+            posted_date=timezone.localdate(),
+        )
+
+    def test_model_load_failure_is_counted_and_does_not_kill_the_command(self):
+        self._scorable("mf1")
+        with patch.object(score_listings, "load", side_effect=OSError("no model.pkl")):
+            _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertEqual(run.status_counts, {"model_load_failed": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_anomaly_rules_still_run_when_the_model_fails(self):
+        # This is the point of the change: low_photos and stale_listing do not
+        # need the model, and used to die with it.
+        listing = self._scorable("mf2")
+        with patch.object(score_listings, "load", side_effect=OSError("no model.pkl")):
+            _score()
+        listing.refresh_from_db()
+        self.assertTrue(listing.is_anomaly)
+        self.assertEqual(
+            listing.anomaly_reason["low_photos"], {"triggered": True, "value": 1}
+        )
+
+    def test_inference_failure_is_counted_separately_from_load_failure(self):
+        self._scorable("mf3")
+        with patch.object(score_listings, "predict", side_effect=ValueError("nan")):
+            _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertEqual(run.status_counts, {"inference_failed": 1})
+
+    def test_a_row_that_fails_to_save_is_counted_and_the_run_continues(self):
+        _make_listing(
+            source_id="mf4", url="https://alonhadat.com.vn/mf4.html", images=["a.jpg"]
+        )
+        good = _make_listing(
+            source_id="mf5", url="https://alonhadat.com.vn/mf5.html",
+            images=["a.jpg", "b.jpg", "c.jpg"],
+        )
+        original = Listing.save
+        calls = {"n": 0}
+
+        def flaky(self, *args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise DatabaseError("write failed")
+            return original(self, *args, **kwargs)
+
+        with patch.object(Listing, "save", flaky):
+            _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertEqual(run.status_counts, {"listing_save_failed": 1})
+        good.refresh_from_db()
+        self.assertIsNotNone(good.anomaly_scored_at)
