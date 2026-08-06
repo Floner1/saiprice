@@ -1,8 +1,17 @@
+from datetime import timedelta
 from decimal import Decimal
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
-from listings.analytics import accuracy_metrics
+from listings.analytics import (
+    accuracy_metrics,
+    accuracy_trend,
+    run_status,
+    scrapes_per_day,
+    with_bar_pct,
+)
+from listings.models import ScoringRun, ScrapeRun
 
 
 def _d(value):
@@ -51,3 +60,122 @@ class AccuracyMetricsTests(SimpleTestCase):
     def test_even_population_averages_the_two_middle_ratios(self):
         pairs = [(_d(110), _d(100)), (_d(130), _d(100))]
         self.assertEqual(accuracy_metrics(pairs)[1], Decimal("0.2000"))
+
+
+class ScrapesPerDayTests(TestCase):
+    def _run(self, days_ago, seen, finished=True, errors=0):
+        started = timezone.now() - timedelta(days=days_ago)
+        return ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=started,
+            finished_at=started + timedelta(minutes=5) if finished else None,
+            listings_seen=seen,
+            error_count=errors,
+        )
+
+    def test_returns_one_entry_per_day_including_days_with_no_run(self):
+        self._run(0, 800)
+        rows = scrapes_per_day(days=7)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual([r["status"] for r in rows[:6]], ["no run"] * 6)
+
+    def test_a_day_with_a_healthy_run_reports_its_volume(self):
+        self._run(0, 800)
+        self.assertEqual(scrapes_per_day(days=3)[-1]["seen"], 800)
+        self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "ok")
+
+    def test_two_runs_on_one_day_sum_their_volume(self):
+        self._run(0, 400)
+        self._run(0, 350)
+        row = scrapes_per_day(days=3)[-1]
+        self.assertEqual(row["seen"], 750)
+        self.assertEqual(row["runs"], 2)
+
+    def test_a_day_of_only_unfinished_runs_reads_aborted_not_zero_volume(self):
+        # This is DB reality: ScrapeRun 15/17/18/20 are exactly this shape.
+        self._run(0, 0, finished=False)
+        self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "aborted")
+
+    def test_a_finished_run_that_saw_nothing_reads_empty_not_aborted(self):
+        self._run(0, 0, finished=True)
+        self.assertEqual(scrapes_per_day(days=3)[-1]["status"], "empty")
+
+    def test_runs_older_than_the_window_are_excluded(self):
+        self._run(40, 900)
+        self.assertEqual(sum(r["seen"] for r in scrapes_per_day(days=7)), 0)
+
+
+class BarPctTests(SimpleTestCase):
+    def test_largest_value_is_full_width_and_others_scale_to_it(self):
+        rows = with_bar_pct([{"seen": 50}, {"seen": 100}], "seen")
+        self.assertEqual([r["pct"] for r in rows], [50.0, 100.0])
+
+    def test_all_zero_rows_do_not_divide_by_zero(self):
+        rows = with_bar_pct([{"seen": 0}, {"seen": 0}], "seen")
+        self.assertEqual([r["pct"] for r in rows], [0, 0])
+
+    def test_empty_input_is_handled(self):
+        self.assertEqual(with_bar_pct([], "seen"), [])
+
+
+class RunStatusTests(TestCase):
+    def test_unfinished_and_recent_reads_running(self):
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now()
+        )
+        self.assertEqual(run_status(run), "running")
+
+    def test_unfinished_and_old_reads_aborted(self):
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat",
+            started_at=timezone.now() - timedelta(hours=7),
+        )
+        self.assertEqual(run_status(run), "aborted")
+
+    def test_finished_with_errors_says_so(self):
+        run = ScrapeRun.objects.create(
+            source_site="alonhadat", started_at=timezone.now(),
+            finished_at=timezone.now(), listings_seen=800, error_count=2,
+        )
+        self.assertEqual(run_status(run), "ok, 2 errors")
+
+    def test_scoring_run_has_no_listings_seen_and_is_not_called_empty(self):
+        run = ScoringRun.objects.create(
+            started_at=timezone.now(), finished_at=timezone.now()
+        )
+        self.assertEqual(run_status(run), "ok")
+
+
+class AccuracyTrendTests(TestCase):
+    def _run(self, minutes_ago, ape, fingerprint="aaaaaaaaaaaa"):
+        return ScoringRun.objects.create(
+            started_at=timezone.now() - timedelta(minutes=minutes_ago),
+            finished_at=timezone.now() - timedelta(minutes=minutes_ago),
+            median_ape=Decimal(str(ape)),
+            n_compared=700,
+            model_fingerprint=fingerprint,
+        )
+
+    def test_returns_runs_oldest_first_so_the_chart_reads_left_to_right(self):
+        self._run(30, "0.30")
+        self._run(10, "0.20")
+        rows = accuracy_trend()
+        self.assertEqual(
+            [r["median_ape"] for r in rows], [Decimal("0.3000"), Decimal("0.2000")]
+        )
+
+    def test_runs_without_a_metric_are_excluded(self):
+        ScoringRun.objects.create(started_at=timezone.now())
+        self.assertEqual(accuracy_trend(), [])
+
+    def test_median_ape_is_exposed_as_a_percentage_for_display(self):
+        self._run(10, "0.2287")
+        self.assertAlmostEqual(accuracy_trend()[0]["median_ape_pct"], 22.87, places=2)
+
+    def test_a_fingerprint_change_marks_the_run_as_a_new_model(self):
+        self._run(30, "0.30", fingerprint="aaaaaaaaaaaa")
+        self._run(20, "0.30", fingerprint="aaaaaaaaaaaa")
+        self._run(10, "0.25", fingerprint="bbbbbbbbbbbb")
+        self.assertEqual(
+            [r["new_model"] for r in accuracy_trend()], [False, False, True]
+        )
