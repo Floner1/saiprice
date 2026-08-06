@@ -386,7 +386,7 @@ class EnrichFromLdpTests(TestCase):
             "</section></article>"
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, Mock(status_code=200, text=ldp_html))
+        run, mock_fetch = self._run_enrich(item, (Mock(text=ldp_html), None))
         mock_fetch.assert_called_once()
         self.assertEqual(item.fields["property_type"], "house")
         self.assertEqual(item.fields["images"], ["https://alonhadat.com.vn/files/a.jpg"])
@@ -404,7 +404,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
         self.assertNotIn("property_type", item.fields)
         self.assertNotIn("listing_intent", item.fields)
@@ -421,7 +421,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
 
     def test_anchor_missing_ldp_leaves_images_null_for_retry_and_notes_it(self):
@@ -448,7 +448,7 @@ class EnrichFromLdpTests(TestCase):
         with patch.object(
             scrape_listings,
             "fetch",
-            return_value=Mock(status_code=200, text="<html><body>redesigned</body></html>"),
+            return_value=(Mock(text="<html><body>redesigned</body></html>"), None),
         ) as mock_fetch:
             scrape_listings.Command(stderr=stderr)._enrich_from_ldp(item, run)
         mock_fetch.assert_called_once()
@@ -469,7 +469,7 @@ class EnrichFromLdpTests(TestCase):
             last_seen_at=timezone.now(),
         )
         item = self._item()
-        run, mock_fetch = self._run_enrich(item, None)
+        run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_called_once()
         self.assertEqual(run.error_count, 1)
         self.assertNotIn("property_type", item.fields)
@@ -526,7 +526,7 @@ class LdpBudgetTests(TestCase):
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
         first, second = self._item("111"), self._item("222")
         with patch.object(
-            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+            scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
             cmd._enrich_from_ldp(first, run)
             cmd._enrich_from_ldp(second, run)
@@ -555,7 +555,7 @@ class LdpBudgetTests(TestCase):
         cmd = self._command_with_budget(1)
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
         with patch.object(
-            scrape_listings, "fetch", return_value=Mock(status_code=200, text=self.LDP_HTML)
+            scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
             cmd._enrich_from_ldp(self._item("111"), run)
             cmd._enrich_from_ldp(self._item("222"), run)
@@ -596,9 +596,9 @@ class NoLdpEnrichHandleTests(TestCase):
 
         from listings.management.commands import scrape_listings
 
-        srp = Mock(status_code=200, text=_read("alonhadat_srp_apartment.txt"))
+        srp = Mock(text=_read("alonhadat_srp_apartment.txt"))
         out = io.StringIO()
-        with patch.object(scrape_listings, "fetch", return_value=srp) as mock_fetch:
+        with patch.object(scrape_listings, "fetch", return_value=(srp, None)) as mock_fetch:
             call_command(
                 "scrape_listings",
                 "--source", "alonhadat",
@@ -632,8 +632,8 @@ class PostedDateNullCheckTests(TestCase):
 
         from listings.management.commands import scrape_listings
 
-        srp = Mock(status_code=200, text=self.SRP_HTML)
-        with patch.object(scrape_listings, "fetch", return_value=srp):
+        srp = Mock(text=self.SRP_HTML)
+        with patch.object(scrape_listings, "fetch", return_value=(srp, None)):
             with self.assertLogs(
                 "listings.management.commands.scrape_listings", level="WARNING"
             ) as logs:
@@ -767,3 +767,105 @@ class SoftGonePlaceholderTests(SimpleTestCase):
         extras = alonhadat.parse_ldp_extras("<html><body>nothing</body></html>")
         self.assertFalse(extras["soft_gone"])
         self.assertIsNone(extras["images"])
+
+
+class ScrapeRunStatusCountsTests(TestCase):
+    SRP_HTML = """
+      <article class="property-item">
+        <a itemprop="url" href="/x-777.html" data-memberid="m1">link</a>
+        <span itemprop="name">Bán căn hộ</span>
+      </article>
+    """
+
+    def _run(self, fetch_side_effect):
+        with patch.object(scrape_listings, "fetch", side_effect=fetch_side_effect):
+            call_command(
+                "scrape_listings", "--source", "alonhadat", "--pages", "1",
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        return ScrapeRun.objects.latest("id")
+
+    def test_srp_bot_challenge_is_counted_by_name(self):
+        run = self._run([(None, "bot_challenge")])
+        self.assertEqual(run.status_counts, {"srp_bot_challenge": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_srp_timeout_is_counted_separately_from_the_wall(self):
+        run = self._run([(None, "fetch_gave_up")])
+        self.assertEqual(run.status_counts, {"srp_fetch_gave_up": 1})
+
+    def test_ldp_404_is_counted_but_is_not_an_error(self):
+        run = self._run([(Mock(text=self.SRP_HTML), None), (None, "http_404")])
+        self.assertEqual(run.status_counts.get("ldp_404"), 1)
+        self.assertEqual(run.error_count, 0)
+
+    def test_ldp_404_does_not_delist_a_listing_seen_on_the_srp(self):
+        self._run([(Mock(text=self.SRP_HTML), None), (None, "http_404")])
+        listing = Listing.objects.get(source_site="alonhadat", source_id="777")
+        self.assertTrue(listing.is_active)
+
+    def test_soft_gone_ldp_is_counted_and_leaves_images_null(self):
+        soft_gone = (
+            '<article class="property"><h1 itemprop="name">Trang chủ</h1></article>'
+        )
+        run = self._run(
+            [(Mock(text=self.SRP_HTML), None), (Mock(text=soft_gone), None)]
+        )
+        self.assertEqual(run.status_counts.get("ldp_soft_gone"), 1)
+        self.assertEqual(run.error_count, 0)
+        listing = Listing.objects.get(source_site="alonhadat", source_id="777")
+        self.assertIsNone(listing.images)
+
+    def test_no_anchor_is_counted_but_is_not_an_error(self):
+        run = self._run(
+            [
+                (Mock(text=self.SRP_HTML), None),
+                (Mock(text="<html><body>redesigned</body></html>"), None),
+            ]
+        )
+        self.assertEqual(run.status_counts.get("ldp_no_anchor"), 1)
+        self.assertEqual(run.error_count, 0)
+
+    def test_no_failures_stores_null_not_an_empty_dict(self):
+        real_ldp = (
+            "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
+            "<a href='/can-ban-can-ho-chung-cu'>x</a></div>"
+            '<article class="property"><h1 itemprop="name">Real</h1>'
+            "<section class='images'><ul class='image-list'>"
+            "<li><img src='/files/a.jpg'></li></ul></section></article>"
+        )
+        run = self._run([(Mock(text=self.SRP_HTML), None), (Mock(text=real_ldp), None)])
+        self.assertIsNone(run.status_counts)
+        self.assertEqual(run.error_count, 0)
+
+
+class ScrapeRunAbortTests(TestCase):
+    def _abort(self):
+        with patch.object(
+            scrape_listings.alonhadat, "parse_srp", side_effect=RuntimeError("boom")
+        ):
+            with patch.object(
+                scrape_listings, "fetch", return_value=(Mock(text="<html></html>"), None)
+            ):
+                with self.assertRaises(RuntimeError):
+                    call_command(
+                        "scrape_listings", "--source", "alonhadat",
+                        stdout=io.StringIO(), stderr=io.StringIO(),
+                    )
+
+    def test_counters_and_finished_at_survive_an_exception_mid_run(self):
+        self._abort()
+        run = ScrapeRun.objects.latest("id")
+        self.assertIsNotNone(run.finished_at)
+        self.assertEqual(run.status_counts, {"run_aborted": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_aborted_run_does_not_sweep_delistings(self):
+        stale = _make_listing(
+            source_site="alonhadat", source_id="old",
+            url="https://alonhadat.com.vn/old-1.html",
+            last_seen_at=timezone.now() - timedelta(days=3),
+        )
+        self._abort()
+        stale.refresh_from_db()
+        self.assertTrue(stale.is_active)
