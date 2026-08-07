@@ -7,7 +7,11 @@ batdongsan and maison office stuff/
 graphify-out/
 .claude/
 .agents/
-testdata/
+testdata/*
+!testdata/alonhadat_ldp_apartment.txt
+!testdata/alonhadat_srp_apartment.txt
+!testdata/ldp_apartment.txt
+!testdata/ldp_land.txt
 project_tests/
 .django_tailwind_cli/
 assets/css/tailwind.css

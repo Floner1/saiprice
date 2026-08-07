@@ -70,18 +70,10 @@ def scrapes_per_day(days=30):
                 {"day": day, "seen": 0, "runs": 0, "errors": 0, "status": "no run"}
             )
             continue
-        # Same ordering rule as run_status: a day whose runs saw nothing *and*
-        # errored was blocked, which is a different fact from a quiet day.
         if not row["finished"]:
             status = "aborted"
-        elif not row["seen"] and row["errors"]:
-            status = "blocked"
-        elif not row["seen"]:
-            status = "empty"
-        elif row["errors"]:
-            status = f"ok, {row['errors']} error{'s' if row['errors'] != 1 else ''}"
         else:
-            status = "ok"
+            status = _volume_status(row["seen"] or 0, row["errors"] or 0)
         out.append(
             {
                 "day": day,
@@ -103,13 +95,25 @@ def bar_max(rows, key):
     return max((row[key] or 0 for row in rows), default=0)
 
 
-def run_status(run):
-    """Plain-language status for one ScrapeRun or ScoringRun row.
+def _volume_status(seen, errors):
+    """Status for a finished run or day, from its volume and error count.
 
-    Order matters. "blocked" and "aborted" are the two states this dashboard
-    exists to surface, and both present as zero volume -- checking "empty"
-    first would collapse a bot wall and a quiet day into the same word.
+    Order matters: "blocked" presents as zero volume, so checking "empty" first
+    would collapse a bot wall and a quiet day into one word. A null `seen` means
+    the model has no listings_seen at all (ScoringRun) and must never read as
+    blocked or empty. Callers where null really means zero normalize first.
     """
+    if seen == 0 and errors:
+        return "blocked"
+    if seen == 0:
+        return "empty"
+    if errors:
+        return f"ok, {errors} error{'s' if errors != 1 else ''}"
+    return "ok"
+
+
+def run_status(run):
+    """Plain-language status for one ScrapeRun or ScoringRun row."""
     counts = run.status_counts or {}
     if counts.get("run_aborted"):
         return "aborted"
@@ -117,15 +121,7 @@ def run_status(run):
         # No run_aborted key and no finish: a hard kill (0xC000013A, §9) had no
         # chance to record anything, so elapsed time is the only evidence left.
         return "aborted" if timezone.now() - run.started_at > ABORT_AFTER else "running"
-    # ScrapeRun only: ScoringRun has no listings_seen and must not be "blocked".
-    seen = getattr(run, "listings_seen", None)
-    if seen == 0 and run.error_count:
-        return "blocked"
-    if seen == 0:
-        return "empty"
-    if run.error_count:
-        return f"ok, {run.error_count} error{'s' if run.error_count != 1 else ''}"
-    return "ok"
+    return _volume_status(getattr(run, "listings_seen", None), run.error_count)
 
 
 def accuracy_trend(limit=30):

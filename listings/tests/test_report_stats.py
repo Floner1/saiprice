@@ -6,31 +6,30 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Listing
+from listings.tests.test_models import _make_listing
 
 
-def _make_listing(**overrides):
+def _listing(**overrides):
     defaults = dict(
         source_site="alonhadat",
+        # _make_listing defaults to a batdongsan row; category_id_source is
+        # batdongsan-only (CLAUDE.md §5.1) and must not ride along to alonhadat.
+        category_id_source=None,
         source_id="1",
         url="https://alonhadat.com.vn/listing-1",
-        title="Test listing",
-        property_type="apartment",
-        listing_intent="sale",
         price=4_000_000_000,
         price_per_sqm=60_000_000,
         area_sqm=70,
         district="Quận 7",
-        last_seen_at=timezone.now(),
     )
     defaults.update(overrides)
-    return Listing.objects.create(**defaults)
+    return _make_listing(**defaults)
 
 
 class ReportStatsTests(TestCase):
     def test_writes_a_timestamped_snapshot_file(self):
-        _make_listing(source_id="1", url="https://alonhadat.com.vn/listing-1")
-        _make_listing(source_id="2", url="https://alonhadat.com.vn/listing-2", is_active=False)
+        _listing(source_id="1", url="https://alonhadat.com.vn/listing-1")
+        _listing(source_id="2", url="https://alonhadat.com.vn/listing-2", is_active=False)
 
         # Fixed clock so the filename is deterministic, not minute-of-the-
         # real-run (two runs in the same wall-clock minute would otherwise

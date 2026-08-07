@@ -8,23 +8,40 @@ from bs4 import BeautifulSoup
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
+from requests.exceptions import Timeout
 
 from listings.management.commands import scrape_listings
 from listings.management.commands.scrape_listings import sweep_delistings
 from listings.models import Listing, ScrapeRun
 from listings.scraping import client
-from listings.scraping.parsers import RequiredFieldMissing, parse_ldp
+from listings.scraping.parsers import ParsedListing, RequiredFieldMissing, parse_ldp
 from listings.scraping.sites import alonhadat
 from listings.tests.test_models import _make_listing
 
-# ponytail: these point at the real sample HTML in testdata/ (gitignored)
-# rather than a duplicated fixtures/ copy. If those files move, repoint
-# BASE_DIR below or copy them under listings/tests/fixtures/.
+# ponytail: real sample HTML in testdata/ rather than a duplicated fixtures/
+# copy. testdata/ is ignored except for the four files these tests read, which
+# are committed -- see .gitignore. Adding a fixture means un-ignoring it there.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent / "testdata"
 
 
 def _read(name):
     return (BASE_DIR / name).read_text(encoding="utf-8")
+
+
+def _item(source_id="111"):
+    return ParsedListing(
+        source_site="alonhadat",
+        source_id=source_id,
+        agent_source_id=None,
+        agent_name=None,
+        expired=False,
+        fields={
+            "url": f"https://alonhadat.com.vn/x-{source_id}.html",
+            "title": "t",
+            "property_type": "apartment",
+            "listing_intent": "sale",
+        },
+    )
 
 
 class ParseLdpApartmentTests(SimpleTestCase):
@@ -341,29 +358,7 @@ class ParseAlonhadatLdpImagesSemanticsTests(SimpleTestCase):
 
 
 class EnrichFromLdpTests(TestCase):
-    def _item(self):
-        from listings.scraping.parsers import ParsedListing
-
-        return ParsedListing(
-            source_site="alonhadat",
-            source_id="111",
-            agent_source_id=None,
-            agent_name=None,
-            expired=False,
-            fields={
-                "url": "https://alonhadat.com.vn/x-111.html",
-                "title": "t",
-                "property_type": "apartment",
-                "listing_intent": "sale",
-            },
-        )
-
     def _run_enrich(self, item, fetch_response):
-        import io
-        from unittest.mock import patch
-
-        from listings.management.commands import scrape_listings
-
         run = ScrapeRun.objects.create(
             source_site="alonhadat", started_at=timezone.now()
         )
@@ -376,8 +371,6 @@ class EnrichFromLdpTests(TestCase):
         return run, mock_fetch
 
     def test_new_listing_gets_breadcrumb_type_and_images(self):
-        from unittest.mock import Mock
-
         ldp_html = (
             "<div itemscope itemtype='https://schema.org/BreadcrumbList'>"
             "<a href='/can-ban-nha'>x</a></div>"
@@ -385,7 +378,7 @@ class EnrichFromLdpTests(TestCase):
             "<ul class='image-list'><li><img src='/files/a.jpg'></li></ul>"
             "</section></article>"
         )
-        item = self._item()
+        item = _item()
         run, mock_fetch = self._run_enrich(item, (Mock(text=ldp_html), None))
         mock_fetch.assert_called_once()
         self.assertEqual(item.fields["property_type"], "house")
@@ -403,7 +396,7 @@ class EnrichFromLdpTests(TestCase):
             images=["https://alonhadat.com.vn/files/a.jpg"],
             last_seen_at=timezone.now(),
         )
-        item = self._item()
+        item = _item()
         run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
         self.assertNotIn("property_type", item.fields)
@@ -420,16 +413,11 @@ class EnrichFromLdpTests(TestCase):
             images=[],
             last_seen_at=timezone.now(),
         )
-        item = self._item()
+        item = _item()
         run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_not_called()
 
     def test_anchor_missing_ldp_leaves_images_null_for_retry_and_notes_it(self):
-        import io
-        from unittest.mock import Mock, patch
-
-        from listings.management.commands import scrape_listings
-
         Listing.objects.create(
             source_site="alonhadat",
             source_id="111",
@@ -440,7 +428,7 @@ class EnrichFromLdpTests(TestCase):
             images=None,
             last_seen_at=timezone.now(),
         )
-        item = self._item()
+        item = _item()
         run = ScrapeRun.objects.create(
             source_site="alonhadat", started_at=timezone.now()
         )
@@ -468,7 +456,7 @@ class EnrichFromLdpTests(TestCase):
             images=None,
             last_seen_at=timezone.now(),
         )
-        item = self._item()
+        item = _item()
         run, mock_fetch = self._run_enrich(item, (None, "fetch_gave_up"))
         mock_fetch.assert_called_once()
         self.assertEqual(run.error_count, 1)
@@ -485,46 +473,21 @@ class LdpBudgetTests(TestCase):
         "</section></article>"
     )
 
-    def _item(self, source_id):
-        from listings.scraping.parsers import ParsedListing
-
-        return ParsedListing(
-            source_site="alonhadat",
-            source_id=source_id,
-            agent_source_id=None,
-            agent_name=None,
-            expired=False,
-            fields={
-                "url": f"https://alonhadat.com.vn/x-{source_id}.html",
-                "title": "t",
-                "property_type": "apartment",
-                "listing_intent": "sale",
-            },
-        )
-
     def _command_with_budget(self, budget):
-        from listings.management.commands import scrape_listings
-
         cmd = scrape_listings.Command()
         cmd.ldp_budget = budget
         return cmd
 
     def test_default_flag_values(self):
-        from listings.management.commands import scrape_listings
-
         parser = scrape_listings.Command().create_parser("manage.py", "scrape_listings")
         opts = parser.parse_args(["--source", "alonhadat"])
         self.assertEqual(opts.max_ldp_visits, 20)
         self.assertFalse(opts.no_ldp_enrich)
 
     def test_cap_stops_fetches_but_capped_items_keep_srp_fields(self):
-        from unittest.mock import Mock, patch
-
-        from listings.management.commands import scrape_listings
-
         cmd = self._command_with_budget(1)
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
-        first, second = self._item("111"), self._item("222")
+        first, second = _item("111"), _item("222")
         with patch.object(
             scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
@@ -538,10 +501,6 @@ class LdpBudgetTests(TestCase):
         self.assertEqual(run.error_count, 0)
 
     def test_already_enriched_rows_do_not_burn_budget(self):
-        from unittest.mock import Mock, patch
-
-        from listings.management.commands import scrape_listings
-
         Listing.objects.create(
             source_site="alonhadat",
             source_id="111",
@@ -557,15 +516,11 @@ class LdpBudgetTests(TestCase):
         with patch.object(
             scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
         ) as mock_fetch:
-            cmd._enrich_from_ldp(self._item("111"), run)
-            cmd._enrich_from_ldp(self._item("222"), run)
+            cmd._enrich_from_ldp(_item("111"), run)
+            cmd._enrich_from_ldp(_item("222"), run)
         mock_fetch.assert_called_once_with("https://alonhadat.com.vn/x-222.html")
 
     def test_capped_existing_row_still_pops_provisional_srp_type(self):
-        from unittest.mock import patch
-
-        from listings.management.commands import scrape_listings
-
         Listing.objects.create(
             source_site="alonhadat",
             source_id="111",
@@ -578,7 +533,7 @@ class LdpBudgetTests(TestCase):
         )
         cmd = self._command_with_budget(0)
         run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
-        item = self._item("111")
+        item = _item("111")
         with patch.object(scrape_listings, "fetch") as mock_fetch:
             cmd._enrich_from_ldp(item, run)
         mock_fetch.assert_not_called()
@@ -589,13 +544,6 @@ class LdpBudgetTests(TestCase):
 
 class NoLdpEnrichHandleTests(TestCase):
     def test_srp_only_crawl_fires_zero_ldp_requests(self):
-        import io
-        from unittest.mock import Mock, patch
-
-        from django.core.management import call_command
-
-        from listings.management.commands import scrape_listings
-
         srp = Mock(text=_read("alonhadat_srp_apartment.txt"))
         out = io.StringIO()
         with patch.object(scrape_listings, "fetch", return_value=(srp, None)) as mock_fetch:
@@ -625,13 +573,6 @@ class PostedDateNullCheckTests(TestCase):
     )
 
     def test_all_null_run_counts_and_warns(self):
-        import io
-        from unittest.mock import Mock, patch
-
-        from django.core.management import call_command
-
-        from listings.management.commands import scrape_listings
-
         srp = Mock(text=self.SRP_HTML)
         with patch.object(scrape_listings, "fetch", return_value=(srp, None)):
             with self.assertLogs(
@@ -649,10 +590,6 @@ class PostedDateNullCheckTests(TestCase):
 
 class FetchBotChallengeTests(SimpleTestCase):
     def test_challenge_redirect_returns_none_without_retry(self):
-        from unittest.mock import Mock, patch
-
-        from listings.scraping import client
-
         challenge = Mock(
             status_code=200,
             url="https://alonhadat.com.vn/xac-thuc-nguoi-dung.html?url=/x-1.html",
@@ -708,8 +645,6 @@ class FetchErrorCodeTests(SimpleTestCase):
         self.assertEqual(error, "http_error")
 
     def test_repeated_timeout_reports_fetch_gave_up_after_three_attempts(self):
-        from requests.exceptions import Timeout
-
         with patch.object(client.session, "get", side_effect=Timeout) as get:
             with patch.object(client.time, "sleep"):
                 with self.assertLogs("listings.scraping.client", level="ERROR"):
