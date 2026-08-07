@@ -11,23 +11,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# No default on purpose: an unset key must crash at startup, not boot on a fallback.
+SECRET_KEY = config("SECRET_KEY")
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-utn8c!$syi_(%6yob90if1*ela3!j1*mds46!q5n46zg*5dx(_"
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Empty default is the safe failure: DEBUG=False rejects every host until one is set.
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
-ALLOWED_HOSTS = []
+# All default off so local HTTP dev works unchanged. Render sets them on.
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
+
+# Render terminates TLS at its edge and forwards plain HTTP. Without this,
+# is_secure() is always False and SECURE_SSL_REDIRECT redirects forever.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition

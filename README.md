@@ -74,15 +74,18 @@ venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 ```
 
-Create a `.env` file (gitignored) in the project root:
+Copy `.env.example` to `.env` (gitignored) in the project root and fill it in:
 
 ```
+SECRET_KEY=...
 DB_NAME=...
 DB_USER=...
 DB_PASSWORD=...
 DB_HOST=...
 DB_PORT=...
 ```
+
+`SECRET_KEY` has no default, so Django won't start without it. `.env.example` has a one-liner to generate one, and the deploy-hardening variables listed there all default to off for local development.
 
 Then:
 

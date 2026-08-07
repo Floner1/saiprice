@@ -1,0 +1,1685 @@
+
+
+
+
+<!DOCTYPE html>
+
+
+
+<html lang="vi">
+
+<head><meta http-equiv="Content-Language" content="vi" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta name="author" content="Alonhadat.com.vn" /><meta name='copyright' content='© 2013 - 2026 Alonhadat.com.vn. All rights reserved.'><link href="/publish/img/icon.png" rel="shortcut icon" type="image/x-icon" /><link rel="Stylesheet" href="/publish/css/pc-master.css?v=202511040101" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+
+    <meta content='index,follow' name='robots'>  
+
+    <meta name="description" content="Mua bán căn hộ chung cư Quận Gò Vấp, Hồ Chí Minh, nhà tập thể bán. 👉B&#225;n căn hộ tại chung cư H&#224; Đ&#244; Nguyễn Văn C&#244;ng quận G&#242; Vấp.
+
+
+
+🎯Địa chỉ: 3 Nguyễn Văn C&#244;ng, phường Hạnh Th&#244;ng, (Phường 3, Quận G&#242; Vấp cũ), TP.HCM. Kế b&#234;n l&#224; c&#244;ng vi&#234;n Gia Định, chợ T&#226;n Sơn Nhất, trường đại học Gia Định - 18880167">
+
+    <meta name="keywords" content="mua bán căn hộ, bán căn hộ, mới nhất @year, chung cư mini, Quận Gò Vấp, Hồ Chí Minh, nhà chung cư, chung cư cao cấp, sổ đỏ chính chủ, sdcc, giá rẻ"> 
+
+<title>
+
+	B&#225;n căn hộ H&#224; Đ&#244; -73m2/2PN gi&#225; 4.8 tỷ - 93m2/3PN gi&#225; 6.4 tỷ - sổ hồng - 18880167
+
+</title></head>
+
+<body>  
+
+    <div id="wrapper">	
+
+        <header>
+
+            <div id="ctl00_pc_header">
+
+	            <div id="header">
+
+	                <div class="logo"><a href="/" title='Mua bán nhà đất' ><img src="/publish/img/logo.png" width='229' height='100' alt="Mua bán nhà đất"></a></div>
+
+	                <div class="banner-top"> 
+
+	                </div>   
+
+	            </div>
+
+	            <div class="reg-menu-box">	
+
+	                <div class='mobile-menu'><span class="view-mobile" onclick="ViewWebVersion(2)">Phiên bản dành cho điện thoại</span></div>	
+
+                     <div class="reg-menu">
+
+                         
+
+                         <a class="regular-post" href="/dang-tin-nha-dat.html">Đăng tin nhà đất</a>
+
+                        		   
+
+			                <span class="register" onclick = "ShowRegisterForm()">Đăng ký thành viên</span>
+
+			                <span class="login" onclick = "ShowLoginForm()">Đăng nhập</span>   
+
+		                
+
+		            </div>			    
+
+	            </div>	        	
+
+	            <nav id="menu" aria-label="Thanh điều hướng chính">  
+
+                    <ul class="menu">
+
+                        <li><a href="/" class="home" title='Mua bán nhà đất'>Trang chủ</a></li>
+
+                        <li class='list-sale'><a href="/can-ban-nha-dat">Nhà Đất Bán</a>                            
+
+                        </li>
+
+                        <li class='list-rent'><a href="/cho-thue-nha-dat">Nhà Đất Cho Thuê</a>                            	
+
+                        </li>               
+
+                       <li>                
+
+                            <a href="/du-an-bat-dong-san">DỰ ÁN</a>                            
+
+                        </li> 
+
+                        <li>
+
+                            <a href="/nha-moi-gioi.html">NHÀ MÔI GIỚI</a>                            
+
+                        </li>
+
+                        <li>                
+
+                            <a href="/tin-tuc-c4/kinh-nghiem.html">KINH NGHIỆM</a>
+
+                        </li> 
+
+                        <li>                
+
+                            <a href="/tin-tuc-c8/mau-nha-dep.html">Mẫu nhà đẹp</a>                            
+
+                        </li> 
+
+                        <li><a href="/lien-he.html">LIÊN HỆ</a></li>
+
+                    </ul> 	        
+
+                </nav>
+
+            </div>
+
+            
+
+        </header>
+
+        <div class='body'>
+
+            
+
+    <nav id="ctl00_content_top_link" class="top-link" aria-label="breadcrumb" itemscope="" itemtype="http://schema.org/BreadcrumbList"><ol><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' href='/'><span itemprop='name'>Trang chủ</span></a><meta itemprop='position' content='1'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/can-ban-nha-dat'><span itemprop='name'>Cần bán</span></a><meta itemprop='position' content='2'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/can-ban-can-ho-chung-cu'><span itemprop='name'>Bán căn hộ chung cư</span></a><meta itemprop='position' content='3'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/can-ban-can-ho-chung-cu/ho-chi-minh'><span itemprop='name'>Bán căn hộ chung cư Hồ Chí Minh</span></a><meta itemprop='position' content='4'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/nha-dat/can-ban/can-ho-chung-cu/ho-chi-minh/146/quan-go-vap.html'><span itemprop='name'>Bán căn hộ chung cư  Gò Vấp</span></a><meta itemprop='position' content='5'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/nha-dat/can-ban/can-ho-chung-cu/phuong-3-quan-go-vap-px967.html'><span itemprop='name'>Bán căn hộ chung cư Phường 3</span></a><meta itemprop='position' content='6'></li><li itemprop='itemListElement' itemscope itemtype='https://schema.org/ListItem'><a itemprop='item' class='title' href='/nha-dat/can-ban/can-ho-chung-cu/duong-nguyen-van-cong-quan-go-vap-dp2102.html'><span itemprop='name'>Bán căn hộ chung cư  Nguyễn Văn Công</span></a><meta itemprop='position' content='7'></li></ol></nav>	
+
+	<div id="ctl00_content_pc_content" class="pd plp">
+
+		<main class="left">
+
+			<article class="property" itemscope itemtype="https://schema.org/Offer">
+
+				<header class='title'><h1 itemprop='name'>B&#225;n căn hộ H&#224; Đ&#244; -73m2/2PN gi&#225; 4.8 tỷ - 93m2/3PN gi&#225; 6.4 tỷ - sổ hồng</h1><time class='date' itemprop='datePosted' datetime='2026-07-08'>Ngày đăng: 08/07/2026</time></header><section class='detail text-content'><h2>Thông tin chi tiết</h2><p itemprop='description'>👉B&#225;n căn hộ tại chung cư H&#224; Đ&#244; Nguyễn Văn C&#244;ng quận G&#242; Vấp.
+
+
+
+🎯Địa chỉ: 3 Nguyễn Văn C&#244;ng, phường Hạnh Th&#244;ng, (Phường 3, Quận G&#242; Vấp cũ), TP.HCM. Kế b&#234;n l&#224; c&#244;ng vi&#234;n Gia Định, chợ T&#226;n Sơn Nhất, trường đại học Gia Định, bệnh viện 175 v&#224; s&#226;n bay T&#226;n Sơn Nhất.
+
+- Diện t&#237;ch 🏡73m2, 2pn, 2wc, tầng cao view tho&#225;ng m&#225;t. Gi&#225; b&#225;n chỉ 4.8 tỷ.
+
+- Nội thất đầy đủ.
+
+- Ph&#225;p l&#253; : Sổ hồng sở hữu l&#226;u d&#224;i.
+
+- Diện t&#237;ch 🏡93m2, 3pn, 2wc, tầng cao view tho&#225;ng m&#225;t. Gi&#225; b&#225;n chỉ 6.4 tỷ.
+
+Anh chị c&#243; nhu cầu mua cần xem nh&#224; vui l&#242;ng b&#225;o trước.</p></section><section class='more-info'>
+              <span class='price'>Giá:
+                <meta itemprop='priceCurrency' content='VND'>
+                <data class='value' itemprop='price' value='4800000000'>4,8 tỷ </data>
+              </span>
+              <span class='area'>
+                Diện tích: <span  class='value' itemprop='floorSize' itemscope itemtype='https://schema.org/QuantitativeValue'>
+                  <span itemprop='value'>73</span>
+                  <data itemprop='unitCode' value='SQM'></data>m²
+                </span>
+              </span>
+            </section><span class='address-label'>Địa chỉ tài sản:</span>
+
+                                            <address class='current-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                                
+
+                                                    <span itemprop='streetAddress'>Đường Nguyễn Văn Công</span>,
+
+                                                    <span itemprop='addressLocality'>Phường Hạnh Thông</span>, 
+
+                                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                                </address>                                
+
+                                                <p class='old-address'>Đường Nguyễn Văn Công, Phường 3, Quận Gò Vấp, Hồ Chí Minh </p> (địa chỉ cũ)<section class='moreinfor1'><h2 class='title'>Các thông tin khác</h2><table cellspacing='0'><tr><td>Mã tin</td><td>18880167</td><td>Hướng</td><td>Đông</td><td>Phòng ăn</td><td><img src='/publish/img/check.gif' alt='check' /></td></tr><tr><td>Loại tin</td><td>Cần bán</td><td>Đường trước nhà</td><td>12m</td><td>Nhà bếp</td><td><img src='/publish/img/check.gif' alt='check' /></td></tr><tr><td>Loại BDS</td><td>Căn hộ chung cư</td><td>Pháp lý</td><td>Sổ hồng/ Sổ đỏ</td><td>Sân thượng</td><td><img src='/publish/img/check.gif' alt='check' /></td></tr><tr><td>Chiều ngang</td><td>---</td><td>Số lầu</td><td>12</td><td>Chổ để xe hơi</td><td>---</td></tr><tr><td>Chiều dài</td><td>---</td><td>Số phòng ngủ</td><td>2</td><td>Chính chủ</td><td>---</td></tr><tr><td>Thuộc dự án</td><td colspan='5'><span class='project'><a href='/du-an-can-ho-chung-cu-ha-do-green-view-pj120'>Căn hộ chung cư Hà Đô Green View</a> (xem chi tiết dự án)</span></td></tr></table></section><div class='image-tab'><span class='view-image selected'>Hình ảnh</span></div><section class='images'><h2>Hình ảnh</h2><div class='imageview'><img id='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng' src='/files/properties/2026/7/8/images/018880167-2843-ban-can-ho-chung-cu-quan-go-vap.jpg' loading='lazy'/></div><ul class='image-list'><li><img class='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng - 0' src='/files/properties/2026/7/8/images/018880167-2843-ban-can-ho-chung-cu-quan-go-vap.jpg' loading='lazy'/></li><li><img class='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng - 1' src='/files/properties/2026/7/8/images/118880167-2843-ban-can-ho-chung-cu-quan-go-vap.jpg' loading='lazy'/></li><li><img class='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng - 2' src='/files/properties/2026/7/8/images/218880167-2843-ban-can-ho-chung-cu-quan-go-vap-gia-re.jpg' loading='lazy'/></li><li><img class='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng - 3' src='/files/properties/2026/7/8/images/318880167-2843-ban-can-ho-chung-cu-quan-go-vap.jpg' loading='lazy'/></li><li><img class='limage' alt='Bán căn hộ Hà Đô -73m2/2PN giá 4.8 tỷ - 93m2/3PN giá 6.4 tỷ - sổ hồng - 4' src='/files/properties/2026/7/8/images/418880167-2843-ban-can-ho-ha-do-73m2-2pn-gia-4-8-ty-93m2-3pn-gia-6-4-ty-so-hong.jpg' loading='lazy'/></li></ul></section><div class='utility'><input type='button' class='save' value='Lưu tin'/></div><input type='hidden' id='hddDemand' value='1'/><input type='hidden' id='hddPropertyType' value='4'/><input type='hidden' id='hddPropertyId' value='18880167'/><input type='hidden' id='hddNguoiDang' value='8707' user='0'/>	
+
+				<div class='tags'><span>Có thể bạn muốn xem:</span> <a href='/can-ban-can-ho-chung-cu/p120/ha-do-green-view.html'>Bán chung cư Hà Đô Green View</a></div>
+
+				<aside class="notices">
+
+				    <h3>Lưu ý:</h3>
+
+				    <p>Các bạn đang xem tin đăng trong mục "<b>Bán căn hộ chung cư Quận Gò Vấp, Hồ Chí Minh</b>". Các thông tin rao vặt là do người đăng tin đăng tải toàn bộ thông tin. Chúng tôi hoàn toàn không chịu trách nhiệm về bất cứ thông tin nào liên qua đến các thông tin này. Chúng tôi luôn cố gắng để đưa các tin tức nhanh và chính xác nhất cho các bạn.</p>
+
+				</aside >
+
+				<section class='reflect-form'>
+
+    <div class='loading'></div>
+
+    <h2 class='title'>Phản ánh tin rao vi phạm</h2>
+
+    <p class='notice'>Thông tin phản ánh của Quý khách giúp chúng tôi sàn lọc thông tin tốt hơn và loại trừ các nhà môi giới không trung thực. Xin trân trọng cám ơn.</p>
+
+    <div class='content'>
+
+        <form>
+
+            <div class='reason'>
+
+                <label><input type="radio" class='reason-item' name='reason' value="1" /> <span>Tài sản đã bán/cho thuê</span></label>
+
+                <label><input type="radio" class='reason-item' name='reason' value="2" /> <span>Tin không có thật</span></label>
+
+                <label><input type="radio" class='reason-item' name='reason' value="3" /> <span>Nội dung không đúng với thực tế</span></label>
+
+                <label><input type="radio" class='reason-item' name='reason' value="4" /> <span>Giá không đúng</span></label>
+
+                <label><input type="radio" class='reason-item' name='reason' value="5" /> <span>Không liên lạc được</span></label>
+
+                <label><input type="radio" class='reason-item' name='reason' value="6" /> <span>Địa chỉ bất động sản không đúng</span></label>  
+
+            </div>
+
+            <div class='other-reason'>
+
+                <label><input type="radio" class='reason-item' name='reason' value="10" /><span>Lý do khác:</span></label><br />
+
+                <textarea class='txtcontent' placeholder='Nội dung phản ánh' maxlength='240'></textarea>    
+
+            </div> 
+
+            <div class='check-ignore'>
+
+                <input type="checkbox" class='chkdayignore'/><b class='bdayignore'>Tôi không muốn xem tin của người đăng này trong vòng:</b>
+
+                <select class='dayignore' name='dayignore' disabled='disabled' style='color:red; background:#eeeeee;'>
+
+                    <option value='0'>Số ngày</option>
+
+                    <option value='1'>1 ngày</option>
+
+                    <option value='3'>3 ngày</option>
+
+                    <option value='7'>7 ngày</option>
+
+                    <option value='14'>14 ngày</option>
+
+                    <option value='21'>21 ngày</option>
+
+                    <option value='30'>30 ngày</option>
+
+                    <option value='60'>60 ngày</option>
+
+                    <option value='90'>90 ngày</option>
+
+                    <option value='180'>180 ngày</option>
+
+                    <option value='360'>360 ngày</option>
+
+                </select> <i>Tất cả các tin của thành viên này sẽ ẩn đi với bạn trong khoảng thời gian bạn đã chọn.</i>
+
+            </div>   
+
+            <div>
+
+                <span style='color:blue'>Mã an toàn</span>:
+
+                <div class='captcha-box'>
+
+                    <img class="captchagenerator" src="/CaptchaGenerator.ashx">
+
+                    <input name="captcha" type="text" id="captcha" class="captcha" maxlength="5"> 
+
+                    <input class='btnSubmit' type="button" value="Gửi phản ánh" />
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+
+			</article><!--property-->		
+
+						
+
+				
+
+			
+
+			<section class="relative-property">
+
+			    <h2 class='title'>Cần bán Căn hộ chung cư tại Quận Gò Vấp</h2><div class='other-property-items'><article class='property-item' itemscope='' itemtype='https://schema.org/RealEstateListing'>
+
+                            <a class='link ' data-memberid='0' href='/-gia-tot-4-8-ty-ban-can-ho-samland-airport-nguyen-hong2pn2wc-gia-hop-ly-so-hong--18887380.html' itemprop='url'><h3 class='property-title' itemprop='name'>🏡 GI&#193; TỐT 4.8 TỶ B&#225;n căn hộ Samland Airport Nguy&#234;n Hồng2Pn2WC - Gi&#225; Hợp L&#253; Sổ Hồng🏡</h3></a> 
+
+                            <time class='created-date' datetime='2026-07-10' itemprop='datePosted'>Hôm nay</time>                       
+
+                            
+
+                            <div class='thumbnail'><img src='/files/properties/2026/7/10/thumbnails/018887380-4604-ban-can-ho-chung-cu-ho-chi-minh.jpg' alt='🏡 GI&#193; TỐT 4.8 TỶ B&#225;n căn hộ Samland Airport Nguy&#234;n Hồng2Pn2WC - Gi&#225; Hợp L&#253; Sổ Hồng🏡' loading='lazy' itemprop='image'></div>
+
+                            <p class='brief' itemprop='description'>🏡GI&#193; TỐT 4.8 TỶ B&#193;N CĂN HỘ SAMLAND AIRPORT NGUY&#202;N HỒNG – QUẬN G&#210; VẤP, GI&#193; HỢP L&#221; 🏡
+
+📐 76m&#178; – 2PN – 2WC với căn g&#243;c tho&#225;ng m&#225;t
+
+🛋 Nội cơ bản - giao nh&#224; ngay
+
+📍 Ngay mặt tiền 86 Nguy&#234;n Hồng, trung t&#226;m Quận G&#242; Vấp – kế...... <span class='view-detail'> &lt;&lt; Xem chi tiết &gt;&gt; </span></p>
+
+                            <div class='property-details'>                            
+
+                                <div><span class='floors'>8 tầng</span><span class='bedroom' itemprop='numberOfBedrooms' itemscope='' itemtype='https://schema.org/QuantitativeValue'><span itemprop='value'>2</span> phòng ngủ</span><span class='parking' itemprop='amenityFeature' itemscope='' itemtype='https://schema.org/LocationFeatureSpecification'><span itemprop='name'>Chỗ để xe</span><meta itemprop='value' content='true'></span></div>                               
+
+                                    <div>
+
+                                        <span class='price' itemprop='offers' itemscope='' itemtype='https://schema.org/Offer'>
+
+                                        Giá: <span itemprop='price' content='4800000000'>4,8 tỷ </span>
+
+                                        <meta itemprop='priceCurrency' content='VND'>
+
+                                        <link itemprop='availability' href='https://schema.org/InStock'>
+
+                                        </span>
+
+                                        <span class='area' itemprop='floorSize' itemscope='' itemtype='https://schema.org/QuantitativeValue'>
+
+                                        Diện tích: <span itemprop='value'>76</span> <span itemprop='unitText'>m²</span>
+
+                                    </span>                                    
+
+                                    </div>
+
+                            </div>
+
+                            <div class='property-address'>
+
+                                <p class='new-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                    <span itemprop='streetAddress'>Đường Nguyên Hồng</span>,
+
+                                    <span itemprop='addressLocality'>Phường Hạnh Thông</span>,
+
+                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                </p>                                
+
+                                <p class='old-address'>
+
+                                    <span>Đường Nguyên Hồng, Phường 1, Quận Gò Vấp, Hồ Chí Minh</span> (cũ)                                    
+
+                                </p>
+
+                            </div>
+
+                        </article><article class='property-item' itemscope='' itemtype='https://schema.org/RealEstateListing'>
+
+                            <a class='link ' data-memberid='0' href='/ban-can-ho-ha-do-73m2-2pn-gia-4-8-ty-93m2-3pn-gia-6-4-ty-so-hong-18880167.html' itemprop='url'><h3 class='property-title' itemprop='name'>B&#225;n căn hộ H&#224; Đ&#244; -73m2/2PN gi&#225; 4.8 tỷ - 93m2/3PN gi&#225; 6.4 tỷ - sổ hồng</h3></a> 
+
+                            <time class='created-date' datetime='2026-07-08' itemprop='datePosted'>08/07/2026</time>                       
+
+                            
+
+                            <div class='thumbnail'><img src='/files/properties/2026/7/8/thumbnails/018880167-2843-ban-can-ho-chung-cu-quan-go-vap.jpg' alt='B&#225;n căn hộ H&#224; Đ&#244; -73m2/2PN gi&#225; 4.8 tỷ - 93m2/3PN gi&#225; 6.4 tỷ - sổ hồng' loading='lazy' itemprop='image'></div>
+
+                            <p class='brief' itemprop='description'>👉B&#225;n căn hộ tại chung cư H&#224; Đ&#244; Nguyễn Văn C&#244;ng quận G&#242; Vấp.
+
+
+
+🎯Địa chỉ: 3 Nguyễn Văn C&#244;ng, phường Hạnh Th&#244;ng, (Phường 3, Quận G&#242; Vấp cũ), TP.HCM. Kế b&#234;n l&#224; c&#244;ng vi&#234;n Gia Định, chợ T&#226;n Sơn Nhất, trường đại học Gia Định...... <span class='view-detail'> &lt;&lt; Xem chi tiết &gt;&gt; </span></p>
+
+                            <div class='property-details'>                            
+
+                                <div><span class='street-width'>12m</span><span class='floors'>12 tầng</span><span class='bedroom' itemprop='numberOfBedrooms' itemscope='' itemtype='https://schema.org/QuantitativeValue'><span itemprop='value'>2</span> phòng ngủ</span></div>                               
+
+                                    <div>
+
+                                        <span class='price' itemprop='offers' itemscope='' itemtype='https://schema.org/Offer'>
+
+                                        Giá: <span itemprop='price' content='4800000000'>4,8 tỷ </span>
+
+                                        <meta itemprop='priceCurrency' content='VND'>
+
+                                        <link itemprop='availability' href='https://schema.org/InStock'>
+
+                                        </span>
+
+                                        <span class='area' itemprop='floorSize' itemscope='' itemtype='https://schema.org/QuantitativeValue'>
+
+                                        Diện tích: <span itemprop='value'>73</span> <span itemprop='unitText'>m²</span>
+
+                                    </span><span class='direction'>Hướng: <span>Đông</span></span>                                    
+
+                                    </div>
+
+                            </div>
+
+                            <div class='property-address'>
+
+                                <p class='new-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                    <span itemprop='streetAddress'>Đường Nguyễn Văn Công</span>,
+
+                                    <span itemprop='addressLocality'>Phường Hạnh Thông</span>,
+
+                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                </p>                                
+
+                                <p class='old-address'>
+
+                                    <span>Đường Nguyễn Văn Công, Phường 3, Quận Gò Vấp, Hồ Chí Minh</span> (cũ)                                    
+
+                                </p>
+
+                            </div>
+
+                        </article><article class='property-item' itemscope='' itemtype='https://schema.org/RealEstateListing'>
+
+                            <a class='link ' data-memberid='0' href='/chung-cu-an-loc-3pn-dt-san-95-6m-so-hong-rieng-chi-4-9-ty-18860232.html' itemprop='url'><h3 class='property-title' itemprop='name'>Chung cư An Lộc – 3PN – DT s&#224;n 95.6m&#178; – Sổ hồng ri&#234;ng – Chỉ 4.9 tỷ</h3></a> 
+
+                            <time class='created-date' datetime='2026-07-02' itemprop='datePosted'>02/07/2026</time>                       
+
+                            
+
+                            <div class='thumbnail'><img src='/files/properties/2026/7/2/thumbnails/018860232-2446-ban-nha-trong-hem-quan-go-vap-gia-re.jpg' alt='Chung cư An Lộc – 3PN – DT s&#224;n 95.6m&#178; – Sổ hồng ri&#234;ng – Chỉ 4.9 tỷ' loading='lazy' itemprop='image'></div>
+
+                            <p class='brief' itemprop='description'>Cần b&#225;n căn hộ chung cư An Lộc, thiết kế rộng r&#227;i, ph&#249; hợp gia đ&#236;nh nhiều thế hệ.
+
+
+
+* Diện t&#237;ch s&#224;n: 95.6m&#178;
+
+* Kết cấu: 3 ph&#242;ng ngủ, 1 WC
+
+* Ph&#242;ng kh&#225;ch rộng, bếp ri&#234;ng, c&#225;c ph&#242;ng ngủ đều c&#243; cửa sổ tho&#225;ng m&#225;t.
+
+* Nh&#224; sạ...... <span class='view-detail'> &lt;&lt; Xem chi tiết &gt;&gt; </span></p>
+
+                            <div class='property-details'>                            
+
+                                <div><span class='street-width'>5m</span><span class='floors'>1 tầng</span><span class='bedroom' itemprop='numberOfBedrooms' itemscope='' itemtype='https://schema.org/QuantitativeValue'><span itemprop='value'>3</span> phòng ngủ</span></div>                               
+
+                                    <div>
+
+                                        <span class='price' itemprop='offers' itemscope='' itemtype='https://schema.org/Offer'>
+
+                                        Giá: <span itemprop='price' content='4900000000'>4,9 tỷ </span>
+
+                                        <meta itemprop='priceCurrency' content='VND'>
+
+                                        <link itemprop='availability' href='https://schema.org/InStock'>
+
+                                        </span>
+
+                                        <span class='area' itemprop='floorSize' itemscope='' itemtype='https://schema.org/QuantitativeValue'>
+
+                                        Diện tích: <span itemprop='value'>96</span> <span itemprop='unitText'>m²</span>
+
+                                    </span>                                    
+
+                                    </div>
+
+                            </div>
+
+                            <div class='property-address'>
+
+                                <p class='new-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                    <span itemprop='streetAddress'>Đường Nguyễn Oanh</span>,
+
+                                    <span itemprop='addressLocality'>Phường Gò Vấp</span>,
+
+                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                </p>                                
+
+                                <p class='old-address'>
+
+                                    <span>Đường Nguyễn Oanh, Phường 17, Quận Gò Vấp, Hồ Chí Minh</span> (cũ)                                    
+
+                                </p>
+
+                            </div>
+
+                        </article><article class='property-item' itemscope='' itemtype='https://schema.org/RealEstateListing'>
+
+                            <a class='link ' data-memberid='0' href='/-nha-o-va-kinh-doanh-go-vap-xe-hoi-ngay-truoc-nha--18844788.html' itemprop='url'><h3 class='property-title' itemprop='name'>⭐️NH&#192; Ở V&#192; KINH DOANH G&#210; VẤP - XE HƠI NGAY TRƯỚC NH&#192;🚘</h3></a> 
+
+                            <time class='created-date' datetime='2026-07-10' itemprop='datePosted'>Hôm nay</time>                       
+
+                            
+
+                            <div class='thumbnail'><img src='/files/properties/2026/6/28/thumbnails/018844788-2625-ban-can-ho-chung-cu-ho-chi-minh-gia-re.jpg' alt='⭐️NH&#192; Ở V&#192; KINH DOANH G&#210; VẤP - XE HƠI NGAY TRƯỚC NH&#192;🚘' loading='lazy' itemprop='image'></div>
+
+                            <p class='brief' itemprop='description'>M&#244; tả
+
+📍L&#234; Đức Thọ, P. An Nhơn, G&#242; Vấp
+
+
+
+📐 Diện t&#237;ch: 77m&#178;
+
+
+
+🏠 3PN – 2WC. Kh&#244;ng gian sống tho&#225;ng – view đẹp
+
+
+
+🚗 Hẻm xe hơi: Đậu trước nh&#224;, di chuyển cực kỳ thuận tiện
+
+
+
+✅Khu d&#226;n cư văn minh, d&#226;n tr&#237; cao
+
+✅Ph&#249; hợp...... <span class='view-detail'> &lt;&lt; Xem chi tiết &gt;&gt; </span></p>
+
+                            <div class='property-details'>                            
+
+                                <div><span class='street-width'>6m</span><span class='floors'>2 tầng</span><span class='bedroom' itemprop='numberOfBedrooms' itemscope='' itemtype='https://schema.org/QuantitativeValue'><span itemprop='value'>3</span> phòng ngủ</span></div>                               
+
+                                    <div>
+
+                                        <span class='price' itemprop='offers' itemscope='' itemtype='https://schema.org/Offer'>
+
+                                        Giá: <span itemprop='price' content='5100000000'>5,1 tỷ </span>
+
+                                        <meta itemprop='priceCurrency' content='VND'>
+
+                                        <link itemprop='availability' href='https://schema.org/InStock'>
+
+                                        </span>
+
+                                        <span class='area' itemprop='floorSize' itemscope='' itemtype='https://schema.org/QuantitativeValue'>
+
+                                        Diện tích: <span itemprop='value'>77</span> <span itemprop='unitText'>m²</span>
+
+                                    </span>                                    
+
+                                    </div>
+
+                            </div>
+
+                            <div class='property-address'>
+
+                                <p class='new-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                    <span itemprop='streetAddress'>Đường Lê Đức Thọ</span>,
+
+                                    <span itemprop='addressLocality'>Phường An Hội Đông</span>,
+
+                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                </p>                                
+
+                                <p class='old-address'>
+
+                                    <span>Đường Lê Đức Thọ, Phường 15, Quận Gò Vấp, Hồ Chí Minh</span> (cũ)                                    
+
+                                </p>
+
+                            </div>
+
+                        </article><article class='property-item' itemscope='' itemtype='https://schema.org/RealEstateListing'>
+
+                            <a class='link ' data-memberid='0' href='/ban-can-ho-ha-do-z751-phan-van-tri-go-vap-60m2-gia-3ty950-18714920.html' itemprop='url'><h3 class='property-title' itemprop='name'>B&#225;n căn hộ H&#224; Đ&#244; Z751 Phan Văn Trị G&#242; Vấp 60m2 Gi&#225; 3ty950</h3></a> 
+
+                            <time class='created-date' datetime='2026-07-08' itemprop='datePosted'>08/07/2026</time>                       
+
+                            
+
+                            <div class='thumbnail'><img src='/files/properties/2026/5/28/thumbnails/018714920-2410-ban-can-ho-chung-cu-ho-chi-minh.jpg' alt='B&#225;n căn hộ H&#224; Đ&#244; Z751 Phan Văn Trị G&#242; Vấp 60m2 Gi&#225; 3ty950' loading='lazy' itemprop='image'></div>
+
+                            <p class='brief' itemprop='description'>Căn hộ cao cấp H&#224; Đ&#244; Phan Văn Trị – Thống Nhất, tầng thấp – 60m&#178; – 2PN 1WC – thang m&#225;y – khu cao cấp an ninh
+
+💰💰💰 – chỉ 3 tỷ 950
+
+💚 Nh&#224; gồm ph&#242;ng kh&#225;ch, bếp rộng, thiết kế đẹp v&#224;o ở ngay
+
+💚 Khu d&#226;n cư văn minh, bảo ...... <span class='view-detail'> &lt;&lt; Xem chi tiết &gt;&gt; </span></p>
+
+                            <div class='property-details'>                            
+
+                                <div><span class='street-width'>6m</span><span class='bedroom' itemprop='numberOfBedrooms' itemscope='' itemtype='https://schema.org/QuantitativeValue'><span itemprop='value'>2</span> phòng ngủ</span></div>                               
+
+                                    <div>
+
+                                        <span class='price' itemprop='offers' itemscope='' itemtype='https://schema.org/Offer'>
+
+                                        Giá: <span itemprop='price' content='3950000000'>3,95 tỷ </span>
+
+                                        <meta itemprop='priceCurrency' content='VND'>
+
+                                        <link itemprop='availability' href='https://schema.org/InStock'>
+
+                                        </span>
+
+                                        <span class='area' itemprop='floorSize' itemscope='' itemtype='https://schema.org/QuantitativeValue'>
+
+                                        Diện tích: <span itemprop='value'>60</span> <span itemprop='unitText'>m²</span>
+
+                                    </span><span class='size'>KT: <span>6x10m</span></span>                                    
+
+                                    </div>
+
+                            </div>
+
+                            <div class='property-address'>
+
+                                <p class='new-address' itemprop='address' itemscope='' itemtype='https://schema.org/PostalAddress'>
+
+                                    <span itemprop='streetAddress'>Đường Phan Văn Trị</span>,
+
+                                    <span itemprop='addressLocality'>Phường Gò Vấp</span>,
+
+                                    <span itemprop='addressRegion'>Hồ Chí Minh</span>
+
+                                </p>                                
+
+                                <p class='old-address'>
+
+                                    <span>Đường Phan Văn Trị, Phường 10, Quận Gò Vấp, Hồ Chí Minh</span> (cũ)                                    
+
+                                </p>
+
+                            </div>
+
+                        </article></div><div class='viewmore'><a href='/nha-dat/can-ban/can-ho-chung-cu/ho-chi-minh/146/quan-go-vap.html'>Xem thêm các tin khác</a></div>	
+
+			</section>	
+
+		</main><!--left-->		
+
+		<aside class="right">		
+
+		    
+
+                 <div class='contact'>                    
+
+                     <div class='contact-info'>
+
+                         <p class='title'>Thông tin liên hệ</p>
+
+                         <p class='content'>
+
+                             <span class='name'>Tuấn Nguyễn</span>
+
+                             <span class='fone'><a href='tel:0900000000'>0900.000.000</a></span>                            
+
+                             <span class='introduce'></span>
+
+                             
+
+                     <div class='review-box'>
+
+                         <span class='review-score'>Được đánh giá:</span>
+
+                         <span class='review-star'>
+
+                             <span class='rate' style='width:60%;'></span>
+
+                         </span>
+
+                     </div>
+
+                             <div class='view-more'><a href='/nha-moi-gioi/ten-8707.html'>Xem thêm 15 tin khác của thành viên này</a></div>
+
+                         </p>
+
+                     </div>
+
+                 </div>
+
+	        <section class="property-search-box">
+
+              <form class="search-form" onsubmit="return false;">             
+
+                <div class="form-group full">
+
+                  <label for="location">Nhập tên khu vực, dự án bạn muốn tìm</label>
+
+                  <input type="text" id="location" class="location" placeholder="Nhập địa điểm cần tìm" autocomplete="off" />
+
+                  <div class="suggesstion">
+
+                    <div class="title">Gợi ý</div>
+
+                    <ul>
+
+                      <li>
+
+                          Nhập tên đường/phố, phường/xã, quận/huyện, tỉnh/thành phố hoặc tên dự án. Ví dụ:
+
+                          <br>
+
+                          <span class='vidu'>- Nguyễn Xí, Bình Thạnh
+
+                              <br>- Láng Hạ, Đống Đa
+
+                              <br>- Vũng Tàu
+
+                              <br>- Times City
+
+                          </span>
+
+                      </li>
+
+                      <li>Phải chọn các gợi ý chúng tôi đề xuất bên dưới để kết quả chính xác</li>
+
+                      <li>Nếu không nhập địa điểm ở đây, bạn có thể chọn khu vực bằng các ô phía dưới</li>
+
+                    </ul>
+
+                  </div>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slDemand">Loại tin</label>
+
+                  <select name="ctl00$content$slDemand" id="ctl00_content_slDemand" class="demand">
+
+	<option selected="selected" value="can-ban">Cần b&#225;n</option>
+
+	<option value="cho-thue">Cho thu&#234;</option>
+
+	<option value="can-mua">Cần mua</option>
+
+	<option value="can-thue">Cần thu&#234;</option>
+
+</select>
+
+                </div>
+
+                                    <div class="form-group">
+
+                  <label for="ctl00_content_slPropertyType">Loại BĐS</label>
+
+                  <select name="ctl00$content$slPropertyType" id="ctl00_content_slPropertyType" class="property-type">
+
+	<option value="nha-dat">--- Chọn loại BĐS ---</option>
+
+	<option value="nha">Nh&#224;</option>
+
+	<option value="nha-mat-tien">- Nh&#224; mặt tiền</option>
+
+	<option value="nha-trong-hem">- Nh&#224; trong hẻm</option>
+
+	<option value="biet-thu-nha-lien-ke">Biệt thự, nh&#224; liền kề</option>
+
+	<option selected="selected" value="can-ho-chung-cu">Căn hộ chung cư</option>
+
+	<option value="phong-tro-nha-tro">Ph&#242;ng trọ, nh&#224; trọ</option>
+
+	<option value="van-phong">Văn ph&#242;ng</option>
+
+	<option value="kho-xuong">Kho, xưởng</option>
+
+	<option value="nha-hang-khach-san">Nh&#224; h&#224;ng, kh&#225;ch sạn</option>
+
+	<option value="shop-kiot-quan">Shop, kiot, qu&#225;n</option>
+
+	<option value="trang-trai">Trang trại</option>
+
+	<option value="mat-bang">Mặt bằng</option>
+
+	<option value="dat-tho-cu-dat-o">Đất thổ cư, đất ở</option>
+
+	<option value="dat-nen-lien-ke-dat-du-an">Đất nền, liền kề, đất dự &#225;n</option>
+
+	<option value="dat-nong-lam-nghiep">Đất n&#244;ng, l&#226;m nghiệp</option>
+
+	<option value="cac-loai-khac">C&#225;c loại kh&#225;c</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slProvince">Tỉnh/Thành</label>
+
+                  <select name="ctl00$content$slProvince" id="ctl00_content_slProvince" class="province">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="1" data-ssn="1" data-newlink="ha-noi" data-link="ha-noi" class="strong">H&#224; Nội</option>
+
+	<option value="4" data-ssn="1" data-newlink="hai-phong" data-link="hai-phong" class="strong">Hải Ph&#242;ng</option>
+
+	<option value="11" data-ssn="1" data-newlink="hai-phong" data-link="hai-duong">&#160;&#160;&#160;&#160;- Hải Dương</option>
+
+	<option value="57" data-ssn="1" data-newlink="hue" data-link="hue" class="strong">Huế</option>
+
+	<option value="3" data-ssn="1" data-newlink="da-nang" data-link="da-nang" class="strong">Đ&#224; Nẵng</option>
+
+	<option value="47" data-ssn="1" data-newlink="da-nang" data-link="quang-nam">&#160;&#160;&#160;&#160;- Quảng Nam</option>
+
+	<option value="32" data-ssn="1" data-newlink="khanh-hoa" data-link="khanh-hoa" class="strong">Kh&#225;nh H&#242;a</option>
+
+	<option value="43" data-ssn="1" data-newlink="khanh-hoa" data-link="ninh-thuan">&#160;&#160;&#160;&#160;- Ninh Thuận</option>
+
+	<option selected="selected" value="2" data-ssn="1" data-newlink="ho-chi-minh" data-link="ho-chi-minh" class="strong">Hồ Ch&#237; Minh</option>
+
+	<option value="7" data-ssn="1" data-newlink="ho-chi-minh" data-link="ba-ria-vung-tau">&#160;&#160;&#160;&#160;- B&#224; Rịa Vũng T&#224;u</option>
+
+	<option value="14" data-ssn="1" data-newlink="ho-chi-minh" data-link="binh-duong">&#160;&#160;&#160;&#160;- B&#236;nh Dương</option>
+
+	<option value="5" data-ssn="1" data-newlink="can-tho" data-link="can-tho" class="strong">Cần Thơ</option>
+
+	<option value="29" data-ssn="1" data-newlink="can-tho" data-link="hau-giang">&#160;&#160;&#160;&#160;- Hậu Giang</option>
+
+	<option value="51" data-ssn="1" data-newlink="can-tho" data-link="soc-trang">&#160;&#160;&#160;&#160;- S&#243;c Trăng</option>
+
+	<option value="6" data-ssn="1" data-newlink="an-giang" data-link="an-giang" class="strong">An Giang</option>
+
+	<option value="33" data-ssn="1" data-newlink="an-giang" data-link="kien-giang">&#160;&#160;&#160;&#160;- Ki&#234;n Giang</option>
+
+	<option value="12" data-ssn="1" data-newlink="bac-ninh" data-link="bac-ninh" class="strong">Bắc Ninh</option>
+
+	<option value="10" data-ssn="1" data-newlink="bac-ninh" data-link="bac-giang">&#160;&#160;&#160;&#160;- Bắc Giang</option>
+
+	<option value="18" data-ssn="1" data-newlink="ca-mau" data-link="ca-mau" class="strong">C&#224; Mau</option>
+
+	<option value="8" data-ssn="1" data-newlink="ca-mau" data-link="bac-lieu">&#160;&#160;&#160;&#160;- Bạc Li&#234;u</option>
+
+	<option value="19" data-ssn="1" data-newlink="cao-bang" data-link="cao-bang" class="strong">Cao Bằng</option>
+
+	<option value="20" data-ssn="1" data-newlink="dak-lak" data-link="dak-lak" class="strong">Đắk Lắk</option>
+
+	<option value="45" data-ssn="1" data-newlink="dak-lak" data-link="phu-yen">&#160;&#160;&#160;&#160;- Ph&#250; Y&#234;n</option>
+
+	<option value="22" data-ssn="1" data-newlink="dien-bien" data-link="dien-bien" class="strong">Điện Bi&#234;n</option>
+
+	<option value="23" data-ssn="1" data-newlink="dong-nai" data-link="dong-nai" class="strong">Đồng Nai</option>
+
+	<option value="16" data-ssn="1" data-newlink="dong-nai" data-link="binh-phuoc">&#160;&#160;&#160;&#160;- B&#236;nh Phước</option>
+
+	<option value="24" data-ssn="1" data-newlink="dong-thap" data-link="dong-thap" class="strong">Đồng Th&#225;p</option>
+
+	<option value="58" data-ssn="1" data-newlink="dong-thap" data-link="tien-giang">&#160;&#160;&#160;&#160;- Tiền Giang</option>
+
+	<option value="25" data-ssn="1" data-newlink="gia-lai" data-link="gia-lai" class="strong">Gia Lai</option>
+
+	<option value="15" data-ssn="1" data-newlink="gia-lai" data-link="binh-dinh">&#160;&#160;&#160;&#160;- B&#236;nh Định</option>
+
+	<option value="28" data-ssn="1" data-newlink="ha-tinh" data-link="ha-tinh" class="strong">H&#224; Tĩnh</option>
+
+	<option value="31" data-ssn="1" data-newlink="hung-yen" data-link="hung-yen" class="strong">Hưng Y&#234;n</option>
+
+	<option value="54" data-ssn="1" data-newlink="hung-yen" data-link="thai-binh">&#160;&#160;&#160;&#160;- Th&#225;i B&#236;nh</option>
+
+	<option value="35" data-ssn="1" data-newlink="lai-chau" data-link="lai-chau" class="strong">Lai Ch&#226;u</option>
+
+	<option value="36" data-ssn="1" data-newlink="lam-dong" data-link="lam-dong" class="strong">L&#226;m Đồng</option>
+
+	<option value="17" data-ssn="1" data-newlink="lam-dong" data-link="binh-thuan">&#160;&#160;&#160;&#160;- B&#236;nh Thuận</option>
+
+	<option value="21" data-ssn="1" data-newlink="lam-dong" data-link="dak-nong">&#160;&#160;&#160;&#160;- Đăk N&#244;ng</option>
+
+	<option value="37" data-ssn="1" data-newlink="lang-son" data-link="lang-son" class="strong">Lạng Sơn</option>
+
+	<option value="38" data-ssn="1" data-newlink="lao-cai" data-link="lao-cai" class="strong">L&#224;o Cai</option>
+
+	<option value="63" data-ssn="1" data-newlink="lao-cai" data-link="yen-bai">&#160;&#160;&#160;&#160;- Y&#234;n B&#225;i</option>
+
+	<option value="41" data-ssn="1" data-newlink="nghe-an" data-link="nghe-an" class="strong">Nghệ An</option>
+
+	<option value="42" data-ssn="1" data-newlink="ninh-binh" data-link="ninh-binh" class="strong">Ninh B&#236;nh</option>
+
+	<option value="40" data-ssn="1" data-newlink="ninh-binh" data-link="nam-dinh">&#160;&#160;&#160;&#160;- Nam Định</option>
+
+	<option value="27" data-ssn="1" data-newlink="ninh-binh" data-link="ha-nam">&#160;&#160;&#160;&#160;- H&#224; Nam</option>
+
+	<option value="44" data-ssn="1" data-newlink="phu-tho" data-link="phu-tho" class="strong">Ph&#250; Thọ</option>
+
+	<option value="30" data-ssn="1" data-newlink="phu-tho" data-link="hoa-binh">&#160;&#160;&#160;&#160;- H&#242;a B&#236;nh</option>
+
+	<option value="62" data-ssn="1" data-newlink="phu-tho" data-link="vinh-phuc">&#160;&#160;&#160;&#160;- Vĩnh Ph&#250;c</option>
+
+	<option value="48" data-ssn="1" data-newlink="quang-ngai" data-link="quang-ngai" class="strong">Quảng Ng&#227;i</option>
+
+	<option value="34" data-ssn="1" data-newlink="quang-ngai" data-link="kon-tum">&#160;&#160;&#160;&#160;- Kon Tum</option>
+
+	<option value="49" data-ssn="1" data-newlink="quang-ninh" data-link="quang-ninh" class="strong">Quảng Ninh</option>
+
+	<option value="50" data-ssn="1" data-newlink="quang-tri" data-link="quang-tri" class="strong">Quảng Trị</option>
+
+	<option value="46" data-ssn="1" data-newlink="quang-tri" data-link="quang-binh">&#160;&#160;&#160;&#160;- Quảng B&#236;nh</option>
+
+	<option value="52" data-ssn="1" data-newlink="son-la" data-link="son-la" class="strong">Sơn La</option>
+
+	<option value="53" data-ssn="1" data-newlink="tay-ninh" data-link="tay-ninh" class="strong">T&#226;y Ninh</option>
+
+	<option value="39" data-ssn="1" data-newlink="tay-ninh" data-link="long-an">&#160;&#160;&#160;&#160;- Long An</option>
+
+	<option value="55" data-ssn="1" data-newlink="thai-nguyen" data-link="thai-nguyen">Th&#225;i Nguy&#234;n</option>
+
+	<option value="9" data-ssn="1" data-newlink="thai-nguyen" data-link="bac-kan">&#160;&#160;&#160;&#160;- Bắc Kạn</option>
+
+	<option value="56" data-ssn="1" data-newlink="thanh-hoa" data-link="thanh-hoa" class="strong">Thanh H&#243;a</option>
+
+	<option value="60" data-ssn="1" data-newlink="tuyen-quang" data-link="tuyen-quang" class="strong">Tuy&#234;n Quang</option>
+
+	<option value="26" data-ssn="1" data-newlink="tuyen-quang" data-link="ha-giang">&#160;&#160;&#160;&#160;- H&#224; Giang</option>
+
+	<option value="61" data-ssn="1" data-newlink="vinh-long" data-link="vinh-long" class="strong">Vĩnh Long</option>
+
+	<option value="13" data-ssn="1" data-newlink="vinh-long" data-link="ben-tre">&#160;&#160;&#160;&#160;- Bến Tre</option>
+
+	<option value="59" data-ssn="1" data-newlink="vinh-long" data-link="tra-vinh">&#160;&#160;&#160;&#160;- Tr&#224; Vinh</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slDistrict">Quận/Huyện</label>
+
+                  <select name="ctl00$content$slDistrict" id="ctl00_content_slDistrict" class="district">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="151" data-link="huyen-binh-chanh">Huyện B&#236;nh Ch&#225;nh</option>
+
+	<option value="152" data-link="huyen-can-gio">Huyện Cần Giờ</option>
+
+	<option value="153" data-link="huyen-cu-chi">Huyện Củ Chi</option>
+
+	<option value="154" data-link="huyen-hoc-mon">Huyện H&#243;c M&#244;n</option>
+
+	<option value="155" data-link="huyen-nha-be">Huyện Nh&#224; B&#232;</option>
+
+	<option value="132" data-link="quan-1">Quận 1</option>
+
+	<option value="141" data-link="quan-10">Quận 10</option>
+
+	<option value="142" data-link="quan-11">Quận 11</option>
+
+	<option value="143" data-link="quan-12">Quận 12</option>
+
+	<option value="133" data-link="quan-2">Quận 2</option>
+
+	<option value="134" data-link="quan-3">Quận 3</option>
+
+	<option value="135" data-link="quan-4">Quận 4</option>
+
+	<option value="136" data-link="quan-5">Quận 5</option>
+
+	<option value="137" data-link="quan-6">Quận 6</option>
+
+	<option value="138" data-link="quan-7">Quận 7</option>
+
+	<option value="139" data-link="quan-8">Quận 8</option>
+
+	<option value="140" data-link="quan-9">Quận 9</option>
+
+	<option value="144" data-link="quan-binh-tan">Quận B&#236;nh T&#226;n</option>
+
+	<option value="145" data-link="quan-binh-thanh">Quận B&#236;nh Thạnh</option>
+
+	<option selected="selected" value="146" data-link="quan-go-vap">Quận G&#242; Vấp</option>
+
+	<option value="147" data-link="quan-phu-nhuan">Quận Ph&#250; Nhuận</option>
+
+	<option value="148" data-link="quan-tan-binh">Quận T&#226;n B&#236;nh</option>
+
+	<option value="149" data-link="quan-tan-phu">Quận T&#226;n Ph&#250;</option>
+
+	<option value="150" data-link="thanh-pho-thu-duc">Th&#224;nh phố Thủ Đức</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slWard">Phường/Xã</label>
+
+                  <select name="ctl00$content$slWard" id="ctl00_content_slWard" class="ward">
+
+	<option value="0" data-ssn="0">---------- Tất cả ----------</option>
+
+	<option value="20427" data-link="an-hoi-dong" class="strong" data-ssn="1">Phường An Hội Đ&#244;ng</option>
+
+	<option value="20428" data-link="an-hoi-tay" class="strong" data-ssn="1">Phường An Hội T&#226;y</option>
+
+	<option value="20429" data-link="an-nhon" class="strong" data-ssn="1">Phường An Nhơn</option>
+
+	<option value="20449" data-link="go-vap" class="strong" data-ssn="1">Phường G&#242; Vấp</option>
+
+	<option value="20450" data-link="hanh-thong" class="strong" data-ssn="1">Phường Hạnh Th&#244;ng</option>
+
+	<option value="20472" data-link="thong-tay-hoi" class="strong" data-ssn="1">Phường Th&#244;ng T&#226;y Hội</option>
+
+	<option value="958" data-link="phuong-1" data-ssn="0">Phường 1</option>
+
+	<option value="959" data-link="phuong-10" data-ssn="0">Phường 10</option>
+
+	<option value="960" data-link="phuong-11" data-ssn="0">Phường 11</option>
+
+	<option value="961" data-link="phuong-12" data-ssn="0">Phường 12</option>
+
+	<option value="962" data-link="phuong-13" data-ssn="0">Phường 13</option>
+
+	<option value="963" data-link="phuong-14" data-ssn="0">Phường 14</option>
+
+	<option value="964" data-link="phuong-15" data-ssn="0">Phường 15</option>
+
+	<option value="965" data-link="phuong-16" data-ssn="0">Phường 16</option>
+
+	<option value="966" data-link="phuong-17" data-ssn="0">Phường 17</option>
+
+	<option selected="selected" value="967" data-link="phuong-3" data-ssn="0">Phường 3</option>
+
+	<option value="968" data-link="phuong-4" data-ssn="0">Phường 4</option>
+
+	<option value="969" data-link="phuong-5" data-ssn="0">Phường 5</option>
+
+	<option value="970" data-link="phuong-6" data-ssn="0">Phường 6</option>
+
+	<option value="971" data-link="phuong-7" data-ssn="0">Phường 7</option>
+
+	<option value="972" data-link="phuong-8" data-ssn="0">Phường 8</option>
+
+	<option value="973" data-link="phuong-9" data-ssn="0">Phường 9</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slStreet">Đường/Phố</label>
+
+                  <select name="ctl00$content$slStreet" id="ctl00_content_slStreet" class="street">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="2075" data-link="duong-an-hoi">Đường An Hội</option>
+
+	<option value="13934" data-link="duong-an-loc">Đường An Lộc</option>
+
+	<option value="13511" data-link="duong-an-loc">Đường An Lộc</option>
+
+	<option value="2076" data-link="duong-an-nhon">Đường An Nhơn</option>
+
+	<option value="13935" data-link="duong-an-phu-dong-27">Đường An Ph&#250; Đ&#244;ng 27</option>
+
+	<option value="13936" data-link="duong-b2">Đường B2</option>
+
+	<option value="26112" data-link="duong-b3">Đường B3</option>
+
+	<option value="26113" data-link="duong-b3">Đường B3</option>
+
+	<option value="13937" data-link="duong-b4">Đường B4</option>
+
+	<option value="13512" data-link="duong-bach-dang">Đường Bạch Đằng</option>
+
+	<option value="2077" data-link="duong-bui-quang-la">Đường B&#249;i Quang L&#224;</option>
+
+	<option value="13938" data-link="duong-c2">Đường C2</option>
+
+	<option value="13513" data-link="duong-cay-thi">Đường C&#226;y Thị</option>
+
+	<option value="2078" data-link="duong-cay-tram">Đường C&#226;y Tr&#226;m</option>
+
+	<option value="13939" data-link="duong-d1">Đường D1</option>
+
+	<option value="13940" data-link="duong-d11">Đường D11</option>
+
+	<option value="13941" data-link="duong-d19">Đường D19</option>
+
+	<option value="13942" data-link="duong-d2">Đường D2</option>
+
+	<option value="13943" data-link="duong-d3">Đường D3</option>
+
+	<option value="13944" data-link="duong-d4">Đường D4</option>
+
+	<option value="13945" data-link="duong-d7">Đường D7</option>
+
+	<option value="13514" data-link="duong-do-phuc-thinh">Đường Đỗ Ph&#250;c Thịnh</option>
+
+	<option value="13515" data-link="duong-do-phuc-tinh">Đường Đỗ Ph&#250;c Tịnh</option>
+
+	<option value="2124" data-link="duong-do-thuc-tinh">Đường Đỗ Th&#250;c Tịnh</option>
+
+	<option value="13946" data-link="duong-dong-hung-thuan-6">Đường Đ&#244;ng Hưng Thuận 6</option>
+
+	<option value="2079" data-link="duong-duong-quang-ham">Đường Dương Quảng H&#224;m</option>
+
+	<option value="10440" data-link="duong-ha-huy-giap">Đường H&#224; Huy Gi&#225;p</option>
+
+	<option value="13516" data-link="duong-han-giang">Đường H&#224;n Giang</option>
+
+	<option value="2080" data-link="duong-hanh-thong">Đường Hạnh Th&#244;ng</option>
+
+	<option value="13517" data-link="duong-hanh-thong-tay">Đường Hạnh Th&#244;ng T&#226;y</option>
+
+	<option value="13518" data-link="duong-hau-lan">Đường Hậu L&#226;n</option>
+
+	<option value="13947" data-link="duong-hiep-thanh-13">Đường Hiệp Th&#224;nh 13</option>
+
+	<option value="13519" data-link="duong-hoang-hoa-tham">Đường Ho&#224;ng Hoa Th&#225;m</option>
+
+	<option value="2081" data-link="duong-hoang-minh-giam">Đường Ho&#224;ng Minh Gi&#225;m</option>
+
+	<option value="9462" data-link="duong-huynh-khuong-an">Đường Huỳnh Khương An</option>
+
+	<option value="2082" data-link="duong-huynh-van-nghe">Đường Huỳnh Văn Nghệ</option>
+
+	<option value="13520" data-link="duong-lam-son">Đường Lam Sơn</option>
+
+	<option value="2087" data-link="duong-le-duc-tho">Đường L&#234; Đức Thọ</option>
+
+	<option value="2083" data-link="duong-le-hoang-phai">Đường L&#234; Ho&#224;ng Ph&#225;i</option>
+
+	<option value="9605" data-link="duong-le-lai">Đường L&#234; Lai</option>
+
+	<option value="2084" data-link="duong-le-loi">Đường L&#234; Lợi</option>
+
+	<option value="9417" data-link="duong-le-quang-dinh">Đường L&#234; Quang Định</option>
+
+	<option value="2085" data-link="duong-le-thi-hong">Đường L&#234; Thị Hồng</option>
+
+	<option value="13521" data-link="duong-le-van-dau">Đường L&#234; Văn Đậu</option>
+
+	<option value="2086" data-link="duong-le-van-tho">Đường L&#234; Văn Thọ</option>
+
+	<option value="13522" data-link="duong-le-van-tri">Đường L&#234; Văn Trị</option>
+
+	<option value="13523" data-link="duong-loc-hoa">Đường Lộc H&#242;a</option>
+
+	<option value="2088" data-link="duong-luong-ngoc-quyen">Đường Lương Ngọc Quyến</option>
+
+	<option value="13524" data-link="duong-ly-ong-trong">Đường L&#253; &#212;ng Trọng</option>
+
+	<option value="2089" data-link="duong-ly-thuong-kiet">Đường L&#253; Thường Kiệt</option>
+
+	<option value="13948" data-link="duong-muong-khai">Đường Mương Khai</option>
+
+	<option value="2090" data-link="duong-ngo-tat-to">Đường Ng&#244; Tất Tố</option>
+
+	<option value="2091" data-link="duong-nguyen-ba-tuan">Đường Nguyễn B&#225; Tu&#226;n</option>
+
+	<option value="2092" data-link="duong-nguyen-binh-khiem">Đường Nguyễn Bỉnh Khi&#234;m</option>
+
+	<option value="2093" data-link="duong-nguyen-du">Đường Nguyễn Du</option>
+
+	<option value="2094" data-link="duong-nguyen-duy-cung">Đường Nguyễn Duy Cung</option>
+
+	<option value="10579" data-link="duong-nguyen-hong">Đường Nguy&#234;n Hồng</option>
+
+	<option value="13525" data-link="duong-nguyen-huy-chuong">Đường Nguyễn Huy Chương</option>
+
+	<option value="2095" data-link="duong-nguyen-huy-dien">Đường Nguyễn Huy Điển</option>
+
+	<option value="13527" data-link="duong-nguyen-huy-thong">Đường Nguyễn Huy Th&#244;ng</option>
+
+	<option value="13526" data-link="duong-nguyen-khanh">Đường Nguyễn Khanh</option>
+
+	<option value="13528" data-link="duong-nguyen-khuyen">Đường Nguyễn Khuyến</option>
+
+	<option value="2096" data-link="duong-nguyen-kiem">Đường Nguyễn Kiệm</option>
+
+	<option value="2097" data-link="duong-nguyen-oanh">Đường Nguyễn Oanh</option>
+
+	<option value="2098" data-link="duong-nguyen-thai-son">Đường Nguyễn Th&#225;i Sơn</option>
+
+	<option value="13529" data-link="duong-nguyen-thi-hong">Đường Nguyễn Thị Hồng</option>
+
+	<option value="9951" data-link="duong-nguyen-thuong-hien">Đường Nguyễn Thượng Hiền</option>
+
+	<option value="2099" data-link="duong-nguyen-tu-gian">Đường Nguyễn Tư Giản</option>
+
+	<option value="2100" data-link="duong-nguyen-tuan">Đường Nguyễn Tu&#226;n</option>
+
+	<option value="2101" data-link="duong-nguyen-van-bao">Đường Nguyễn Văn Bảo</option>
+
+	<option selected="selected" value="2102" data-link="duong-nguyen-van-cong">Đường Nguyễn Văn C&#244;ng</option>
+
+	<option value="13530" data-link="duong-nguyen-van-dau">Đường Nguyễn Văn Đậu</option>
+
+	<option value="2103" data-link="duong-nguyen-van-dung">Đường Nguyễn Văn Dung</option>
+
+	<option value="13534" data-link="duong-nguyen-van-dung">Đường Nguyễn Văn Đừng</option>
+
+	<option value="13531" data-link="duong-nguyen-van-khoi">Đường Nguyễn Văn Khối</option>
+
+	<option value="2104" data-link="duong-nguyen-van-luong">Đường Nguyễn Văn Lượng</option>
+
+	<option value="2105" data-link="duong-nguyen-van-nghi">Đường Nguyễn Văn Nghi</option>
+
+	<option value="13532" data-link="duong-nui-mot">Đường N&#250;i Một</option>
+
+	<option value="2106" data-link="duong-pham-huy-thong">Đường Phạm Huy Th&#244;ng</option>
+
+	<option value="9738" data-link="duong-pham-ngu-lao">Đường Phạm Ngũ L&#227;o</option>
+
+	<option value="13533" data-link="duong-pham-phu-thu">Đường Phạm Ph&#250; Thứ</option>
+
+	<option value="2107" data-link="duong-pham-van-bach">Đường Phạm Văn Bạch</option>
+
+	<option value="2108" data-link="duong-pham-van-chieu">Đường Phạm Văn Chi&#234;u</option>
+
+	<option value="2109" data-link="duong-pham-van-dong">Đường Phạm Văn Đồng</option>
+
+	<option value="2110" data-link="duong-phan-huy-ich">Đường Phan Huy &#205;ch</option>
+
+	<option value="2111" data-link="duong-phan-van-tri">Đường Phan Văn Trị</option>
+
+	<option value="13535" data-link="duong-phu-trung">Đường Ph&#250; Trung</option>
+
+	<option value="13949" data-link="duong-quan-su">Đường Qu&#226;n Sự</option>
+
+	<option value="2112" data-link="duong-quang-trung">Đường Quang Trung</option>
+
+	<option value="13536" data-link="duong-rach-ba-mien">Đường Rạch B&#224; Mi&#234;n</option>
+
+	<option value="10072" data-link="duong-so-1">Đường Số 1</option>
+
+	<option value="9498" data-link="duong-so-10">Đường Số 10</option>
+
+	<option value="10398" data-link="duong-so-11">Đường Số 11</option>
+
+	<option value="10339" data-link="duong-so-12">Đường Số 12</option>
+
+	<option value="26099" data-link="duong-so-14">Đường số 14</option>
+
+	<option value="10006" data-link="duong-so-17">Đường Số 17</option>
+
+	<option value="23872" data-link="duong-so-18">Đường số 18</option>
+
+	<option value="26775" data-link="duong-so-19">Đường số 19</option>
+
+	<option value="10361" data-link="duong-so-2">Đường Số 2</option>
+
+	<option value="9418" data-link="duong-so-20">Đường Số 20</option>
+
+	<option value="11726" data-link="duong-so-21">Đường số 21</option>
+
+	<option value="27008" data-link="duong-so-22">Đường số 22</option>
+
+	<option value="11688" data-link="duong-so-27">Đường số 27</option>
+
+	<option value="26340" data-link="duong-so-28">Đường số 28</option>
+
+	<option value="10620" data-link="duong-so-3">Đường Số 3</option>
+
+	<option value="12539" data-link="duong-so-30">Đường số 30</option>
+
+	<option value="13344" data-link="duong-so-31">Đường số 31</option>
+
+	<option value="10373" data-link="duong-so-4">Đường Số 4</option>
+
+	<option value="26282" data-link="duong-so-44">Đường Số 44</option>
+
+	<option value="26766" data-link="duong-so-45">Đường số 45</option>
+
+	<option value="26410" data-link="duong-so-46">Đường số 46</option>
+
+	<option value="26411" data-link="duong-so-47">Đường số 47</option>
+
+	<option value="26412" data-link="duong-so-48">Đường số 48</option>
+
+	<option value="26413" data-link="duong-so-49">Đường số 49</option>
+
+	<option value="10335" data-link="duong-so-5">Đường Số 5</option>
+
+	<option value="26414" data-link="duong-so-50">Đường số 50</option>
+
+	<option value="26409" data-link="duong-so-51">Đường số 51</option>
+
+	<option value="26364" data-link="duong-so-53">Đường số 53</option>
+
+	<option value="26509" data-link="duong-so-56">Đường số 56</option>
+
+	<option value="10046" data-link="duong-so-59">Đường Số 59</option>
+
+	<option value="24217" data-link="duong-so-6">Đường số 6</option>
+
+	<option value="9556" data-link="duong-so-7">Đường Số 7</option>
+
+	<option value="9664" data-link="duong-so-8">Đường Số 8</option>
+
+	<option value="9681" data-link="duong-so-9">Đường Số 9</option>
+
+	<option value="13951" data-link="duong-tan-chanh-hiep-16">Đường T&#226;n Ch&#225;nh Hiệp 16</option>
+
+	<option value="2113" data-link="duong-tan-son">Đường T&#226;n Sơn</option>
+
+	<option value="13952" data-link="duong-tan-thoi-hiep-10">Đường T&#226;n Thới Hiệp 10</option>
+
+	<option value="13953" data-link="duong-thai-an-6">Đường Th&#225;i An 6</option>
+
+	<option value="13954" data-link="duong-thanh-loc-27">Đường Thạnh Lộc 27</option>
+
+	<option value="13955" data-link="duong-thanh-xuan-13">Đường Thạnh Xu&#226;n 13</option>
+
+	<option value="13956" data-link="duong-thanh-xuan-21">Đường Thạnh Xu&#226;n 21</option>
+
+	<option value="13537" data-link="duong-thich-buu-dang">Đường Th&#237;ch Bửu Đăng</option>
+
+	<option value="2114" data-link="duong-thich-buu-quang">Đường Th&#237;ch Bửu Quang</option>
+
+	<option value="30137" data-link="duong-thich-quang-duc">Đường Th&#237;ch Quảng Đức</option>
+
+	<option value="2115" data-link="duong-thien-ho-duong">Đường Thi&#234;n Hộ Dương</option>
+
+	<option value="2116" data-link="duong-thong-nhat">Đường Thống Nhất</option>
+
+	<option value="13538" data-link="duong-thong-tay-hoi">Đường Th&#244;ng T&#226;y Hội</option>
+
+	<option value="11185" data-link="duong-to-ngoc-van">Đường T&#244; Ngọc V&#226;n</option>
+
+	<option value="13539" data-link="duong-trai-ga">Đường Trại G&#224;</option>
+
+	<option value="2117" data-link="duong-tran-ba-giao">Đường Trần B&#225; Giao</option>
+
+	<option value="13540" data-link="duong-tran-binh-trong">Đường Trần B&#236;nh Trọng</option>
+
+	<option value="13541" data-link="duong-tran-phu-cuong">Đường Trần Ph&#250; Cường</option>
+
+	<option value="13542" data-link="duong-tran-quang-dao">Đường Trần Quang Đạo</option>
+
+	<option value="13543" data-link="duong-tran-quoc-toan">Đường Trần Quốc Toản</option>
+
+	<option value="2118" data-link="duong-tran-quoc-tuan">Đường Trần Quốc Tuấn</option>
+
+	<option value="2119" data-link="duong-tran-thanh-tong">Đường Trần Th&#225;nh T&#244;ng</option>
+
+	<option value="2120" data-link="duong-tran-thi-nghi">Đường Trần Thị Nghĩ</option>
+
+	<option value="13544" data-link="duong-trich-sai">Đường Tr&#237;ch S&#224;i</option>
+
+	<option value="13545" data-link="duong-trung-nu-vuong">Đường Trưng Nữ Vương</option>
+
+	<option value="2122" data-link="duong-truong-dang-que">Đường Trương Đăng Quế</option>
+
+	<option value="13546" data-link="duong-truong-minh-giang">Đường Trương Minh Giảng</option>
+
+	<option value="2121" data-link="duong-truong-minh-ky">Đường Trường Minh K&#253;</option>
+
+	<option value="13547" data-link="duong-truong-van-da">Đường Trương Văn Đa</option>
+
+	<option value="13548" data-link="duong-tu-mo">Đường T&#250; Mỡ</option>
+
+	<option value="2123" data-link="duong-vu-thanh-tung">Đường Vũ Thanh T&#249;ng</option>
+
+	<option value="13957" data-link="duong-xa-la">Đường Xa La</option>
+
+	<option value="13958" data-link="duong-yen-hoa">Đường Y&#234;n Hoa</option>
+
+	<option value="13950" data-link="quoc-lo-54">Quốc lộ 54</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slDirect">Hướng</label>
+
+                  <select name="ctl00$content$slDirect" id="ctl00_content_slDirect" class="direct">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="1">Đ&#244;ng</option>
+
+	<option value="2">T&#226;y</option>
+
+	<option value="3">Nam</option>
+
+	<option value="4">Bắc</option>
+
+	<option value="5">Đ&#244;ng Nam</option>
+
+	<option value="6">Đ&#244;ng Bắc</option>
+
+	<option value="7">T&#226;y Nam</option>
+
+	<option value="8">T&#226;y Bắc</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slSquare">Diện tích</label>
+
+                  <select name="ctl00$content$slSquare" id="ctl00_content_slSquare" class="square">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="1">Dưới 30 m2</option>
+
+	<option value="2">30 - 50 m2</option>
+
+	<option value="3">50 - 70 m2</option>
+
+	<option value="4">70 - 100 m2</option>
+
+	<option value="5">100 - 150 m2</option>
+
+	<option value="6">150 - 200 m2</option>
+
+	<option value="7">200 - 250 m2</option>
+
+	<option value="8">250 - 300 m2</option>
+
+	<option value="9">300 - 350 m2</option>
+
+	<option value="10">350 - 400 m2</option>
+
+	<option value="11">400 - 600 m2</option>
+
+	<option value="12">600 - 800 m2</option>
+
+	<option value="13">800 - 1000 m2</option>
+
+	<option value="14">Tr&#234;n 1000 m2</option>
+
+</select>
+
+                </div>
+
+                <div class="form-group">
+
+                  <label for="ctl00_content_slPrice">Mức giá</label>
+
+                  <select name="ctl00$content$slPrice" id="ctl00_content_slPrice" class="price">
+
+	<option value="0">---------- Tất cả ----------</option>
+
+	<option value="1">Dưới 1 triệu</option>
+
+	<option value="2">1 - 3 triệu</option>
+
+	<option value="3">3 - 5 triệu</option>
+
+	<option value="4">5 - 10 triệu</option>
+
+	<option value="5">10 - 15 triệu</option>
+
+	<option value="6">15 - 20 triệu</option>
+
+	<option value="7">20 - 30 triệu</option>
+
+	<option value="8">30 - 40 triệu</option>
+
+	<option value="9">40 - 60 triệu</option>
+
+	<option value="10">60 - 80 triệu</option>
+
+	<option value="11">80 - 100 triệu</option>
+
+	<option value="12">100 - 300 triệu</option>
+
+	<option value="13">300 - 500 triệu</option>
+
+	<option value="14">500 - 800 triệu</option>
+
+	<option value="15">800 - 1 tỷ</option>
+
+	<option value="16">1 - 2 tỷ</option>
+
+	<option value="17">2 - 3 tỷ</option>
+
+	<option value="18">3 - 4 tỷ</option>
+
+	<option value="19">4 - 6 tỷ</option>
+
+	<option value="20">6 - 8 tỷ</option>
+
+	<option value="21">8 - 10 tỷ</option>
+
+	<option value="22">10 - 15 tỷ</option>
+
+	<option value="23">15 - 20 tỷ</option>
+
+	<option value="24">20 - 30 tỷ</option>
+
+	<option value="25">30 - 60 tỷ</option>
+
+	<option value="26">Tr&#234;n 60 tỷ</option>
+
+</select>
+
+                </div>
+
+                <div class="form-actions">
+
+                  <button type="submit" class="btnsearch">Tìm Kiếm</button>
+
+                </div>
+
+              </form>
+
+            </section>
+
+			<div class="banner-center"></div>				
+
+			<section class="right-navigation-box">
+
+			    <nav class='item temp-navigation'><h2>Bán căn hộ chung cư ở Quận Gò Vấp</h2><ul><li data-id='20427' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/an-hoi-dong' title='Ban can ho chung cu An Hoi Dong'>Bán căn hộ chung cư An Hội Đông</a></li><li data-id='964' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-15-quan-go-vap-px964.html' title='Ban can ho chung cu Phuong 15'>Bán căn hộ chung cư Phường 15</a></li><li data-id='965' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-16-quan-go-vap-px965.html' title='Ban can ho chung cu Phuong 16'>Bán căn hộ chung cư Phường 16</a></li><li data-id='20428' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/an-hoi-tay' title='Ban can ho chung cu An Hoi Tay'>Bán căn hộ chung cư An Hội Tây</a></li><li data-id='961' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-12-quan-go-vap-px961.html' title='Ban can ho chung cu Phuong 12'>Bán căn hộ chung cư Phường 12</a></li><li data-id='962' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-13-quan-go-vap-px962.html' title='Ban can ho chung cu Phuong 13'>Bán căn hộ chung cư Phường 13</a></li><li data-id='963' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-14-quan-go-vap-px963.html' title='Ban can ho chung cu Phuong 14'>Bán căn hộ chung cư Phường 14</a></li><li data-id='20429' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/an-nhon' title='Ban can ho chung cu An Nhon'>Bán căn hộ chung cư An Nhơn</a></li><li data-id='969' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-5-quan-go-vap-px969.html' title='Ban can ho chung cu Phuong 5'>Bán căn hộ chung cư Phường 5</a></li><li data-id='970' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-6-quan-go-vap-px970.html' title='Ban can ho chung cu Phuong 6'>Bán căn hộ chung cư Phường 6</a></li><li data-id='20449' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/go-vap' title='Ban can ho chung cu Go Vap'>Bán căn hộ chung cư Gò Vấp</a></li><li data-id='959' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-10-quan-go-vap-px959.html' title='Ban can ho chung cu Phuong 10'>Bán căn hộ chung cư Phường 10</a></li><li data-id='966' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-17-quan-go-vap-px966.html' title='Ban can ho chung cu Phuong 17'>Bán căn hộ chung cư Phường 17</a></li><li data-id='20450' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/hanh-thong' title='Ban can ho chung cu Hanh Thong'>Bán căn hộ chung cư Hạnh Thông</a></li><li data-id='958' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-1-quan-go-vap-px958.html' title='Ban can ho chung cu Phuong 1'>Bán căn hộ chung cư Phường 1</a></li><li data-id='967' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-3-quan-go-vap-px967.html' title='Ban can ho chung cu Phuong 3'>Bán căn hộ chung cư Phường 3</a></li><li data-id='968' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-4-quan-go-vap-px968.html' title='Ban can ho chung cu Phuong 4'>Bán căn hộ chung cư Phường 4</a></li><li data-id='971' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-7-quan-go-vap-px971.html' title='Ban can ho chung cu Phuong 7'>Bán căn hộ chung cư Phường 7</a></li><li data-id='20472' class='strong'><a href='/can-ban-can-ho-chung-cu/ho-chi-minh/thong-tay-hoi' title='Ban can ho chung cu Thong Tay Hoi'>Bán căn hộ chung cư Thông Tây Hội</a></li><li data-id='960' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-11-quan-go-vap-px960.html' title='Ban can ho chung cu Phuong 11'>Bán căn hộ chung cư Phường 11</a></li><li data-id='972' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-8-quan-go-vap-px972.html' title='Ban can ho chung cu Phuong 8'>Bán căn hộ chung cư Phường 8</a></li><li data-id='973' class='child'><a href='/nha-dat/can-ban/can-ho-chung-cu/phuong-9-quan-go-vap-px973.html' title='Ban can ho chung cu Phuong 9'>Bán căn hộ chung cư Phường 9</a></li></ul></nav>					        	   		        
+
+			</section><!---- right box--------->		
+
+		</aside><!--right-->			
+
+	</div>	 
+
+	
+
+
+
+        </div>
+
+        <footer>
+
+            <div id="ctl00_pc_footer" class="footer">  
+
+		            <div class="fcolumleft">
+
+                        <div class='about'>		        
+
+		                    <h4>CÔNG TY TNHH DỊCH VỤ THƯƠNG MẠI ĐIỆN TỬ TRẦN GIA</h4>		        
+
+		                    <address class="contact-info">
+                                <p>Khu phố 4, Phường Hắc Dịch, Thị xã Phú Mỹ, Tỉnh Bà Rịa Vũng Tàu.</p>
+                                <p>Điện thoại: <a href="tel:+842543890425">(0254) 3890 425</a> | Email: <a href="mailto:contact@alonhadat.com.vn">contact@alonhadat.com.vn</a></p>
+                            </address>	 
+
+		                    <p>® Alonhadat.com.vn giữ bản quyền website này. Việc sao chép một phần hoặc toàn bộ mà không được sử đồng ý bằng văn bản là vi phạm pháp luật.</p>       
+
+		                </div>	            
+
+                    </div>	
+
+		            <div class="fcolumright">
+
+	                    <h4 class="title">Hỗ trợ khách hàng</h4>
+
+	                    <ul class="phone-numbers">
+                            <li><a href="tel:+842543890425">(0254) 3890 425</a></li>
+                            <li><a href="tel:+84857002002">0900.000.000</a></li>
+                            <li><a href="tel:+84762003003">0900.000.000</a></li>
+                        </ul>
+                        <p>Copyright © 2013 - 2026 Alonhadat.com.vn. All rights reserved.</p>   
+
+			            <p class='bocongthuong'>
+
+		                    <a rel='nofollow' target="_blank" aria-label="Bộ công thương" href="http://online.gov.vn/Home/WebDetails/8071">
+
+		                        <img width='130' height='40' src="/publish/img/bo-cong-thuong.png" alt='Bộ công thương' />
+
+		                    </a>
+
+		                </p> 			
+
+		            </div >
+
+	                <span title='Lên đầu trang' id="to_top"><img src="/publish/img/gotop.png" alt="Lên đầu trang" width="50" /><br />Lên đầu trang</span>    	    
+
+	        </div><!--end footer -->	
+
+	        
+
+	        <div class='guest-config'>
+
+	            <div class='head'></div>
+
+	        </div>
+
+	    </footer>
+
+    </div><!--wrapper-->    
+
+    
+
+<div class="banner banner-left"></div>  
+
+<div class="banner banner-right"></div>  
+
+<div class='top-contact'></div>    
+
+<div id="fade" class="black_overlay"></div>	 
+
+<input type="hidden" id='psb-district-id' />
+
+<input type="hidden" id='psb-street-id' />
+
+<input type="hidden" id='psb-ward-id' />
+
+<input name="ctl00$hddCurrentTextDate" type="hidden" id="ctl00_hddCurrentTextDate" class="hddCurrentTextDate" value="260710" />
+
+<script  type="text/javascript" src="/publish/js/jquery.js"></script>
+
+<script type="text/javascript" src="/publish/js/common.js?v=202510030101"></script>
+
+	
+
+<script type="text/javascript" src="/publish/js/pc-common.js?v=202511060101"></script>
+
+
+
+<script type="text/javascript">
+
+    /*JavaScript Cookie v2.1.4*/
+
+    (function(b) { var d = false; if (typeof define === "function" && define.amd) { define(b); d = true } if (typeof exports === "object") { module.exports = b(); d = true } if (!d) { var a = window.Cookies; var c = window.Cookies = b(); c.noConflict = function() { window.Cookies = a; return c } } } (function() { function b() { var f = 0; var c = {}; for (; f < arguments.length; f++) { var d = arguments[f]; for (var e in d) { c[e] = d[e] } } return c } function a(d) { function c(r, p, l) { var t; if (typeof document === "undefined") { return } if (arguments.length > 1) { l = b({ path: "/" }, c.defaults, l); if (typeof l.expires === "number") { var h = new Date(); h.setMilliseconds(h.getMilliseconds() + l.expires * 86400000); l.expires = h } l.expires = l.expires ? l.expires.toUTCString() : ""; try { t = JSON.stringify(p); if (/^[\{\[]/.test(t)) { p = t } } catch (n) { } if (!d.write) { p = encodeURIComponent(String(p)).replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent) } else { p = d.write(p, r) } r = encodeURIComponent(String(r)); r = r.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent); r = r.replace(/[\(\)]/g, escape); var k = ""; for (var o in l) { if (!l[o]) { continue } k += "; " + o; if (l[o] === true) { continue } k += "=" + l[o] } return (document.cookie = r + "=" + p + k) } if (!r) { t = {} } var s = document.cookie ? document.cookie.split("; ") : []; var q = /(%[0-9A-Z]{2})+/g; var m = 0; for (; m < s.length; m++) { var j = s[m].split("="); var g = j.slice(1).join("="); if (g.charAt(0) === '"') { g = g.slice(1, -1) } try { var f = j[0].replace(q, decodeURIComponent); g = d.read ? d.read(g, f) : d(g, f) || g.replace(q, decodeURIComponent); if (this.json) { try { g = JSON.parse(g) } catch (n) { } } if (r === f) { t = g; break } if (!r) { t[f] = g } } catch (n) { } } return t } c.set = c; c.get = function(e) { return c.call(c, e) }; c.getJSON = function() { return c.apply({ json: true }, [].slice.call(arguments)) }; c.defaults = {}; c.remove = function(f, e) { c(f, "", b(e, { expires: -1 })) }; c.withConverter = a; return c } return a(function() { }) }));
+
+</script>
+
+
+
+<input name="ctl00$footer$hddProvinceId" type="hidden" id="ctl00_footer_hddProvinceId" class="province-id" value="2" />
+
+<input name="ctl00$footer$page_id" type="hidden" id="ctl00_footer_page_id" class="page-id" value="2" />
+
+
+
+<script type="text/javascript" src="/publish/js/jquery.autocomplete.js"></script> 
+
+<script type="text/javascript">     
+
+$(document).ready(function() {
+
+    $(window).scroll(function() { 
+
+        var _top = $(".right").offset().top;
+
+        var contact_oldOffset = $(".property .utility").offset().top;
+
+        y = $(this).scrollTop();
+
+        if(y +40 > _top & y < contact_oldOffset)
+
+        {
+
+            $('.right .contact-info').css('margin-top',(y - (_top - 50 ))+"px");
+
+        }else{
+
+            if(y < _top)
+
+                $('.right .contact-info').css('margin-top',"0px");
+
+        }         
+
+    });
+
+})
+
+function ViewPropertyInFrame(lat, lng) {
+
+    if ($('#map').length == 0) {
+
+        $('.property .image-tab').after("<div id='map'><iframe title='Bản đồ' frameborder='0' scrolling='no' marginheight='0' marginwidth='0' src='https://maps.google.com/maps?&amp;q=+" + lat + ",+" + lng + "&amp;output=embed'></iframe></div>");
+
+    }
+
+}
+
+</script>
+
+ 
+
+<!-- Google tag (gtag.js) -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-986565758"></script>
+
+<script>
+
+  window.dataLayer = window.dataLayer || [];
+
+  function gtag(){dataLayer.push(arguments);}
+
+  gtag('js', new Date());
+
+
+
+  gtag('config', 'AW-986565758');
+
+</script>
+
+</body>
+
+</html>
+
