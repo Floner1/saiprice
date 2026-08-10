@@ -1530,7 +1530,8 @@
                     </div>
 
                     <div class="re__agent-infor re__agent-name">
-                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59" class="re__contact-name">A
+                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59" class="re__contact-name">
+                                    A
                                 </a>
                             <div class="re__contact-link">
                                 <a tracking-id="navigate-agent-profile" tracking-label="" class="re__link-se" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59">
@@ -1872,7 +1873,8 @@ Nội dung tin đăng này do Người đăng tin cung cấp và chịu trách n
                     </div>
 
                     <div class="re__agent-infor re__agent-name">
-                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59" class="re__contact-name">A
+                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59" class="re__contact-name">
+                                    A
                                 </a>
                             <div class="re__contact-link">
                                 <a tracking-id="navigate-agent-profile" tracking-label="" class="re__link-se" href="https://guru.batdongsan.com.vn/pa/00000000000000a1?productType=38&amp;cateId=324&amp;projectId=488&amp;cityCode=SG&amp;districtId=59">
