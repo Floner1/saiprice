@@ -109,6 +109,8 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 
 Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, Opus, or Fable, and never add any of them as a contributor, co-author, or commit trailer (e.g. `Co-Authored-By: Claude ...`). This applies to every commit, regardless of what tool wrote the code.
 
+Every commit message must be run through the `/humanizer` and `/voicemail-human-writing-method` skills before committing — draft the message, apply both skills, then commit the result. No exceptions for small or auto-generated commits.
+
 ## 5. Database Schema
 
 ### 5.1 `Listing`

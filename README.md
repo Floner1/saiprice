@@ -91,10 +91,13 @@ Then:
 
 ```bash
 python manage.py migrate
+python manage.py tailwind build
 python manage.py scrape_listings --source alonhadat
 python manage.py score_listings
 python manage.py runserver
 ```
+
+`tailwind build` compiles `assets/css/tailwind.css`, which is gitignored and not shipped in the repo (CLAUDE.md §11) — skip it and the dashboard loads unstyled. Rebuild after changing `tailwind_src/source.css`, or run `python manage.py tailwind watch` alongside `runserver` for live rebuilds during template work.
 
 ## Design notes
 
