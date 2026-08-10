@@ -1,10 +1,11 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Agent, Listing, PriceHistory
+from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
 from listings.scraping.parsers import ParsedListing
 from listings.upsert import upsert
 
@@ -263,8 +264,6 @@ class AnomalyStalenessTests(TestCase):
 
 class ScoringRunSchemaTests(TestCase):
     def test_scrape_run_status_counts_defaults_to_null(self):
-        from listings.models import ScrapeRun
-
         run = ScrapeRun.objects.create(
             source_site="alonhadat", started_at=timezone.now()
         )
@@ -272,8 +271,6 @@ class ScoringRunSchemaTests(TestCase):
         self.assertIsNone(run.status_counts)
 
     def test_scrape_run_status_counts_round_trips_a_dict(self):
-        from listings.models import ScrapeRun
-
         run = ScrapeRun.objects.create(
             source_site="alonhadat",
             started_at=timezone.now(),
@@ -283,8 +280,6 @@ class ScoringRunSchemaTests(TestCase):
         self.assertEqual(run.status_counts, {"ldp_404": 2, "srp_bot_challenge": 1})
 
     def test_scoring_run_counters_default_to_zero_and_metrics_to_null(self):
-        from listings.models import ScoringRun
-
         run = ScoringRun.objects.create(started_at=timezone.now())
         run.refresh_from_db()
         self.assertEqual(
@@ -298,10 +293,6 @@ class ScoringRunSchemaTests(TestCase):
         self.assertIsNone(run.status_counts)
 
     def test_scoring_run_median_ape_keeps_four_decimal_places(self):
-        from decimal import Decimal
-
-        from listings.models import ScoringRun
-
         run = ScoringRun.objects.create(
             started_at=timezone.now(), median_ape=Decimal("0.2287")
         )
