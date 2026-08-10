@@ -1387,7 +1387,8 @@
                     </div>
 
                     <div class="re__agent-infor re__agent-name">
-                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981" class="re__contact-name">A
+                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981" class="re__contact-name">
+                                    A
                                 </a>
                             <div class="re__contact-link">
                                 <a tracking-id="navigate-agent-profile" tracking-label="" class="re__link-se" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981">
@@ -1733,7 +1734,8 @@ Nội dung tin đăng này do Người đăng tin cung cấp và chịu trách n
                     </div>
 
                     <div class="re__agent-infor re__agent-name">
-                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981" class="re__contact-name">A
+                                <a tracking-id="navigate-agent-profile" tracking-label="source=name" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981" class="re__contact-name">
+                                    A
                                 </a>
                             <div class="re__contact-link">
                                 <a tracking-id="navigate-agent-profile" tracking-label="" class="re__link-se" href="https://guru.batdongsan.com.vn/pa/00000000000000a2?productType=49&amp;cateId=53&amp;cityCode=BD&amp;districtId=161&amp;wardId=981">

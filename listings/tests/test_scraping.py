@@ -91,7 +91,7 @@ class ParseLdpApartmentTests(SimpleTestCase):
 
     def test_agent(self):
         self.assertEqual(self.parsed.agent_source_id, "9000001")
-        self.assertEqual(self.parsed.agent_name, "Tuấn")
+        self.assertEqual(self.parsed.agent_name, "A")
 
     def test_expired_flag(self):
         self.assertFalse(self.parsed.expired)
