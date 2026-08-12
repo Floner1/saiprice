@@ -21,3 +21,4 @@ stats_reports/
 scrape_test_output/
 skills-lock.json
 taskscheduler_backup_*.evtx
+2026-08-10-predeploy-audit.md
