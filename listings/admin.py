@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
+from .models import (
+    Agent, Listing, OfficeBuilding, OfficeRentHistory, PriceHistory, ScoringRun, ScrapeRun,
+)
 
 admin.site.register(Listing)
 admin.site.register(Agent)
@@ -23,3 +25,15 @@ class ScoringRunAdmin(admin.ModelAdmin):
         "n_compared", "median_ape", "mae_vnd", "model_fingerprint",
         "error_count", "status_counts",
     )
+
+
+@admin.register(OfficeBuilding)
+class OfficeBuildingAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "source_id", "name", "district", "grade", "rent_min_usd",
+        "rent_max_usd", "service_fee_usd", "typical_floor_sqm", "last_seen_at",
+        "is_active",
+    )
+
+
+admin.site.register(OfficeRentHistory)
