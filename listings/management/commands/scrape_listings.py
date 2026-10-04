@@ -36,6 +36,14 @@ def record(run, code):
 
 
 def sweep_delistings(run):
+    # An SRP fetch error ends pagination the same way exhaustion does, so a
+    # truncated crawl reaches here looking complete. Sweeping after one
+    # delists every live listing past the cut-off: run 69 (2026-09-28) did
+    # that to 127. LDP codes don't shorten the crawl and don't block this.
+    truncated = sorted(code for code in run.status_counts or {} if code.startswith("srp_"))
+    if truncated:
+        logger.warning(f"skipping delist sweep: SRP crawl cut short by {truncated}")
+        return
     # Same blocked-crawl floor as the old batdongsan crawler, scoped per
     # source: a run that saw under half of its own source's prior run looks
     # broken, and sweeping after it would mass-delist the active table.
