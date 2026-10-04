@@ -190,3 +190,50 @@ class ScoringRun(models.Model):
     model_fingerprint = models.CharField(max_length=12, null=True)
     error_count = models.IntegerField(default=0)
     status_counts = models.JSONField(null=True)
+
+
+class OfficeBuilding(models.Model):
+    """One maisonoffice.vn building: a broker's rent quote, not a unit listing.
+
+    Apart from Listing on purpose. Listing.price is a whole-VND total while
+    this source quotes a USD/m2/month range, and residential readers (API, ML
+    dataset, scoring, the delisting sweep) must never see these rows.
+    """
+
+    # ponytail: one office source, so source_id alone is unique. Add a
+    # source_site column if a second office source ever lands.
+    source_id = models.CharField(max_length=64, unique=True)
+    url = models.URLField(max_length=500, unique=True)
+    name = models.CharField(max_length=255)
+    district = models.CharField(max_length=100, null=True)
+    ward = models.CharField(max_length=100, null=True)
+    address_raw = models.TextField(null=True)
+    grade = models.CharField(max_length=2, null=True)
+    rent_min_usd = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    rent_max_usd = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    # 0 when the source says the fee is bundled into the rent; null when it
+    # publishes no figure ("Liên hệ", "Đang cập nhật").
+    service_fee_usd = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    typical_floor_sqm = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    specs_raw = models.JSONField(null=True)
+    source_modified_at = models.DateTimeField(null=True)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField()
+    # ponytail: no sweep yet, so every row stays active. A sitemap-based sweep
+    # lands with the first full crawl; save_building already maintains both
+    # columns, so it needs no migration.
+    is_active = models.BooleanField(default=True)
+    delisted_at = models.DateTimeField(null=True)
+
+
+class OfficeRentHistory(models.Model):
+    """One row per observed rent change, inserted on first sight too.
+
+    The building row is overwritten every pass, so a change can't be
+    reconstructed later -- same reasoning as PriceHistory and ScoringRun.
+    """
+
+    building = models.ForeignKey(OfficeBuilding, on_delete=models.CASCADE)
+    rent_min_usd = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    rent_max_usd = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    observed_at = models.DateTimeField()
