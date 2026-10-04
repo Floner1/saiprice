@@ -37,10 +37,12 @@ def fetch(url):
     counts failures by mode: a bot wall, a timeout and a dead URL are three
     different operational facts and used to be one indistinguishable None.
     """
+    reason = None
     for attempt in range(3):
         try:
             response = session.get(url, timeout=10)
-        except (Timeout, ConnectionError, HTTPError):
+        except (Timeout, ConnectionError, HTTPError) as exc:
+            reason = f"{type(exc).__name__}: {exc}"
             time.sleep(2**attempt * 2)
             continue
 
@@ -54,10 +56,12 @@ def fetch(url):
             return None, BOT_CHALLENGE
 
         if response.status_code == 429:
+            reason = "HTTP 429"
             retry_after = response.headers.get("Retry-After")
             time.sleep(float(retry_after) if retry_after else 2**attempt * 2)
             continue
         if response.status_code >= 500:
+            reason = f"HTTP {response.status_code}"
             time.sleep(2**attempt * 2)
             continue
 
@@ -72,5 +76,5 @@ def fetch(url):
             return None, HTTP_ERROR
         return response, None
 
-    logger.error(f"gave up on {url} after 3 attempts")
+    logger.error(f"gave up on {url} after 3 attempts, last: {reason}")
     return None, FETCH_GAVE_UP

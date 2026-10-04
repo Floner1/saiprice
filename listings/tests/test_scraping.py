@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError as RequestsConnectionError, Timeout
 
 from listings.management.commands import scrape_listings
 from listings.management.commands.scrape_listings import sweep_delistings
@@ -203,13 +203,14 @@ class ParseLdpRequiredFieldTests(SimpleTestCase):
 
 
 class SweepDelistingsGuardTests(TestCase):
-    def _run(self, listings_seen):
+    def _run(self, listings_seen, status_counts=None):
         now = timezone.now()
         return ScrapeRun.objects.create(
             source_site="alonhadat",
             started_at=now,
             finished_at=now,
             listings_seen=listings_seen,
+            status_counts=status_counts,
         )
 
     def _stale_active_listing(self):
@@ -249,6 +250,30 @@ class SweepDelistingsGuardTests(TestCase):
         sweep_delistings(self._run(3))
         listing.refresh_from_db()
         self.assertFalse(listing.is_active)
+
+    def test_truncated_crawl_skips_sweep(self):
+        # Run 69 (2026-09-28): an SRP fetch failure at trang-33 ended
+        # pagination, 640 seen still cleared the ratio guard against 399, and
+        # the sweep delisted 127 live listings sitting past the cut-off.
+        self._run(399)
+        listing = self._stale_active_listing()
+        with self.assertLogs(
+            "listings.management.commands.scrape_listings", level="WARNING"
+        ):
+            sweep_delistings(self._run(640, {"srp_fetch_gave_up": 1}))
+        listing.refresh_from_db()
+        self.assertTrue(listing.is_active)
+        self.assertIsNone(listing.delisted_at)
+
+    def test_ldp_only_failures_still_sweep(self):
+        # LDP failures don't cut the SRP crawl short, so they must not switch
+        # delisting off the way an srp_* code does.
+        self._run(399)
+        listing = self._stale_active_listing()
+        sweep_delistings(self._run(640, {"ldp_fetch_gave_up": 1, "ldp_404": 2}))
+        listing.refresh_from_db()
+        self.assertFalse(listing.is_active)
+        self.assertIsNotNone(listing.delisted_at)
 
 
 class ParseAlonhadatSrpTests(SimpleTestCase):
@@ -664,6 +689,26 @@ class FetchErrorCodeTests(SimpleTestCase):
         self.assertEqual(error, "fetch_gave_up")
         self.assertEqual(get.call_count, 3)
 
+    def test_give_up_log_names_the_last_failure(self):
+        # The zero-seen runs of 2026-09-29 and 10-01 logged only "gave up after
+        # 3 attempts", which can't tell a DNS failure from a server error.
+        cases = [
+            (
+                {"side_effect": RequestsConnectionError("Name resolution failed")},
+                "ConnectionError: Name resolution failed",
+            ),
+            ({"return_value": self._response(503)}, "HTTP 503"),
+        ]
+        for get_kwargs, reason in cases:
+            with self.subTest(reason=reason):
+                with patch.object(client.session, "get", **get_kwargs):
+                    with patch.object(client.time, "sleep"):
+                        with self.assertLogs(
+                            "listings.scraping.client", level="ERROR"
+                        ) as logs:
+                            client.fetch("https://alonhadat.com.vn/x-1.html")
+                self.assertIn(reason, logs.output[-1])
+
 
 class SoftGonePlaceholderTests(SimpleTestCase):
     REAL_LDP = """
@@ -839,6 +884,9 @@ class SweepZeroSeenGuardTests(TestCase):
     def test_a_run_that_saw_nothing_never_sweeps(self):
         # Two consecutive blocked runs: `0 < 0/2` is False, so the ratio guard
         # alone lets the sweep through and delists the whole active table.
+        # The blocked run carries no srp_* code (page 1 served 200 with no
+        # parseable cards), so this is the zero guard's case alone: an
+        # srp_* code would be caught by the truncation guard first.
         ScrapeRun.objects.create(
             source_site="alonhadat",
             started_at=timezone.now() - timedelta(days=1),
@@ -853,7 +901,6 @@ class SweepZeroSeenGuardTests(TestCase):
         blocked = ScrapeRun.objects.create(
             source_site="alonhadat", started_at=timezone.now(),
             finished_at=timezone.now(), listings_seen=0,
-            error_count=1, status_counts={"srp_bot_challenge": 1},
         )
         with self.assertLogs(
             "listings.management.commands.scrape_listings", level="WARNING"
