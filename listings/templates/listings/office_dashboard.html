@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Office rents — SaiPrice{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl mb-1">Office rents</h1>
+{% if not total %}
+<p class="text-sm text-muted">No office buildings have been crawled yet.</p>
+{% else %}
+<p class="text-sm text-muted mb-8">
+  Asking rents from maisonoffice.vn, one broker's catalogue of Ho Chi Minh City
+  office buildings, not signed leases. {{ priced }} of {{ total }} buildings
+  publish a rent, and every rent figure below uses only those.
+  Crawled {{ dates.crawled|date:"Y-m-d" }}{% if dates.edited_from %}. The source
+  last edited these pages between {{ dates.edited_from|date:"M Y" }} and
+  {{ dates.edited_to|date:"M Y" }}{% endif %}.
+</p>
+
+<section class="mb-12">
+  <h2 class="text-lg mb-1">Rent by grade</h2>
+  <p class="text-sm text-muted mb-4">
+    USD per m² per month. A building's rent is the midpoint of its quoted range.
+    Each bar spans the middle half of a group's rents, the break in the bar is
+    the median (printed beside it), and the last column counts the buildings
+    that publish a rent.{% if grade_axis %} Scale: 0 to {{ grade_axis }} USD.{% endif %}
+  </p>
+  <ul>
+    {% for row in grades %}{% include "listings/_rent_row.html" %}{% endfor %}
+  </ul>
+  <div class="overflow-x-auto mt-6">
+    <table class="w-full text-sm tabular-nums whitespace-nowrap">
+      <thead class="text-muted">
+        <tr class="border-b border-line">
+          <th scope="col" class="py-1 pr-3 text-left font-normal">Grade</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Median rent</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Middle half</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Typical floor, m²</th>
+          <th scope="col" class="py-1 pl-3 text-right font-normal">Service fee</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grades %}
+        <tr class="border-b border-line">
+          <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
+          <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"—" }}</td>
+          <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="py-1 px-3 text-right">{{ row.floor_median|floatformat:0|default:"—" }}</td>
+          <td class="py-1 pl-3 text-right">{{ row.fee_median|floatformat:1|default:"—" }}{% if row.fee_bundled %} <span class="text-muted">· {{ row.fee_bundled }} bundled</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-sm text-muted mt-2">
+    Service fee is the median among buildings that charge it on top of rent,
+    in USD per m² per month. "Bundled" counts buildings whose fee is included
+    in the rent.
+  </p>
+</section>
+
+<section class="mb-12">
+  <h2 class="text-lg mb-1">Rent by district</h2>
+  <p class="text-sm text-muted mb-4">
+    Sorted by median.{% if district_axis %} Scale: 0 to {{ district_axis }} USD,
+    tighter than the grade chart's, so read bar positions within one chart and
+    compare across charts by the printed medians.{% endif %} Districts differ in
+    grade mix, so check the grade chart before reading a district's lead as a
+    location premium. Quận 2 appears as the source files it, apart from
+    Thành phố Thủ Đức.
+    District names are the source's legacy districts, abolished on 1 July 2025 when Vietnam moved to two-tier local government.
+  </p>
+  <ul>
+    {% for row in districts %}{% include "listings/_rent_row.html" %}{% empty %}
+    <li class="text-sm text-muted">No district has {{ min_summary_n }} or more published rents yet.</li>
+    {% endfor %}
+  </ul>
+  {% if thin_districts %}
+  <h3 class="text-sm mt-6 mb-1">Under {{ min_summary_n }} published rents</h3>
+  <p class="text-sm text-muted mb-2">
+    Too few for a middle half or a fair rank, so the full range is listed instead.
+  </p>
+  <ul>
+    {% for row in thin_districts %}{% include "listings/_rent_row.html" %}{% endfor %}
+  </ul>
+  {% endif %}
+  <details class="mt-6 text-sm">
+    <summary class="cursor-pointer text-muted">Every district as a table</summary>
+    <div class="overflow-x-auto">
+      <table class="w-full mt-2 tabular-nums whitespace-nowrap">
+        <thead class="text-muted">
+          <tr class="border-b border-line">
+            <th scope="col" class="py-1 pr-3 text-left font-normal">District</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Priced</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Median</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Middle half</th>
+            <th scope="col" class="py-1 pl-3 text-right font-normal">Range</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in district_table %}
+          <tr class="border-b border-line">
+            <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
+            <td class="py-1 px-3 text-right">{{ row.priced }} of {{ row.total }}</td>
+            <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"—" }}</td>
+            <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}—{% endif %}</td>
+            <td class="py-1 pl-3 text-right">{% if row.priced %}{{ row.low|floatformat:1 }}–{{ row.high|floatformat:1 }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2 class="text-lg mb-1">What the source publishes</h2>
+  <p class="text-sm text-muted mb-4">
+    Buildings with each field filled in. A missing field means the page shows
+    "Liên hệ" (contact us), "Đang cập nhật" (being updated) or nothing.
+  </p>
+  <ul>
+    {% for field in coverage %}
+    <li class="py-1 border-b border-line text-sm" title="{{ field.count }} of {{ total }} buildings">
+      <div class="flex flex-wrap items-center gap-x-3">
+        <span class="w-full sm:w-36 shrink-0">{{ field.label }}</span>
+        <span class="flex-1 h-2 bg-line" aria-hidden="true">
+          <span class="block h-2 rounded-r-sm bg-accent"
+                style="width: {% widthratio field.count total 100 %}%"></span>
+        </span>
+        <span class="w-24 shrink-0 text-right tabular-nums">{{ field.count }} of {{ total }}</span>
+      </div>
+      {% if field.bundled %}
+      <div class="text-muted pl-4">{{ field.bundled }} of them say the fee is bundled into the rent</div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

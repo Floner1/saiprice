@@ -6,6 +6,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 
 from listings.analytics import accuracy_trend, bar_max, recent_runs, scrapes_per_day
 from listings.models import Listing, ScoringRun, ScrapeRun
+from listings.office_analytics import dashboard as office_dashboard
 
 
 def _to_decimal(value):
@@ -108,3 +109,10 @@ class PipelineHealthView(TemplateView):
         ctx["recent_scrapes"] = recent_runs(ScrapeRun)
         ctx["recent_scorings"] = recent_runs(ScoringRun)
         return ctx
+
+
+class OfficeDashboardView(TemplateView):
+    template_name = "listings/office_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **office_dashboard()}

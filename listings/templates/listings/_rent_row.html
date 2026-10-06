@@ -1,0 +1,19 @@
+{% if row.median is not None %}
+<li class="flex flex-wrap items-center gap-x-3 py-1 border-b border-line text-sm"
+    title="{{ row.label }} · median {{ row.median|floatformat:1 }} · middle half {{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }} · {{ row.priced }} of {{ row.total }} buildings priced">
+  <span class="w-full sm:w-36 shrink-0">{{ row.label }}</span>
+  <span class="flex flex-1 h-2 bg-line" aria-hidden="true">
+    <span style="width: {{ row.bar.lead }}%"></span>
+    <span class="rounded-l-sm bg-accent" style="width: {{ row.bar.low }}%"></span>
+    <span class="rounded-r-sm bg-accent border-l-2 border-paper" style="width: {{ row.bar.high }}%"></span>
+  </span>
+  <span class="w-12 shrink-0 text-right tabular-nums">{{ row.median|floatformat:1 }}</span>
+  <span class="w-24 shrink-0 text-right text-muted tabular-nums">{{ row.priced }} of {{ row.total }}</span>
+</li>
+{% else %}
+<li class="flex flex-wrap items-center gap-x-3 py-1 border-b border-line text-sm text-muted">
+  <span class="w-full sm:w-36 shrink-0 text-ink">{{ row.label }}</span>
+  <span class="flex-1">{% if not row.priced %}no published rent{% elif row.low == row.high %}{{ row.low|floatformat:1 }}{% else %}{{ row.low|floatformat:1 }}–{{ row.high|floatformat:1 }}{% endif %}</span>
+  <span class="w-24 shrink-0 text-right tabular-nums">{{ row.priced }} of {{ row.total }}</span>
+</li>
+{% endif %}

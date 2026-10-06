@@ -8,6 +8,7 @@ urlpatterns = [
     path("listing/<int:pk>/", views.ListingDetailView.as_view(), name="listing-detail"),
     path("flagged/", views.AnomalySummaryView.as_view(), name="listing-summary"),
     path("health/", views.PipelineHealthView.as_view(), name="pipeline-health"),
+    path("offices/", views.OfficeDashboardView.as_view(), name="office-dashboard"),
     path("admin/", admin.site.urls),
     path("api/", include("listings.api.urls")),
 ]
