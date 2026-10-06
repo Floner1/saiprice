@@ -22,7 +22,7 @@ Current repo state (as of this document): Django project `saiprice` created, no 
 - Price history tracking, delisting detection, and anomaly flagging (price-gap, low-photo, stale-listing rules only — see §12) are in Standard scope. They are pipeline requirements, not stretch features.
 
 ### Stretch (Y12, not this summer, no build time until Standard ships)
-- **maisonoffice.vn** scraping (`property_type=office`). The schema already accounts for it (`source_site` choices, `price_unit` column) but the Standard scraper never touches this site.
+- **maisonoffice.vn**: pipeline built 2026-10-02/04 as its own tables, not through `Listing`. `scrape_offices` (sitemap discovery) writes `OfficeBuilding`/`OfficeRentHistory` (§5.6), and `/offices/` shows asking rent by grade and district (§11). `Listing`'s `maisonoffice` source choice and `property_type=office` stay unused: the source quotes USD/m²/month ranges per building, not whole-VND unit prices.
 - District trend charts over time, price-per-sqm comparisons across districts, map view.
 - First-vs-latest cumulative price-change stat (a mini trend feature) — no dashboard UI or API endpoint for this in Standard. The underlying data (`PriceHistory`) already supports it; it can be queried ad hoc when writing the research piece, but it is not a pipeline deliverable.
 
@@ -56,18 +56,21 @@ saiprice/
     models.py                          # Listing, PriceHistory, ScrapeRun, ScoringRun, Agent
     admin.py                           # register all five models
     analytics.py                       # read-side aggregation for the /health/ dashboard
+    office_analytics.py                # read-side aggregation for /offices/, office rows only
     management/
       commands/
         scrape_listings.py             # scraper entrypoint, takes --source (alonhadat|homedy)
         ingest_saved_listings.py       # manual batdongsan HTML fallback, unscheduled — see §6
         score_listings.py              # ML prediction + anomaly scoring, run after each scrape
         train_model.py                 # one-off/occasional, not scheduled
+        scrape_offices.py              # maisonoffice.vn buildings, sitemap discovery
     scraping/
       client.py                        # HTTP session, retry/backoff, rate limiting
       parsers.py                       # ParsedListing + shared helpers; batdongsan LDP extraction, manual-fallback path only
       sites/
         alonhadat.py                   # alonhadat SRP/LDP field extraction
         homedy.py                      # homedy SRP/LDP field extraction
+        maisonoffice.py                # maisonoffice.vn building-page parsing
       currency.py                      # Vietnamese price-text -> whole VND, shared across all three sites
     api/
       serializers.py
@@ -259,6 +262,10 @@ def price_change_pct(listing):
 ```
 
 **`price_display`** (added 2026-07-14): human-readable price, a `Listing` property exposed as a read-only field on the API serializer. Computed from `price` directly — deliberately not from `price_unit`, so rows ingested before `price_unit` was populated render too. Null `price` → null; `price >= 1_000_000_000` → `X.XX tỷ`; below → `X.XX triệu`; trailing zeros stripped (`8 tỷ`, `8.5 tỷ`, `999 triệu`). `min_price`/`max_price` filtering stays raw whole-VND integers — the shipped filter contract is unchanged.
+
+### 5.6 `OfficeBuilding` and `OfficeRentHistory`
+
+maisonoffice.vn buildings, kept out of `Listing` on purpose: the source quotes a USD/m²/month rent range per building, and residential readers (API, ML dataset, scoring, delisting sweep) must never see these rows. Field contract: the field-list table in `docs/superpowers/plans/2026-10-02-office-pipeline.md`. Rules readers depend on. `rent_min_usd`/`rent_max_usd` are both set or both null (null = no published figure). `service_fee_usd` is `0` when the fee is bundled into rent and null when unpublished. `grade` is `A`/`B`/`C` or null. No sweep yet, so every row is active. `OfficeRentHistory` gets a row on first sight and on every rent change, same as `PriceHistory`.
 
 ## 6. Data Acquisition
 
@@ -485,7 +492,7 @@ Tailwind CSS 4 via `django-tailwind-cli` (in `requirements.txt`). It downloads t
 Files:
 - `tailwind_src/source.css` — the only hand-written CSS in the project: `@import "tailwindcss" source(none)`, one `@source` line per real source directory, plus the `@theme` token block below. Committed. **Content scanning is an allowlist, not the default.** `source(none)` disables Tailwind 4's automatic detection, which scans from the repo root and treats any Tailwind-looking token in any file as a real class. Left on, it compiled 290 selectors from 80 real ones (2026-07-26): utilities out of `.agents/skills/*` skill docs, classes out of the scraped property HTML in `scrape_test_output/`, and — from §11's own "no arbitrary color values (`text-[#...]`)" line in this file — the invalid rule `.text-\[\#\.\.\.\]{color:#...}`, shipped to production. Scoping to `@source "../listings/templates"` cut the stylesheet 29,810 → 8,573 bytes with zero classes lost. Adding a source means adding an `@source` line here; **do not** add per-file exclusions, which was the retired approach and only ever caught leaks already discovered. `@source` paths resolve relative to this file, not the project root. Moved out of `assets/` 2026-07-15: it must live outside every `STATICFILES_DIRS` path, because manifest static-file storage (Django's `ManifestStaticFilesStorage`, which whitenoise's production storage subclasses) post-processes CSS during `collectstatic` and crashes trying to resolve `@import "tailwindcss"` as a static-file reference — reproduced live before the move (`Post-processing 'css\source.css' failed!`), confirmed clean after (`155 post-processed`).
 - `assets/css/tailwind.css` — compiled output, gitignored, rebuilt by `python manage.py tailwind build` (locally and in Render's build command, §9). The downloaded CLI binary lands in `.django_tailwind_cli/`, also gitignored.
-- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes. **One carve-out** (2026-08-06): a chart bar's width is data, not design, so it cannot be a utility class — `pipeline_health.html` sets `style="width: {% widthratio value max 100 %}%"`. Django's built-in `widthratio` tag does the arithmetic (it returns `"0"` on a zero denominator, so no guard is needed) and no other inline style is permitted.
+- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes. **One carve-out** (2026-08-06): a chart bar's width is data, not design, so it cannot be a utility class — `pipeline_health.html` sets `style="width: {% widthratio value max 100 %}%"`. Django's built-in `widthratio` tag does the arithmetic (it returns `"0"` on a zero denominator, so no guard is needed) and no other inline style is permitted. `office_dashboard.html`'s coverage bars use the same tag. Its rent bands (`_rent_row.html`) need an offset as well as a width, so each band is three `width`-only spans whose whole-number percentages come from `office_analytics.place()`: an empty lead span, then the band's two halves meeting at the median. Still width only, still no other inline style.
 
 Theme tokens — this is the entire palette, defined once in `@theme` and used as `bg-paper`, `text-ink`, `text-muted`, `border-line`, `text-accent`:
 
