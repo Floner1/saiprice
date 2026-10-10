@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Office rents — SaiPrice{% endblock %}
+{% block title %}Office rents · SaiPrice{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl mb-1">Office rents</h1>
@@ -41,10 +41,10 @@
         {% for row in grades %}
         <tr class="border-b border-line">
           <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
-          <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"—" }}</td>
-          <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}—{% endif %}</td>
-          <td class="py-1 px-3 text-right">{{ row.floor_median|floatformat:0|default:"—" }}</td>
-          <td class="py-1 pl-3 text-right">{{ row.fee_median|floatformat:1|default:"—" }}{% if row.fee_bundled %} <span class="text-muted">· {{ row.fee_bundled }} bundled</span>{% endif %}</td>
+          <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"-" }}</td>
+          <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}-{% endif %}</td>
+          <td class="py-1 px-3 text-right">{{ row.floor_median|floatformat:0|default:"-" }}</td>
+          <td class="py-1 pl-3 text-right">{{ row.fee_median|floatformat:1|default:"-" }}{% if row.fee_bundled %} <span class="text-muted">· {{ row.fee_bundled }} bundled</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -100,9 +100,9 @@
           <tr class="border-b border-line">
             <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
             <td class="py-1 px-3 text-right">{{ row.priced }} of {{ row.total }}</td>
-            <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"—" }}</td>
-            <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}—{% endif %}</td>
-            <td class="py-1 pl-3 text-right">{% if row.priced %}{{ row.low|floatformat:1 }}–{{ row.high|floatformat:1 }}{% else %}—{% endif %}</td>
+            <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"-" }}</td>
+            <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}-{% endif %}</td>
+            <td class="py-1 pl-3 text-right">{% if row.priced %}{{ row.low|floatformat:1 }}–{{ row.high|floatformat:1 }}{% else %}-{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>

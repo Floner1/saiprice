@@ -7,7 +7,23 @@
 <title>{% block title %}SaiPrice{% endblock %}</title>
 {% tailwind_css %}
 </head>
-<body class="bg-paper text-ink font-serif">
+<body class="bg-paper text-ink font-sans">
+{% with n=request.resolver_match.url_name btn="relative py-3 text-base after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+<nav aria-label="Main" class="border-b border-line">
+  {# Below sm the title takes its own row on top; DOM order stays left to right so Tab follows the desktop row. #}
+  <div class="mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap">
+    <div class="flex flex-1 justify-start gap-6">
+      <a href="{% url 'listing-list' %}" {% if n == "listing-list" or n == "listing-detail" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Residential</a>
+      <a href="{% url 'office-dashboard' %}" {% if n == "office-dashboard" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Offices</a>
+    </div>
+    <a href="{% url 'listing-list' %}" class="order-first w-full text-center text-xl tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto">SaiPrice</a>
+    <div class="flex flex-1 justify-end gap-6">
+      <a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>
+      <a href="{% url 'listing-summary' %}" {% if n == "listing-summary" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Flagged</a>
+    </div>
+  </div>
+</nav>
+{% endwith %}
 <main class="mx-auto max-w-2xl px-4 pt-8 pb-12">
 {% block content %}{% endblock %}
 </main>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Pipeline health — SaiPrice{% endblock %}
+{% block title %}Pipeline health · SaiPrice{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl mb-1">Pipeline health</h1>
@@ -10,7 +10,7 @@
 <section class="mb-12">
   <h2 class="text-lg mb-1">Listings seen per day</h2>
   <p class="text-sm text-muted mb-4">
-    Last 30 days. A day with no bar had no run at all — the gap is the signal,
+    Last 30 days. A day with no bar had no run at all: the gap is the signal,
     so empty days are shown rather than skipped.
   </p>
   <ul>
@@ -36,7 +36,7 @@
   <p class="text-sm text-muted mb-4">
     Median absolute percentage error, predicted against listed price
     (lower is better, so a shorter bar is a better run).
-    <strong class="text-ink">This is in-sample</strong> — the model is fit on
+    <strong class="text-ink">This is in-sample</strong>: the model is fit on
     these same listings, so it reads better than its held-out accuracy and must
     not be quoted as one.
   </p>

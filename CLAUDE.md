@@ -78,9 +78,16 @@ saiprice/
       urls.py
     views.py                           # plain Django views for the dashboard (template rendering)
     templates/
-      base.html                        # single base template, loads {% tailwind_css %} — see §11
+      base.html                        # single base template, main nav + {% tailwind_css %}, see §11
       listings/
-        listing_list.html
+        listing_list.html              # home page: filters, cards, numbered pagination bar
+        listing_detail.html
+        listing_summary.html           # /flagged/
+        pipeline_health.html           # /health/
+        office_dashboard.html          # /offices/
+        _listing_card.html             # one result row
+        _page_item.html                # one pagination item: page link, current page, or the jump field
+        _rent_row.html                 # one office rent band row
     ml/
       train.py
       predict.py
@@ -100,6 +107,7 @@ saiprice/
   assets/
     css/
       tailwind.css                     # compiled output, gitignored — see §11
+    fonts/                             # Times Newer Roman Regular + Bold OTFs and license PDF, committed — see §11
 ```
 
 Dashboard views query the ORM directly. They do not call the app's own REST API internally — that would be an unnecessary self-HTTP round trip. The API in `listings/api/` exists as a separate, additional public interface.
@@ -112,7 +120,7 @@ Migrations: name them descriptively (`makemigrations listings --name add_trackin
 
 Commit messages: never include any affiliation with Claude, Anthropic, Sonnet, Opus, or Fable, and never add any of them as a contributor, co-author, or commit trailer (e.g. `Co-Authored-By: Claude ...`). This applies to every commit, regardless of what tool wrote the code.
 
-Every commit message must be run through the `/humanizer` and `/voicemail-human-writing-method` skills before committing — draft the message, apply both skills, then commit the result. No exceptions for small or auto-generated commits.
+Every commit message must be run through the `/humanizer` and `/no-ai-slop` skills before committing: draft the message, apply both skills, then commit the result. These are the only two writing skills this project uses. No exceptions for small or auto-generated commits.
 
 ## 5. Database Schema
 
@@ -492,7 +500,12 @@ Tailwind CSS 4 via `django-tailwind-cli` (in `requirements.txt`). It downloads t
 Files:
 - `tailwind_src/source.css` — the only hand-written CSS in the project: `@import "tailwindcss" source(none)`, one `@source` line per real source directory, plus the `@theme` token block below. Committed. **Content scanning is an allowlist, not the default.** `source(none)` disables Tailwind 4's automatic detection, which scans from the repo root and treats any Tailwind-looking token in any file as a real class. Left on, it compiled 290 selectors from 80 real ones (2026-07-26): utilities out of `.agents/skills/*` skill docs, classes out of the scraped property HTML in `scrape_test_output/`, and — from §11's own "no arbitrary color values (`text-[#...]`)" line in this file — the invalid rule `.text-\[\#\.\.\.\]{color:#...}`, shipped to production. Scoping to `@source "../listings/templates"` cut the stylesheet 29,810 → 8,573 bytes with zero classes lost. Adding a source means adding an `@source` line here; **do not** add per-file exclusions, which was the retired approach and only ever caught leaks already discovered. `@source` paths resolve relative to this file, not the project root. Moved out of `assets/` 2026-07-15: it must live outside every `STATICFILES_DIRS` path, because manifest static-file storage (Django's `ManifestStaticFilesStorage`, which whitenoise's production storage subclasses) post-processes CSS during `collectstatic` and crashes trying to resolve `@import "tailwindcss"` as a static-file reference — reproduced live before the move (`Post-processing 'css\source.css' failed!`), confirmed clean after (`155 post-processed`).
 - `assets/css/tailwind.css` — compiled output, gitignored, rebuilt by `python manage.py tailwind build` (locally and in Render's build command, §9). The downloaded CLI binary lands in `.django_tailwind_cli/`, also gitignored.
-- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-serif` on `<body>`, wraps content in the centered `max-w-2xl` main column. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes. **One carve-out** (2026-08-06): a chart bar's width is data, not design, so it cannot be a utility class — `pipeline_health.html` sets `style="width: {% widthratio value max 100 %}%"`. Django's built-in `widthratio` tag does the arithmetic (it returns `"0"` on a zero denominator, so no guard is needed) and no other inline style is permitted. `office_dashboard.html`'s coverage bars use the same tag. Its rent bands (`_rent_row.html`) need an offset as well as a width, so each band is three `width`-only spans whose whole-number percentages come from `office_analytics.place()`: an empty lead span, then the band's two halves meeting at the median. Still width only, still no other inline style.
+- `assets/fonts/` — Times Newer Roman, self-hosted (added 2026-10-06). Regular and Bold OTFs plus `TimesNewerLicense.pdf`, all committed. `source.css` declares two `@font-face` rules (weights 400 and 700) with `url("../fonts/...")` relative to the compiled `assets/css/tailwind.css`, and sets `--font-sans: "Times Newer Roman", "Times New Roman", serif`. `font-sans` here is a serif stack: Tailwind's `font-sans` is the default utility and `--font-sans` is the token the body uses, so the name is misleading but deliberate. The font is GPL-2.0 with no font exception, so the OTFs ship unmodified (a WOFF2 conversion would count as a modification under section 2). Italic files exist in the zip but no template uses italic, so they are not shipped. **The font has no glyphs for 92 of the 134 Vietnamese letters with diacritics**: ơ, ư, and every letter from U+1EA0 to U+1EF9 except Ỳ and ỳ, plus the combining tone marks. The browser draws those from "Times New Roman", so a Vietnamese word can mix two faces. Unresolved. In dev, `{% tailwind_css %}` renders a plain `/static/css/tailwind.css` with no cache-buster, so a browser keeps the old stylesheet after `tailwind build`: hard refresh (Ctrl+Shift+R). Production uses hashed names and is unaffected.
+- `listings/templates/base.html` — the single base template. Loads the compiled stylesheet via `{% tailwind_css %}`, sets `bg-paper text-ink font-sans` on `<body>`, renders the main nav, and wraps content in the centered `max-w-2xl` main column. **Main nav** (`<nav aria-label="Main">`, first element in `<body>`, built inline with a `{% with %}` for the shared classes): Residential, Offices, SaiPrice, Health, Flagged, left to right. SaiPrice links to the home page and sits dead center because both side groups are `flex-1`. Below 640px SaiPrice takes its own row on top and the four links share one row beneath it, with DOM order unchanged so Tab follows the desktop order. The current page's link has `aria-current="page"`, accent text and a full underline. The detail page marks Residential. No borders, no JavaScript. Every page template `{% extends "base.html" %}` — no standalone HTML documents, no `<style>` blocks, no inline `style=` attributes. **One carve-out** (2026-08-06): a chart bar's width is data, not design, so it cannot be a utility class — `pipeline_health.html` sets `style="width: {% widthratio value max 100 %}%"`. Django's built-in `widthratio` tag does the arithmetic (it returns `"0"` on a zero denominator, so no guard is needed) and no other inline style is permitted. `office_dashboard.html`'s coverage bars use the same tag. Its rent bands (`_rent_row.html`) need an offset as well as a width, so each band is three `width`-only spans whose whole-number percentages come from `office_analytics.place()`: an empty lead span, then the band's two halves meeting at the median. Still width only, still no other inline style.
+
+Interactive controls (nav links, Filter, Clear, pagination items) share one underline: a 2px `::after` line (`after:h-0.5`, bottom-2, `after:bg-current`, `after:origin-left`) that is `after:scale-x-0` at rest and grows to full width on `hover:after:scale-x-100` over 500ms (`after:duration-500 after:ease-out`), with `motion-reduce:after:transition-none`. The line is 2px and `will-change-transform` on purpose: a 1px line renders crisp while it animates and then smears across two pixel rows when the animation ends, so it looks like it turned bold. The current page uses the same classes without the two grow classes, so the line stays full width. Copy these class strings, do not invent new ones. Controls have no borders or outlines. Focus uses `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`.
+
+Pagination (home page only, `listing_list.html` plus `_page_item.html`): `ListingListView` passes `page_left`, `page_center` and `page_right` from `_page_slots()` in `views.py`, not Django's `get_elided_page_range`, which cannot make the two sides equal near the ends. Rules: three items each side of the center on every page, so the bar is symmetric and each half fits 375px at 32px per item. Near either end (page 3 or lower, last-2 or higher) the "…" sits in the center. Elsewhere the current page does, with a "…" or a number on each side. With 7 pages or fewer every number shows in the center and there is no "…", because a "…" must never stand in for a single page. Previous and Next show an arrow plus the word from 640px up, the arrow alone below that (`sr-only sm:not-sr-only` keeps the accessible name). An unavailable one is a muted span in the same slot. The "…" is a `type="text"` input with `pattern` built from `page_pattern` (every valid page, joined by `|`), placeholder "…" that clears on focus, `required`, `autocomplete="off"`, `enterkeyhint="go"`, and a one-field GET form that submits on Enter. It is not `type="number"` because that adds spinner arrows and lets the scroll wheel and arrow keys change the value. No `inputmode`, because the iOS numeric keypad has no Enter key. A "Pages 1 to N only" line shows live while the typed value fails the pattern (`peer-invalid:peer-not-placeholder-shown`). Hidden inputs carry every current query parameter except `page`, looped from `request.GET.lists` so autoescaping applies. An out-of-range `?page=` in the URL still returns 404. The list header shows "Page X of Y" on the right of the results line, only when there is more than one page. The home page no longer has a "Flagged listings" link, since the nav has one.
 
 Theme tokens — this is the entire palette, defined once in `@theme` and used as `bg-paper`, `text-ink`, `text-muted`, `border-line`, `text-accent`:
 
@@ -505,11 +518,13 @@ Theme tokens — this is the entire palette, defined once in `@theme` and used a
 | `--color-accent` | `#9a3412` | prices, links |
 
 Rules for all Standard-scope templates:
-- Colors and fonts come only from these five tokens plus Tailwind's built-in `font-serif` stack. No raw hex in templates, no arbitrary color values (`text-[#...]`), no second palette family. A new color means a new token in `source.css`, not a one-off utility.
+- Colors and fonts come only from these five tokens plus the site font stack (`--font-sans`, see `assets/fonts/` above). No raw hex in templates, no arbitrary color values (`text-[#...]`), no second palette family. A new color means a new token in `source.css`, not a one-off utility.
 - Spacing and type sizes use Tailwind's standard scale (`text-sm`, `py-3.5`, `mb-6`), no arbitrary values (`text-[0.95rem]`).
 - Dev loop: `python manage.py tailwind watch` alongside `runserver`, or `tailwind runserver` which runs both. One-off rebuild: `tailwind build`.
 
-Deliberately not built, add only when a real page needs it: component/partial library, dark mode, webfont loading (system serif stack only), Chart.js theming (trend charts are Stretch, §2).
+Deliberately not built, add only when a real page needs it: a general component library, dark mode, Chart.js theming (trend charts are Stretch, §2). Partials exist only for markup one page repeats: `_listing_card.html`, `_rent_row.html`, `_page_item.html`.
+
+Known issue: `_listing_card.html` has a multi-line `{# ... #}` comment around the phone-control logic. Django's `{# #}` is single-line only, so that comment's text prints on every card. Convert it to `{% comment %}`.
 
 ## 12. Anomaly Detection
 

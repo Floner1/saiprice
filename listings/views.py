@@ -25,6 +25,23 @@ def _to_decimal(value):
     return number
 
 
+def _page_slots(current, last, ellipsis):
+    # (left, center, right) for the pagination bar: three items a side, so the
+    # bar is symmetric and each half fits a 375px screen at 32px per item. Near
+    # either end the "…" (the page jump) takes the center, in the middle the
+    # current page does. Up to 7 pages show every number, since a "…" never
+    # stands in for a single page.
+    if last <= 7:
+        return [], list(range(1, last + 1)), []
+    if current <= 3 or current >= last - 2:
+        return [1, 2, 3], [ellipsis], [last - 2, last - 1, last]
+    return (
+        [1, 2 if current == 4 else ellipsis, current - 1],
+        [current],
+        [current + 1, last - 1 if current == last - 3 else ellipsis, last],
+    )
+
+
 class ListingListView(ListView):
     # Same page size as the API — one config value, not a second pagination setup.
     # select_related: the card's contact control reads agent.name, which is one
@@ -63,6 +80,15 @@ class ListingListView(ListView):
             .order_by("district")
         )
         ctx["property_types"] = Listing.PROPERTY_TYPE_CHOICES
+        paginator = ctx["paginator"]
+        ctx["page_left"], ctx["page_center"], ctx["page_right"] = _page_slots(
+            ctx["page_obj"].number, paginator.num_pages, paginator.ELLIPSIS
+        )
+        # The jump field is type="text" (no spinner, scroll wheel or arrow keys
+        # changing the number), so pattern does the range check min/max did.
+        # ponytail: one alternative per page, swap for a digit-range regex if
+        # page counts reach the thousands.
+        ctx["page_pattern"] = "|".join(map(str, paginator.page_range))
         return ctx
 
 
