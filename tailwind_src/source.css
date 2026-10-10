@@ -7,7 +7,25 @@
 
 @source "../listings/templates";
 
+/* GPL-2.0 font (license in assets/fonts/). Shipped as the unmodified OTFs: a WOFF2
+   conversion would be a modification under GPL section 2. url() is relative to the
+   compiled assets/css/tailwind.css, and manifest storage fails collectstatic if it breaks. */
+@font-face {
+  font-family: "Times Newer Roman";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/TimesNewerRoman-Regular.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Times Newer Roman";
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/TimesNewerRoman-Bold.otf") format("opentype");
+}
+
 @theme {
+  --font-sans: "Times Newer Roman", "Times New Roman", serif;
   --color-paper: #faf9f7;
   --color-ink: #1c1917;
   --color-muted: #78716c;

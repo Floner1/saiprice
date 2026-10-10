@@ -1,0 +1,18 @@
+{# One pagination item: a page link, the current page, or the "…" jump. The "…" is the input's placeholder and clears on focus, so the dots turn into the field. A one-field form submits on Enter, no script. No inputmode: iOS's numeric keypad has no Enter key. The wrapper carries the underline because an input can't render ::after, and the message shows while a typed value fails the pattern. #}
+{% if number == paginator.ELLIPSIS %}
+<form method="get" class="flex">
+  {% for key, values in request.GET.lists %}{% if key != "page" %}{% for value in values %}
+  <input type="hidden" name="{{ key }}" value="{{ value }}">
+  {% endfor %}{% endif %}{% endfor %}
+  <span class="relative flex after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-within:after:scale-x-100">
+    <input type="text" name="page" pattern="{{ page_pattern }}" required autocomplete="off" enterkeyhint="go"
+           aria-label="Jump to page (1–{{ paginator.num_pages }})" title="Enter a page from 1 to {{ paginator.num_pages }}" placeholder="…"
+           class="peer w-8 bg-paper py-3 text-center text-base outline-hidden placeholder:text-ink focus:placeholder:text-transparent sm:w-10">
+    <span aria-live="polite" class="pointer-events-none absolute top-full left-1/2 hidden -translate-x-1/2 text-sm whitespace-nowrap text-accent peer-invalid:peer-not-placeholder-shown:block">Pages 1–{{ paginator.num_pages }} only</span>
+  </span>
+</form>
+{% elif number == page_obj.number %}
+<span aria-current="page" class="relative min-w-8 py-3 text-center text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none">{{ number }}</span>
+{% else %}
+<a href="{% querystring page=number %}" class="{{ link }}">{{ number }}</a>
+{% endif %}

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}SaiPrice — HCMC listings{% endblock %}
+{% block title %}SaiPrice · HCMC listings{% endblock %}
 
 {% block content %}
-  <h1 class="text-2xl tracking-wide">SaiPrice</h1>
+  <h1 class="text-2xl tracking-wide">HCMC listings</h1>
   <p class="mb-6 flex justify-between gap-4 border-b-2 border-ink pb-3 text-sm text-muted">
     <span>{{ paginator.count }} result{{ paginator.count|pluralize }}</span>
-    <a class="text-accent" href="{% url 'listing-summary' %}">Flagged listings &rarr;</a>
+    {% if is_paginated %}<span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>{% endif %}
   </p>
 
   <form method="get" class="mb-6 space-y-2 text-sm">
@@ -30,9 +30,9 @@
       <input type="number" name="max_price" value="{{ request.GET.max_price }}" placeholder="Max price (VND)"
              class="w-full border border-line bg-paper px-2 py-2.5 text-base">
     </div>
-    <div class="flex gap-4">
-      <button type="submit" class="border border-ink px-4 py-3">Filter</button>
-      <a href="{% url 'listing-list' %}" class="py-3 text-accent">Clear</a>
+    <div class="flex gap-6 text-base">
+      <button type="submit" class="relative cursor-pointer py-3 after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Filter</button>
+      <a href="{% url 'listing-list' %}" class="relative py-3 text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Clear</a>
     </div>
   </form>
 
@@ -45,10 +45,26 @@
   </ul>
 
   {% if is_paginated %}
-  <nav class="mt-6 flex items-center justify-between gap-4 text-sm">
-    <span>{% if page_obj.has_previous %}<a class="inline-block py-3 text-accent" href="{% querystring page=page_obj.previous_page_number %}">&larr; Previous</a>{% endif %}</span>
-    <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-    <span>{% if page_obj.has_next %}<a class="inline-block py-3 text-accent" href="{% querystring page=page_obj.next_page_number %}">Next &rarr;</a>{% endif %}</span>
+  {% with link="relative min-w-8 py-3 text-center after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+  <nav aria-label="Pagination" class="mt-6 flex items-center gap-1 text-base sm:gap-3">
+    <div class="flex flex-1 items-center justify-between gap-1 sm:gap-3">
+      {% if page_obj.has_previous %}
+      <a rel="prev" href="{% querystring page=page_obj.previous_page_number %}" class="{{ link }}"><span aria-hidden="true">&larr;</span><span class="sr-only sm:not-sr-only"> Previous</span></a>
+      {% else %}
+      <span class="min-w-8 py-3 text-center text-muted"><span aria-hidden="true">&larr;</span><span class="sr-only sm:not-sr-only"> Previous</span></span>
+      {% endif %}
+      <div class="flex items-center gap-1 sm:gap-3">{% for number in page_left %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+    </div>
+    <div class="flex items-center gap-1 sm:gap-3">{% for number in page_center %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+    <div class="flex flex-1 items-center justify-between gap-1 sm:gap-3">
+      <div class="flex items-center gap-1 sm:gap-3">{% for number in page_right %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+      {% if page_obj.has_next %}
+      <a rel="next" href="{% querystring page=page_obj.next_page_number %}" class="{{ link }}"><span class="sr-only sm:not-sr-only">Next </span><span aria-hidden="true">&rarr;</span></a>
+      {% else %}
+      <span class="min-w-8 py-3 text-center text-muted"><span class="sr-only sm:not-sr-only">Next </span><span aria-hidden="true">&rarr;</span></span>
+      {% endif %}
+    </div>
   </nav>
+  {% endwith %}
   {% endif %}
 {% endblock %}

@@ -1,12 +1,16 @@
+import re
 from datetime import timedelta
 from decimal import Decimal
+from html import unescape
+from urllib.parse import parse_qs
 
 from django.template.loader import render_to_string
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Agent, PriceHistory, ScoringRun, ScrapeRun
+from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
 from listings.tests.test_models import _make_listing
+from listings.views import _page_slots
 
 
 class DashboardListingListTests(TestCase):
@@ -400,7 +404,7 @@ class DashboardAnomalySummaryTests(TestCase):
         response = self.client.get("/flagged/")
         self.assertEqual(self._ids(response), ["lp", "other"])
         self.assertContains(response, "3 photos")
-        self.assertContains(response, "—")
+        self.assertContains(response, ">-</span>")
 
     def test_nothing_flagged_renders_empty_state(self):
         _make_listing(source_id="q1", url="https://alonhadat.com.vn/q1.html")
@@ -507,3 +511,220 @@ class PipelineHealthViewTests(TestCase):
     def test_a_day_with_no_run_is_shown_not_omitted(self):
         response = self.client.get("/health/")
         self.assertEqual(len(response.context["scrape_days"]), 30)
+
+
+class MainNavTests(TestCase):
+    """base.html's nav: first in body on every page, current link marked."""
+
+    def test_each_page_marks_only_its_own_link_current(self):
+        listing = _make_listing()
+        current = {
+            "/": "Residential",
+            f"/listing/{listing.pk}/": "Residential",
+            "/flagged/": "Flagged",
+            "/health/": "Health",
+            "/offices/": "Offices",
+        }
+        for path, expected in current.items():
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                html = response.content.decode()
+                self.assertRegex(html, r'<body[^>]*>\s*<nav aria-label="Main"')
+                # aria-label pins the main nav: the list page has a second
+                # nav for pagination.
+                nav = re.search(r'<nav aria-label="Main".*?</nav>', html, re.S)
+                links = re.findall(r"<a ([^>]*)>([^<]*)</a>", nav.group())
+                self.assertEqual(
+                    [(re.search(r'href="([^"]*)"', attrs).group(1), label)
+                     for attrs, label in links],
+                    [("/", "Residential"), ("/offices/", "Offices"), ("/", "SaiPrice"),
+                     ("/health/", "Health"), ("/flagged/", "Flagged")],
+                )
+                self.assertEqual(
+                    [label for attrs, label in links if 'aria-current="page"' in attrs],
+                    [expected],
+                )
+
+
+HOSTILE_Q = '"><script>alert(1)</script>'
+FILTERS = {
+    "district": "Quận 7", "property_type": "apartment",
+    "min_price": "1", "max_price": "9000000000", "q": "Listing",
+}
+
+
+def _bulk_listings(n, prefix):
+    now = timezone.now()
+    Listing.objects.bulk_create(
+        Listing(
+            source_site="alonhadat", source_id=f"{prefix}{i}",
+            url=f"https://alonhadat.com.vn/{prefix}{i}.html", title=f"Listing {i}",
+            property_type="apartment", listing_intent="sale", last_seen_at=now,
+            district="Quận 7", price=Decimal("2000000000"),
+            # q also searches address_raw, so a hostile q still matches every row.
+            address_raw=f"{HOSTILE_Q} {i}",
+        )
+        for i in range(n)
+    )
+
+
+def _pagination_bar(response):
+    match = re.search(
+        r'<nav aria-label="Pagination".*?</nav>', response.content.decode(), re.S
+    )
+    return match.group() if match else None
+
+
+def _page_items(bar):
+    # Numbers are link or span text; the "…" is the jump input's placeholder.
+    return [n or dots for n, dots in re.findall(r'>(\d+)</(?:a|span)>|placeholder="(…)"', bar)]
+
+
+def _query(href):
+    return parse_qs(unescape(href).lstrip("?"))
+
+
+class PaginationBarTests(TestCase):
+    """41 pages: 810 rows at paginate_by 20, the same shape as the real data."""
+
+    @classmethod
+    def setUpTestData(cls):
+        _bulk_listings(810, "pb")
+
+    def test_page_items_on_first_middle_and_last_page(self):
+        expected = {
+            1: ["1", "2", "3", "…", "39", "40", "41"],
+            20: ["1", "…", "19", "20", "21", "…", "41"],
+            41: ["1", "2", "3", "…", "39", "40", "41"],
+        }
+        for page, items in expected.items():
+            with self.subTest(page=page):
+                bar = _pagination_bar(self.client.get("/", {"page": page}))
+                self.assertEqual(_page_items(bar), items)
+
+    def test_current_page_is_a_still_underlined_span_not_a_link(self):
+        bar = _pagination_bar(self.client.get("/", {"page": 20}))
+        current = re.search(r'<span aria-current="page" class="([^"]*)">20</span>', bar)
+        self.assertIsNotNone(current)
+        self.assertIn("text-accent", current.group(1))
+        self.assertIn("after:h-0.5", current.group(1))
+        self.assertNotIn("after:scale-x-0", current.group(1))
+        self.assertNotIn(20, [
+            int(_query(href)["page"][0]) for href in re.findall(r'href="([^"]*)"', bar)
+        ])
+
+    def test_unavailable_previous_and_next_keep_their_slot_as_muted_text(self):
+        first = _pagination_bar(self.client.get("/", {"page": 1}))
+        self.assertNotIn('rel="prev"', first)
+        self.assertRegex(first, r'<span class="[^"]*text-muted[^"]*">.*?Previous')
+        self.assertRegex(first, r'<a rel="next" href="\?page=2"')
+        last = _pagination_bar(self.client.get("/", {"page": 41}))
+        self.assertNotIn('rel="next"', last)
+        self.assertRegex(last, r'<span class="[^"]*text-muted[^"]*">.*?Next')
+        self.assertRegex(last, r'<a rel="prev" href="\?page=40"')
+
+    def test_every_link_keeps_the_active_filters(self):
+        bar = _pagination_bar(self.client.get("/", {**FILTERS, "page": 20}))
+        hrefs = re.findall(r'href="([^"]*)"', bar)
+        self.assertEqual(len(hrefs), 6)  # previous, 1, 19, 21, 41, next
+        for href in hrefs:
+            with self.subTest(href=href):
+                query = _query(href)
+                self.assertEqual(len(query.pop("page")), 1)
+                self.assertEqual(query, {k: [v] for k, v in FILTERS.items()})
+
+    def test_jump_forms_carry_the_filters_but_not_the_page(self):
+        bar = _pagination_bar(self.client.get("/", {**FILTERS, "page": 20}))
+        self.assertNotIn("<details", bar)
+        hidden = re.findall(r'<input type="hidden" name="([^"]*)" value="([^"]*)">', bar)
+        self.assertEqual(sorted(hidden), sorted(list(FILTERS.items()) * 2))
+        jumps = re.findall(r'<input type="text" name="page"[^>]*>', bar)
+        self.assertEqual(len(jumps), 2)
+        pattern = "|".join(str(n) for n in range(1, 42))
+        for jump in jumps:
+            for attr in (f'pattern="{pattern}"', "required", 'placeholder="…"',
+                         'aria-label="Jump to page (1–41)"', 'enterkeyhint="go"',
+                         'autocomplete="off"'):
+                self.assertIn(attr, jump)
+            self.assertNotIn("inputmode", jump)  # iOS's numeric keypad has no Enter key
+        self.assertEqual(bar.count(">Pages 1–41 only</span>"), 2)
+
+    def test_hostile_q_is_escaped_in_hrefs_and_hidden_inputs(self):
+        response = self.client.get("/", {"q": HOSTILE_Q, "page": 20})
+        self.assertNotContains(response, "<script>alert(1)</script>")
+        bar = _pagination_bar(response)
+        for href in re.findall(r'href="([^"]*)"', bar):
+            self.assertEqual(_query(href)["q"], [HOSTILE_Q])
+        values = re.findall(r'<input type="hidden" name="q" value="([^"]*)">', bar)
+        self.assertEqual(values, ["&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"] * 2)
+
+    def test_hostile_parameter_name_is_escaped(self):
+        # Hidden inputs reflect every parameter name, not just the five filters.
+        response = self.client.get("/", {HOSTILE_Q: "x", "page": 20})
+        self.assertNotContains(response, "<script>alert(1)</script>")
+        bar = _pagination_bar(response)
+        for href in re.findall(r'href="([^"]*)"', bar):
+            self.assertEqual(_query(href)[HOSTILE_Q], ["x"])
+
+    def test_the_ellipsis_centers_near_the_ends_the_current_page_in_the_middle(self):
+        self.assertEqual(self.client.get("/", {"page": 2}).context["page_center"], ["…"])
+        self.assertEqual(self.client.get("/", {"page": 20}).context["page_center"], [20])
+
+    def test_header_shows_the_page_number_and_no_flagged_link(self):
+        response = self.client.get("/", {"page": 20})
+        # Same line as the result count, which sits under the heading.
+        self.assertRegex(
+            response.content.decode(),
+            r"</h1>\s*<p[^>]*>\s*<span>810 results</span>\s*<span>Page 20 of 41</span>\s*</p>",
+        )
+        self.assertNotContains(response, "Flagged listings")
+
+    def test_page_past_the_end_is_still_404(self):
+        self.assertEqual(self.client.get("/", {"page": 42}).status_code, 404)
+
+
+class PageSlotsTests(TestCase):
+    def test_three_items_each_side_on_every_page(self):
+        for last in (8, 9, 41):
+            for page in range(1, last + 1):
+                with self.subTest(last=last, page=page):
+                    left, center, right = _page_slots(page, last, "…")
+                    self.assertEqual((len(left), len(center), len(right)), (3, 1, 3))
+                    numbers = [n for n in left + center + right if n != "…"]
+                    self.assertEqual(numbers, sorted(set(numbers)))
+                    self.assertIn(page, numbers)
+                    self.assertEqual((numbers[0], numbers[-1]), (1, last))
+                    items = left + center + right
+                    for i, item in enumerate(items):
+                        if item == "…":
+                            # A "…" always stands for at least two hidden pages.
+                            before, after = items[i - 1], items[i + 1]
+                            if after == "…":
+                                after = items[i + 2]
+                            self.assertGreaterEqual(after - before, 3)
+
+    def test_the_ellipsis_takes_the_center_near_either_end(self):
+        for page in (1, 2, 3, 39, 40, 41):
+            with self.subTest(page=page):
+                self.assertEqual(_page_slots(page, 41, "…"), ([1, 2, 3], ["…"], [39, 40, 41]))
+        self.assertEqual(_page_slots(4, 41, "…"), ([1, 2, 3], [4], [5, "…", 41]))
+        self.assertEqual(_page_slots(20, 41, "…"), ([1, "…", 19], [20], [21, "…", 41]))
+        self.assertEqual(_page_slots(38, 41, "…"), ([1, "…", 37], [38], [39, 40, 41]))
+
+    def test_seven_pages_or_fewer_show_every_number_in_the_center(self):
+        self.assertEqual(_page_slots(2, 7, "…"), ([], [1, 2, 3, 4, 5, 6, 7], []))
+
+
+class SmallPaginationBarTests(TestCase):
+    def test_seven_pages_or_fewer_show_every_number_and_no_jump(self):
+        _bulk_listings(130, "sm")
+        bar = _pagination_bar(self.client.get("/", {"page": 2}))
+        self.assertEqual(_page_items(bar), ["1", "2", "3", "4", "5", "6", "7"])
+        self.assertNotIn('name="page"', bar)
+
+    def test_single_page_renders_no_bar(self):
+        _bulk_listings(5, "one")
+        response = self.client.get("/")
+        self.assertIsNone(_pagination_bar(response))
+        self.assertNotContains(response, "Page 1 of 1")
