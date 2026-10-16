@@ -2,6 +2,7 @@ import hashlib
 import logging
 from decimal import Decimal
 
+import numpy as np
 import pandas as pd
 from django.core.management.base import BaseCommand
 from django.db.models import Q
@@ -16,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 LOW_PHOTOS_THRESHOLD = 3
 STALE_LISTING_THRESHOLD_DAYS = 90
+PRICE_GAP_PERCENTILE = 95
+# §12: under this many priced+predicted rows a percentile is noise, so the rule
+# sits out the run. The other two rules still run -- each scopes its own
+# population, and neither needs the model.
+PRICE_GAP_MIN_SAMPLE = 20
 
 
 def record(statuses, code):
@@ -89,10 +95,36 @@ def _predictions(statuses):
     }
 
 
+def _price_gap_ratios(predictions):
+    """{listing id: (predicted - price) / price} for rows carrying both.
+
+    §12 scopes this rule to listings with `price` and `predicted_price` both
+    populated. `price__gt=0` is that filter and the guard on the division:
+    a "Thỏa thuận" listing has nothing to compare a prediction against.
+    """
+    prices = Listing.objects.filter(
+        id__in=[int(pk) for pk in predictions], price__gt=0
+    ).values_list("id", "price")
+    return {pk: float((predictions[pk] - price) / price) for pk, price in prices}
+
+
+def _price_gap_threshold(ratios):
+    """The top-PRICE_GAP_PERCENTILE cutoff for this run, or None if too thin.
+
+    Recomputed every run rather than fixed (§12): the point is the listings
+    most underpriced relative to the model, which is a moving target as the
+    model's own accuracy changes. A fixed percentage would encode an accuracy
+    figure nobody has measured.
+    """
+    if len(ratios) < PRICE_GAP_MIN_SAMPLE:
+        return None
+    return float(np.percentile(list(ratios.values()), PRICE_GAP_PERCENTILE))
+
+
 class Command(BaseCommand):
     help = (
         "Score active listings: ML predicted_price (CLAUDE.md §13) plus the "
-        "§12 anomaly rules. low_photos + stale_listing; price_gap not built."
+        "§12 anomaly rules -- price_gap, low_photos and stale_listing."
     )
 
     def handle(self, *args, **options):
@@ -110,6 +142,12 @@ class Command(BaseCommand):
             # nulling the whole table because model.pkl was unreadable would do
             # more damage than the crash this handler replaced.
             model_ran = not statuses.keys() & {"model_load_failed", "inference_failed"}
+            # Both are empty when the model failed or priced nothing, which
+            # leaves gap_threshold None and sits the rule out -- the same path
+            # as a genuinely too-thin population, and the right one: a run with
+            # no predictions has nothing to measure a gap against.
+            gap_ratios = _price_gap_ratios(predictions)
+            gap_threshold = _price_gap_threshold(gap_ratios)
             # §12: each rule scopes its own population from is_active=True.
             # anomaly_reason holds one key per rule that ran; a listing no rule
             # covers is left untouched, not written with an empty dict.
@@ -131,6 +169,12 @@ class Command(BaseCommand):
                     fields += ["predicted_price", "predicted_at"]
 
                 reason = {}
+                if gap_threshold is not None and listing.pk in gap_ratios:
+                    gap = gap_ratios[listing.pk]
+                    reason["price_gap"] = {
+                        "triggered": gap >= gap_threshold,
+                        "value": round(gap, 4),
+                    }
                 # images IS NULL means the LDP was never visited
                 # (scrape_listings), not zero photos -- low_photos skips those.
                 if listing.images is not None:

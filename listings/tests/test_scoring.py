@@ -494,3 +494,120 @@ class ModelFailureDoesNotWipePredictionsTests(TestCase):
         listing.refresh_from_db()
         self.assertIsNone(listing.predicted_price)
         self.assertIsNone(listing.predicted_at)
+
+
+class PriceGapRuleTests(TestCase):
+    """§12 rule 1: flag the top 5% of (predicted - price) / price."""
+
+    def _population(self, n, gap_on_last=1.0):
+        """n priced listings; the last one is `gap_on_last` above its price."""
+        listings = [
+            _make_listing(
+                source_id=f"pg{i}",
+                url=f"https://alonhadat.com.vn/pg{i}.html",
+                price=Decimal("4000000000"),
+            )
+            for i in range(n)
+        ]
+        predictions = {
+            listing.pk: Decimal("4000000000") for listing in listings[:-1]
+        }
+        predictions[listings[-1].pk] = Decimal(
+            round(4_000_000_000 * (1 + gap_on_last))
+        )
+        return listings, predictions
+
+    def _score_with(self, predictions):
+        with patch.object(
+            score_listings, "_predictions", side_effect=lambda statuses: predictions
+        ):
+            _score()
+
+    def test_flags_only_the_top_five_percent(self):
+        listings, predictions = self._population(20)
+        self._score_with(predictions)
+        flagged = list(Listing.objects.filter(is_anomaly=True))
+        self.assertEqual([listing.pk for listing in flagged], [listings[-1].pk])
+        self.assertEqual(
+            flagged[0].anomaly_reason,
+            {"price_gap": {"triggered": True, "value": 1.0}},
+        )
+
+    def test_ordinary_listing_is_scored_but_not_triggered(self):
+        listings, predictions = self._population(20)
+        self._score_with(predictions)
+        ordinary = Listing.objects.get(pk=listings[0].pk)
+        self.assertFalse(ordinary.is_anomaly)
+        self.assertEqual(
+            ordinary.anomaly_reason,
+            {"price_gap": {"triggered": False, "value": 0.0}},
+        )
+
+    def test_rule_sits_out_a_population_under_the_minimum(self):
+        # 19 rows: too thin for a percentile, so no price_gap key is written
+        # at all -- §12's partial-dict convention, not a faked triggered:false.
+        listings, predictions = self._population(19)
+        self._score_with(predictions)
+        for listing in Listing.objects.all():
+            self.assertIsNone(listing.anomaly_reason)
+            self.assertFalse(listing.is_anomaly)
+
+    def test_negotiable_listing_gets_no_price_gap_key(self):
+        # A null price has nothing to compare a prediction against.
+        listings, predictions = self._population(20)
+        negotiable = _make_listing(
+            source_id="pgnull",
+            url="https://alonhadat.com.vn/pgnull.html",
+            price=None,
+            images=["a.jpg", "b.jpg"],
+        )
+        predictions[negotiable.pk] = Decimal("9000000000")
+        self._score_with(predictions)
+        negotiable.refresh_from_db()
+        self.assertEqual(
+            negotiable.anomaly_reason,
+            {"low_photos": {"triggered": True, "value": 2}},
+        )
+
+    def test_model_failure_sits_the_rule_out_without_touching_the_others(self):
+        listing = _make_listing(
+            source_id="pgfail",
+            url="https://alonhadat.com.vn/pgfail.html",
+            price=Decimal("4000000000"),
+            images=["a.jpg"],
+        )
+        with patch.object(score_listings, "load", side_effect=OSError("no pickle")):
+            self._score_with({})
+        listing.refresh_from_db()
+        self.assertEqual(
+            listing.anomaly_reason,
+            {"low_photos": {"triggered": True, "value": 1}},
+        )
+
+    def test_ratios_exclude_null_and_zero_prices(self):
+        priced = _make_listing(
+            source_id="pgr1", url="https://alonhadat.com.vn/pgr1.html",
+            price=Decimal("2000000000"),
+        )
+        negotiable = _make_listing(
+            source_id="pgr2", url="https://alonhadat.com.vn/pgr2.html", price=None,
+        )
+        free = _make_listing(
+            source_id="pgr3", url="https://alonhadat.com.vn/pgr3.html",
+            price=Decimal("0"),
+        )
+        predictions = {
+            priced.pk: Decimal("3000000000"),
+            negotiable.pk: Decimal("3000000000"),
+            free.pk: Decimal("3000000000"),
+        }
+        self.assertEqual(
+            score_listings._price_gap_ratios(predictions), {priced.pk: 0.5}
+        )
+
+    def test_threshold_is_none_under_the_minimum_sample(self):
+        thin = {i: 0.1 for i in range(score_listings.PRICE_GAP_MIN_SAMPLE - 1)}
+        self.assertIsNone(score_listings._price_gap_threshold(thin))
+        self.assertIsNotNone(
+            score_listings._price_gap_threshold({**thin, 99: 0.1})
+        )
