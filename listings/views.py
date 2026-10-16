@@ -42,13 +42,29 @@ def _page_slots(current, last, ellipsis):
     )
 
 
-class ListingListView(ListView):
+class PageSlotsMixin:
     # Same page size as the API — one config value, not a second pagination setup.
+    paginate_by = settings.REST_FRAMEWORK["PAGE_SIZE"]
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        paginator = ctx["paginator"]
+        ctx["page_left"], ctx["page_center"], ctx["page_right"] = _page_slots(
+            ctx["page_obj"].number, paginator.num_pages, paginator.ELLIPSIS
+        )
+        # The jump field is type="text" (no spinner, scroll wheel or arrow keys
+        # changing the number), so pattern does the range check min/max did.
+        # ponytail: one alternative per page, swap for a digit-range regex if
+        # page counts reach the thousands.
+        ctx["page_pattern"] = "|".join(map(str, paginator.page_range))
+        return ctx
+
+
+class ListingListView(PageSlotsMixin, ListView):
     # select_related: the card's contact control reads agent.name, which is one
     # query per row without it.
     queryset = Listing.objects.filter(is_active=True).select_related("agent")
     ordering = ["-id"]
-    paginate_by = settings.REST_FRAMEWORK["PAGE_SIZE"]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -80,15 +96,6 @@ class ListingListView(ListView):
             .order_by("district")
         )
         ctx["property_types"] = Listing.PROPERTY_TYPE_CHOICES
-        paginator = ctx["paginator"]
-        ctx["page_left"], ctx["page_center"], ctx["page_right"] = _page_slots(
-            ctx["page_obj"].number, paginator.num_pages, paginator.ELLIPSIS
-        )
-        # The jump field is type="text" (no spinner, scroll wheel or arrow keys
-        # changing the number), so pattern does the range check min/max did.
-        # ponytail: one alternative per page, swap for a digit-range regex if
-        # page counts reach the thousands.
-        ctx["page_pattern"] = "|".join(map(str, paginator.page_range))
         return ctx
 
 
@@ -97,30 +104,24 @@ class ListingDetailView(DetailView):
     queryset = Listing.objects.filter(is_active=True)
 
 
-class AnomalySummaryView(ListView):
+class AnomalySummaryView(PageSlotsMixin, ListView):
     template_name = "listings/listing_summary.html"
     context_object_name = "listings"
     # The ranking value is a JSON key, not a column: §12 writes one key per rule
     # that ran, so a row flagged by some other rule has no low_photos key and
     # resolves to SQL NULL. nulls_last is explicit rather than inherited from
-    # the backend's default ASC placement.
+    # the backend's default ASC placement. -id last: one scoring run stamps the
+    # same anomaly_scored_at on every row, so without it ties have no stable
+    # order and rows repeat or vanish between pages.
     queryset = (
         Listing.objects.filter(is_active=True, is_anomaly=True)
         .select_related("agent")
         .order_by(
             F("anomaly_reason__low_photos__value").asc(nulls_last=True),
             "-anomaly_scored_at",
-        )[:10]
+            "-id",
+        )
     )
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        # The page shows 10 of however many there are; without the total it
-        # reads as "10 flagged", which is a different claim.
-        ctx["flagged_count"] = Listing.objects.filter(
-            is_active=True, is_anomaly=True
-        ).count()
-        return ctx
 
 
 class PipelineHealthView(TemplateView):
