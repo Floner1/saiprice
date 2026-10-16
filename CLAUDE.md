@@ -524,8 +524,6 @@ Rules for all Standard-scope templates:
 
 Deliberately not built, add only when a real page needs it: a general component library, dark mode, Chart.js theming (trend charts are Stretch, §2). Partials exist only for markup one page repeats: `_listing_card.html`, `_rent_row.html`, `_page_item.html`.
 
-Known issue: `_listing_card.html` has a multi-line `{# ... #}` comment around the phone-control logic. Django's `{# #}` is single-line only, so that comment's text prints on every card. Convert it to `{% comment %}`.
-
 ## 12. Anomaly Detection
 
 Computed by `score_listings`, run after every scrape, over `is_active=True` listings. Each rule scopes its own population from there (amended 2026-07-16; the previous "with both `price` and `predicted_price` populated" qualifier described only the price-gap rule's population, and applied literally to a pre-ML build it would score zero rows): `price_gap` needs `price` and `predicted_price` both populated; `low_photos` needs `images` non-null (see rule 2); `stale_listing` needs `days_on_market` computable (§5.5). Requires at least 20 listings with both `price` and `predicted_price` to compute the price-gap percentile meaningfully — below that, skip the price-gap rule for this run (too small a sample for a percentile to mean anything) but still compute the other two rules.
