@@ -25,16 +25,20 @@ risking an orphan " · " when it parses null.
     {# 1 query per card while posted_date is null (a fleet-wide parse break), free otherwise; annotate with api/views.py's DAYS_ON_MARKET_CALC if that lands #}
     {% with days=listing.days_on_market %}{% if days is not None %} · {{ days }} day{{ days|pluralize }} listed{% endif %}{% endwith %}
   </p>
-  {# Gated on phone_number, not on agent: Agent holds name only (phone is kept
-     off it), so the listing's own field is the only dialable target. No number
-     means no control at all, same rule as every other missing field here.
-     relative z-10 lifts it over the title link's after:inset-0 overlay; without
-     it the row link swallows the tap. #}
+  {% comment %}
+  Gated on phone_number, not on agent: Agent holds name only (phone is kept
+  off it), so the listing's own field is the only dialable target. No number
+  means no control at all, same rule as every other missing field here.
+  relative z-10 lifts it over the title link's after:inset-0 overlay; without
+  it the row link swallows the tap.
+  {% endcomment %}
   {% if listing.phone_number %}
-  {# py-3 not py-2: 46px tall, over the 44px touch-target floor the row links
-     already hold. aria-label opens with the visible text so voice control can
-     match it (WCAG 2.5.3), then adds the title to tell 20 identical "Call"
-     links apart in a screen-reader link list. #}
+  {% comment %}
+  py-3 not py-2: 46px tall, over the 44px touch-target floor the row links
+  already hold. aria-label opens with the visible text so voice control can
+  match it (WCAG 2.5.3), then adds the title to tell 20 identical "Call"
+  links apart in a screen-reader link list.
+  {% endcomment %}
   {% with who=listing.agent.name|default:"agent" %}
   <p class="mt-2">
     <a href="tel:{{ listing.phone_number|cut:' ' }}"

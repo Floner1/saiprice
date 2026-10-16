@@ -10,9 +10,11 @@
 
   <ul>
     {% for listing in listings %}
-    {# The photo count sits in a gutter, not in the card: the card is shared with
-       the list page, which isn't ranked by it. The li border lands on the same
-       line as the card's own bottom rule, so the gutter isn't left un-ruled. #}
+    {% comment %}
+    The photo count sits in a gutter, not in the card: the card is shared with
+    the list page, which isn't ranked by it. The li border lands on the same
+    line as the card's own bottom rule, so the gutter isn't left un-ruled.
+    {% endcomment %}
     <li class="flex gap-4 border-b border-line">
       <span class="w-16 shrink-0 pt-4 text-sm text-muted">{% with lp=listing.anomaly_reason.low_photos %}{% if lp %}{{ lp.value }} photo{{ lp.value|pluralize }}{% else %}-{% endif %}{% endwith %}</span>
       <div class="min-w-0 flex-1">{% include "listings/_listing_card.html" %}</div>

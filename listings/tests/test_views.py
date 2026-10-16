@@ -332,6 +332,17 @@ class ListingCardContactAgentTests(TestCase):
             self.assertNotIn(absent, card)
 
 
+class TemplateCommentTests(TestCase):
+    def test_no_comment_delimiters_leak_into_the_page(self):
+        # {# #} is single-line only: a newline inside it makes Django print the comment.
+        _make_listing(
+            source_id="m1", url="https://alonhadat.com.vn/m1.html",
+            phone_number="090 123 4567", is_anomaly=True,
+        )
+        for path in ("/", "/flagged/"):
+            self.assertNotRegex(self.client.get(path).content.decode(), r"\{#|#\}", path)
+
+
 class DashboardAnomalyBadgeTests(TestCase):
     def test_badge_shown_for_anomaly_listing(self):
         _make_listing(
