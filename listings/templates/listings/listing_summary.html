@@ -6,7 +6,10 @@
   <p class="mb-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
 
   <h1 class="text-2xl tracking-wide">Flagged listings</h1>
-  <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listings|length }} of {{ flagged_count }} flagged · fewest photos first</p>
+  <p class="mb-6 flex justify-between gap-4 border-b-2 border-ink pb-3 text-sm text-muted">
+    <span>{{ paginator.count }} flagged · fewest photos first</span>
+    {% if is_paginated %}<span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>{% endif %}
+  </p>
 
   <ul>
     {% for listing in listings %}
@@ -23,4 +26,6 @@
     <li class="border-b border-line py-3.5">Nothing flagged.</li>
     {% endfor %}
   </ul>
+
+  {% include "listings/_pagination.html" %}
 {% endblock %}

@@ -1,0 +1,23 @@
+{% if is_paginated %}
+{% with link="relative min-w-8 py-3 text-center after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+<nav aria-label="Pagination" class="mt-6 flex items-center gap-1 text-base sm:gap-3">
+  <div class="flex flex-1 items-center justify-between gap-1 sm:gap-3">
+    {% if page_obj.has_previous %}
+    <a rel="prev" href="{% querystring page=page_obj.previous_page_number %}" class="{{ link }}"><span aria-hidden="true">&larr;</span><span class="sr-only sm:not-sr-only"> Previous</span></a>
+    {% else %}
+    <span class="min-w-8 py-3 text-center text-muted"><span aria-hidden="true">&larr;</span><span class="sr-only sm:not-sr-only"> Previous</span></span>
+    {% endif %}
+    <div class="flex items-center gap-1 sm:gap-3">{% for number in page_left %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+  </div>
+  <div class="flex items-center gap-1 sm:gap-3">{% for number in page_center %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+  <div class="flex flex-1 items-center justify-between gap-1 sm:gap-3">
+    <div class="flex items-center gap-1 sm:gap-3">{% for number in page_right %}{% include "listings/_page_item.html" %}{% endfor %}</div>
+    {% if page_obj.has_next %}
+    <a rel="next" href="{% querystring page=page_obj.next_page_number %}" class="{{ link }}"><span class="sr-only sm:not-sr-only">Next </span><span aria-hidden="true">&rarr;</span></a>
+    {% else %}
+    <span class="min-w-8 py-3 text-center text-muted"><span class="sr-only sm:not-sr-only">Next </span><span aria-hidden="true">&rarr;</span></span>
+    {% endif %}
+  </div>
+</nav>
+{% endwith %}
+{% endif %}

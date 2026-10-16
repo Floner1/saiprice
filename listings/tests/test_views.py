@@ -382,13 +382,48 @@ class DashboardAnomalySummaryTests(TestCase):
             ["s0", "s1-new", "s1-old", "s2"],
         )
 
-    def test_caps_at_ten_and_reports_the_full_count(self):
-        for i in range(12):
+    def test_paginates_at_page_size_and_reports_the_full_count(self):
+        for i in range(21):
             self._flag(f"c{i}", i, timezone.now())
         response = self.client.get("/flagged/")
-        self.assertEqual(len(response.context["listings"]), 10)
-        self.assertEqual(response.context["flagged_count"], 12)
-        self.assertContains(response, "10 of 12 flagged")
+        self.assertEqual(len(response.context["listings"]), 20)
+        self.assertContains(response, ">21 flagged")
+        self.assertContains(response, "Page 1 of 2")
+        self.assertEqual(self._ids(self.client.get("/flagged/", {"page": 2})), ["c20"])
+
+    def test_page_two_shares_no_rows_with_page_one_when_every_row_ties(self):
+        # Same photo count and scored time on every row, the shape one scoring
+        # run leaves behind, so only the id tiebreaker makes the order stable.
+        scored_at = timezone.now()
+        for i in range(25):
+            self._flag(f"t{i}", 0, scored_at)
+        # An UPDATE writes a new row version at the end of the table, so the
+        # order Postgres happens to return ties in stops matching id order.
+        # On a freshly inserted table the two coincide and this test would
+        # pass without the tiebreaker.
+        Listing.objects.filter(source_id__in=[f"t{i}" for i in range(0, 25, 2)]).update(
+            title="moved"
+        )
+        first = self._ids(self.client.get("/flagged/"))
+        second = self._ids(self.client.get("/flagged/", {"page": 2}))
+        self.assertEqual(first + second, [f"t{i}" for i in range(24, -1, -1)])
+
+    def test_renders_the_shared_pagination_bar_with_the_jump_field(self):
+        # 8 pages: past the 7 where every number shows and there is no jump.
+        _bulk_listings(141, "fb")
+        Listing.objects.update(is_anomaly=True)
+        bar = _pagination_bar(self.client.get("/flagged/"))
+        self.assertEqual(_page_items(bar), ["1", "2", "3", "…", "6", "7", "8"])
+        self.assertRegex(bar, r'<a rel="next" href="\?page=2"')
+        self.assertIn('pattern="1|2|3|4|5|6|7|8"', bar)
+
+    def test_bad_page_values_404_like_the_listing_page(self):
+        self._flag("only", 0, timezone.now())
+        for page in ("abc", "0", "99"):
+            with self.subTest(page=page):
+                self.assertEqual(
+                    self.client.get("/flagged/", {"page": page}).status_code, 404
+                )
 
     def test_excludes_unflagged_and_delisted(self):
         self._flag("keep", 1, timezone.now())
@@ -421,7 +456,8 @@ class DashboardAnomalySummaryTests(TestCase):
         _make_listing(source_id="q1", url="https://alonhadat.com.vn/q1.html")
         response = self.client.get("/flagged/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "0 of 0 flagged")
+        self.assertContains(response, ">0 flagged")
+        self.assertIsNone(_pagination_bar(response))
         self.assertContains(response, "Nothing flagged.")
 
     def test_reachable_from_the_listing_page(self):
