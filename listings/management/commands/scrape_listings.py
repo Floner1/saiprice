@@ -113,13 +113,15 @@ class Command(BaseCommand):
             help="cap pages per category root; a capped run is a partial crawl, "
             "so it skips the delisting sweep",
         )
-        # ponytail: default 20 because the exact request count that trips
-        # alonhadat's robot-verify wall is unknown (~30 sequential LDP
-        # fetches triggered it once); raise only after a run proves safe.
+        # ponytail: 40. The wall was triggered once by ~30 LDP fetches back to
+        # back from a bulk verification script; a crawl interleaves them with
+        # SRP pages at §8 pacing and has run 20 LDP + 41 SRP daily for a month
+        # clean. 40 is one measured step, not a leap -- raise further only
+        # after a run at 40 proves safe.
         parser.add_argument(
             "--max-ldp-visits",
             type=int,
-            default=20,
+            default=40,
             help="cap actual LDP fetches per run; items past the cap keep "
             "their SRP fields, skip enrichment this run, and stay eligible "
             "next run (null images)",
@@ -131,9 +133,12 @@ class Command(BaseCommand):
             "over --max-ldp-visits",
         )
 
-    # class default so direct _enrich_from_ldp calls (tests) work without
-    # handle(); handle() overwrites it per run from the CLI flags
-    ldp_budget = 20
+    # class defaults so direct _enrich_from_ldp calls (tests) work without
+    # handle(); handle() overwrites them per run from the CLI flags.
+    # backfill None means "no priority set", i.e. any unenriched row may spend
+    # budget -- the pre-2026-08-12 behaviour.
+    ldp_budget = 40
+    backfill = None
 
     def _enrich_from_ldp(self, item, run):
         # SRP category is provisional (vip cards can be cross-category), so
@@ -151,6 +156,16 @@ class Command(BaseCommand):
             item.fields.pop("property_type", None)
             item.fields.pop("listing_intent", None)
             if row[1] is not None:
+                return
+            # Backlog is served oldest-first, not in crawl order. The crawl is
+            # newest-first and new inserts alone can exhaust the budget, so
+            # without this gate the same front-of-crawl rows win every run and
+            # the tail is never reached -- id 36 sat unenriched for five weeks
+            # while 525 of 799 active rows had null images. New rows are never
+            # gated: their LDP visit is the only chance to confirm
+            # property_type from the breadcrumb before upsert writes the
+            # provisional SRP category.
+            if self.backfill is not None and item.source_id not in self.backfill:
                 return
         # budget gate sits here, not around the call: the pop above must run
         # for every existing row even when no LDP fetch is allowed, or upsert
@@ -198,6 +213,16 @@ class Command(BaseCommand):
         )
         self.ldp_budget = 0 if options["no_ldp_enrich"] else options["max_ldp_visits"]
         max_visits = self.ldp_budget
+        # Ordered by id, not last_seen_at: every active row is re-stamped on
+        # every pass, so last_seen_at carries no age information. id is
+        # insert order, which is how long the row has been waiting.
+        self.backfill = set(
+            Listing.objects.filter(
+                source_site=options["source"], is_active=True, images__isnull=True
+            )
+            .order_by("id")
+            .values_list("source_id", flat=True)[:max_visits]
+        )
         seen = set()
         duplicates = 0
         # try/finally, not try/except: an unexpected exception must still

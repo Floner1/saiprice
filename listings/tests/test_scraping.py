@@ -506,7 +506,7 @@ class LdpBudgetTests(TestCase):
     def test_default_flag_values(self):
         parser = scrape_listings.Command().create_parser("manage.py", "scrape_listings")
         opts = parser.parse_args(["--source", "alonhadat"])
-        self.assertEqual(opts.max_ldp_visits, 20)
+        self.assertEqual(opts.max_ldp_visits, 40)
         self.assertFalse(opts.no_ldp_enrich)
 
     def test_cap_stops_fetches_but_capped_items_keep_srp_fields(self):
@@ -565,6 +565,53 @@ class LdpBudgetTests(TestCase):
         self.assertNotIn("property_type", item.fields)
         self.assertNotIn("listing_intent", item.fields)
         self.assertEqual(run.error_count, 0)
+
+    def _unenriched(self, source_id):
+        return Listing.objects.create(
+            source_site="alonhadat",
+            source_id=source_id,
+            url=f"https://alonhadat.com.vn/x-{source_id}.html",
+            title="t",
+            property_type="apartment",
+            listing_intent="sale",
+            images=None,
+            last_seen_at=timezone.now(),
+        )
+
+    def test_backfill_set_gates_existing_rows_but_never_new_ones(self):
+        # "111" is the older unenriched row and holds the single budget slot;
+        # "222" is unenriched too but outside the priority set, so it waits.
+        # "333" has no row at all -- a new insert, never gated.
+        self._unenriched("111")
+        self._unenriched("222")
+        cmd = self._command_with_budget(2)
+        cmd.backfill = {"111"}
+        run = ScrapeRun.objects.create(source_site="alonhadat", started_at=timezone.now())
+        with patch.object(
+            scrape_listings, "fetch", return_value=(Mock(text=self.LDP_HTML), None)
+        ) as mock_fetch:
+            cmd._enrich_from_ldp(_item("222"), run)
+            cmd._enrich_from_ldp(_item("111"), run)
+            cmd._enrich_from_ldp(_item("333"), run)
+        self.assertEqual(
+            [call.args[0] for call in mock_fetch.call_args_list],
+            [
+                "https://alonhadat.com.vn/x-111.html",
+                "https://alonhadat.com.vn/x-333.html",
+            ],
+        )
+
+    def test_handle_prioritises_the_oldest_unenriched_rows(self):
+        # Three unenriched rows, budget 1: the lowest id wins the slot even
+        # though the SRP lists them newest-first.
+        for source_id in ("111", "222", "333"):
+            self._unenriched(source_id)
+        oldest = Listing.objects.order_by("id").first().source_id
+        srp = Mock(text=_read("alonhadat_srp_apartment.txt"))
+        with patch.object(scrape_listings, "fetch", return_value=(srp, None)):
+            cmd = scrape_listings.Command(stdout=io.StringIO(), stderr=io.StringIO())
+            call_command(cmd, "--source", "alonhadat", "--max-ldp-visits", "1", "--pages", "1")
+        self.assertEqual(cmd.backfill, {oldest})
 
 
 class NoLdpEnrichHandleTests(TestCase):
