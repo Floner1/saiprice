@@ -24,7 +24,7 @@ In development. Build started July 2026.
 
 - `scrape_listings --source alonhadat` crawls alonhadat's search results and listing detail pages with plain `requests` (no browser needed), and upserts each listing on `(source_site, source_id)`. A price change writes a new `PriceHistory` row, and a listing that drops out of a full crawl gets flagged `is_active=False`.
 - `ingest_saved_listings` is a manual fallback for batdongsan.com.vn. Save a listing page as HTML by hand, feed the folder in, and it gets the same upsert behavior. It's not on a schedule and isn't a primary data source, since batdongsan blocks automated requests behind Cloudflare.
-- `score_listings` runs after each scrape. It predicts a price for each active listing with the trained model and checks two anomaly rules, too few photos and too long on market. A third rule that compares price against the prediction is designed but not implemented yet.
+- `score_listings` runs after each scrape. It predicts a price for each active listing with the trained model and checks three anomaly rules: price far below the prediction, too few photos, and too long on market.
 - Everything lands in one Postgres database, queried directly by both the API and the dashboard.
 
 ## API
@@ -40,7 +40,7 @@ Orderable by any field, `?ordering=price` or `?ordering=-price`, plus `?sort_by=
 Anomaly fields, populated by `score_listings`:
 
 - `is_anomaly` (boolean): true when any anomaly rule flagged the listing. Filterable: `GET /api/listings/?is_anomaly=true`.
-- `anomaly_reason` (dict or null): one key per rule that ran in the last scoring pass, each mapping to `{"triggered": bool, "value": ...}`. Two rules run today, `low_photos` and `stale_listing`. A third, `price_gap`, would compare price against the model's own prediction, but it isn't built yet, so it never appears in the dict. Null on listings not yet scored. Read-only, not filterable.
+- `anomaly_reason` (dict or null): one key per rule that ran in the last scoring pass, each mapping to `{"triggered": bool, "value": ...}`. Three rules run: `price_gap` (the listing sits in the top 5% of `(predicted_price - price) / price` for that run, recomputed each run rather than a fixed cutoff), `low_photos`, and `stale_listing`. A rule that couldn't run on a given listing is absent from the dict rather than written as `triggered: false` — `price_gap` needs both prices set and at least 20 comparable listings in the run, `low_photos` needs a parsed gallery, `stale_listing` needs a computable days-on-market. Null on listings not yet scored. Read-only, not filterable.
 
 A flagged listing:
 
