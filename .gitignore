@@ -22,3 +22,5 @@ scrape_test_output/
 skills-lock.json
 taskscheduler_backup_*.evtx
 2026-08-10-predeploy-audit.md
+.claude/
+pasted-content-id-09e9-role-you-enchanted-hopper.md
