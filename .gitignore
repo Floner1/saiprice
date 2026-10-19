@@ -1,0 +1,19 @@
+venv/
+db.sqlite3
+__pycache__/
+*.pyc
+.env
+batdongsan and maison office stuff/
+testdata/*
+!testdata/alonhadat_ldp_apartment.txt
+!testdata/alonhadat_srp_apartment.txt
+!testdata/ldp_apartment.txt
+!testdata/ldp_land.txt
+project_tests/
+.django_tailwind_cli/
+assets/css/tailwind.css
+staticfiles/
+scraper_run_reports/
+stats_reports/
+scrape_test_output/
+taskscheduler_backup_*.evtx
