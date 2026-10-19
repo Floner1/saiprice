@@ -4,6 +4,8 @@ A pricing-transparency pipeline for the Ho Chi Minh City residential property ma
 
 It only ever sees what's publicly listed. This isn't a lead-generation tool and doesn't surface off-market inventory.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pipeline, model and web app fit together.
+
 ## Status
 
 In development. Build started July 2026.
