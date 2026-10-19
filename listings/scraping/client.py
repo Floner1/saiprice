@@ -67,8 +67,8 @@ def fetch(url):
 
         time.sleep(random.uniform(1, 3))
         if response.status_code == 404:
-            # A 404 is a delisting signal, not a scrape
-            # failure. Named separately so the caller can act on that.
+            # A 404 is not a scrape failure. Named separately so the
+            # caller can count it without inflating error_count.
             logger.info(f"404 for {url}")
             return None, HTTP_404
         if response.status_code != 200:
