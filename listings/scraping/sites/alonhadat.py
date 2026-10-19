@@ -11,12 +11,14 @@ BASE_URL = "https://alonhadat.com.vn"
 
 # Confirmed from the live homepage nav 2026-07-10; robots.txt permits /can-ban-*
 # (only /publish/*, /nha-dat/can-mua/*, /nha-dat/can-thue/* are disallowed).
-# apartment-sale only until a run is proven stable, then add the
-# other tracked-scope roots one at a time -- same rollout rule the batdongsan
-# crawler used. Full scope: /can-ban-nha, /can-ban-biet-thu-nha-lien-ke,
-# /can-ban-dat-tho-cu-dat-o (+ dat-nen, dat-nong-lam), and cho-thue-* mirrors.
+# sale roots added one at a time, same rollout rule the batdongsan
+# crawler used. House and villa added 2026-10-19 (page 1 of each probed live:
+# 20 HCMC cards, 0 parse skips). Still to add: /can-ban-dat-tho-cu-dat-o
+# (+ dat-nen, dat-nong-lam) and cho-thue-* mirrors.
 CATEGORY_ROOTS = {
     "/can-ban-can-ho-chung-cu/ho-chi-minh": ("apartment", "sale"),
+    "/can-ban-nha/ho-chi-minh": ("house", "sale"),
+    "/can-ban-biet-thu-nha-lien-ke/ho-chi-minh": ("villa", "sale"),
 }
 
 # Breadcrumb category slug -> (property_type, listing_intent), full sale

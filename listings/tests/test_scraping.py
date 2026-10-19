@@ -614,6 +614,10 @@ class LdpBudgetTests(TestCase):
         self.assertEqual(cmd.backfill, {oldest})
 
 
+APARTMENT_ROOT_ONLY = {"/can-ban-can-ho-chung-cu/ho-chi-minh": ("apartment", "sale")}
+
+
+@patch.object(alonhadat, "CATEGORY_ROOTS", APARTMENT_ROOT_ONLY)
 class NoLdpEnrichHandleTests(TestCase):
     def test_srp_only_crawl_fires_zero_ldp_requests(self):
         srp = Mock(text=_read("alonhadat_srp_apartment.txt"))
@@ -796,6 +800,7 @@ class SoftGonePlaceholderTests(SimpleTestCase):
         self.assertIsNone(extras["images"])
 
 
+@patch.object(alonhadat, "CATEGORY_ROOTS", APARTMENT_ROOT_ONLY)
 class ScrapeRunStatusCountsTests(TestCase):
     SRP_HTML = """
       <article class="property-item">
