@@ -63,13 +63,13 @@ if __name__ == "__main__":  # python -m listings.ml.predict
     assert sorted(bundle) == ["district_stats", "model", "model_type"], sorted(bundle)
     assert bundle["model_type"] == "random_forest", bundle["model_type"]
 
-    # Pinned against the committed artifact, computed 2026-08-12 from
+    # Pinned against the committed artifact, computed 2026-10-19 from
     # train._design plus the bundle directly, independently of this module.
     # Not an accuracy claim -- it fails if the design matrix, the fitted column
     # order, the exp() back-transform or as_of handling drift, which is what a
     # loader can actually get wrong. The held-out RMSE this model won on is not
     # stored in the bundle, and the split behind it is unreconstructable: the
-    # cleaned set was 1,226 rows at fit time and keeps growing, so a fixed
+    # cleaned set was 2,156 rows at fit time and keeps growing, so a fixed
     # random_state no longer selects the same test rows.
     #
     # posted_date sits 14 days before as_of deliberately. Every fitted
@@ -78,7 +78,7 @@ if __name__ == "__main__":  # python -m listings.ml.predict
     # verified, a sample at age 48 scored identically at age 1266, which left
     # as_of drift undetectable.
     #
-    # Repinned 2026-08-12 for the 1,447-row retrain (was the 1,226-row fit).
+    # Repinned 2026-10-19 for the 2,156-row retrain (was the 1,447-row fit).
     # The values move on every retrain by construction; a mismatch after one is
     # expected, a mismatch without one is the failure this guards against.
     rows = pd.DataFrame(
@@ -93,6 +93,6 @@ if __name__ == "__main__":  # python -m listings.ml.predict
         ]
     )
     small, large = predict(rows, as_of=pd.Timestamp("2026-07-29"))
-    assert math.isclose(small, 5_270_477_853.7324705, rel_tol=1e-9), small
-    assert math.isclose(large, 11_808_335_516.75785, rel_tol=1e-9), large
+    assert math.isclose(small, 5_193_853_612.217052, rel_tol=1e-9), small
+    assert math.isclose(large, 13_245_085_077.355661, rel_tol=1e-9), large
     print(f"ok  70sqm={small:,.0f} VND  150sqm={large:,.0f} VND")
