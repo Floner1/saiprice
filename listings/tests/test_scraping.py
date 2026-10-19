@@ -18,7 +18,7 @@ from listings.scraping.parsers import ParsedListing, RequiredFieldMissing, parse
 from listings.scraping.sites import alonhadat
 from listings.tests.test_models import _make_listing
 
-# real sample HTML in testdata/ rather than a duplicated fixtures/
+# trimmed page excerpts in testdata/ rather than a duplicated fixtures/
 # copy. testdata/ is ignored except for the four files these tests read, which
 # are committed -- see .gitignore. Adding a fixture means un-ignoring it there.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent / "testdata"
