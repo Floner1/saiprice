@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from django.test import SimpleTestCase, TestCase
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.pipeline import Pipeline
 
 from listings.ml.dataset import build_training_rows
@@ -37,6 +37,33 @@ def _predict(bundle, frame, as_of="2026-07-29"):
         columns=bundle["model"].feature_names_in_,
     )
     return np.exp(bundle["model"].predict(X))
+
+
+def _grouped_split(df):
+    """Independent reconstruction of the split `train()` should make."""
+    groups = df.groupby(["price", "area_sqm", "district"]).ngroup()
+    train_idx, test_idx = next(
+        GroupShuffleSplit(
+            n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE
+        ).split(df, groups=groups)
+    )
+    return df.iloc[train_idx], df.iloc[test_idx]
+
+
+def _twin_rows():
+    """Ten (price, area, district) groups of three rows each."""
+    return [
+        {
+            "id": group * 3 + i + 1,
+            "district": "Quận 7",
+            "property_type": "apartment",
+            "area_sqm": 50.0 + group,
+            "price": 3e9 + group * 1e8,
+            "posted_date": date(2026, 6, 1),
+        }
+        for group in range(10)
+        for i in range(3)
+    ]
 
 
 class PickledModelTests(SimpleTestCase):
@@ -123,9 +150,7 @@ class TrainTests(TestCase):
     def test_district_stats_are_fitted_on_the_train_split_only(self):
         _, bundle = self._train()
         df = pd.DataFrame(build_training_rows()[0])
-        expected, _ = train_test_split(
-            df, test_size=TEST_SIZE, random_state=RANDOM_STATE
-        )
+        expected, _ = _grouped_split(df)
         pd.testing.assert_frame_equal(
             bundle["district_stats"], fit_district_stats(expected)
         )
@@ -207,9 +232,7 @@ class RandomForestTests(TestCase):
         metrics, _ = self._train()
 
         df = pd.DataFrame(build_training_rows()[0])
-        expected_train, expected_test = train_test_split(
-            df, test_size=TEST_SIZE, random_state=RANDOM_STATE
-        )
+        expected_train, expected_test = _grouped_split(df)
         self.assertEqual(
             sorted(metrics["train_ids"]), sorted(expected_train["id"].tolist())
         )
@@ -219,13 +242,13 @@ class RandomForestTests(TestCase):
 
     def test_build_training_rows_and_split_called_exactly_once(self):
         """Guards the actual mechanism: two models must consume one split, not
-        each call build_training_rows()/train_test_split() on their own --
+        each call build_training_rows()/GroupShuffleSplit() on their own --
         that's how the two could silently diverge.
         """
         with mock.patch(
             "listings.ml.train.build_training_rows", wraps=build_training_rows
         ) as rows_spy, mock.patch(
-            "listings.ml.train.train_test_split", wraps=train_test_split
+            "listings.ml.train.GroupShuffleSplit", wraps=GroupShuffleSplit
         ) as split_spy:
             self._train()
 
@@ -269,3 +292,30 @@ class RandomForestTests(TestCase):
             self.assertIsInstance(bundle["model"], RandomForestRegressor)
         else:
             self.assertIsInstance(bundle["model"], Pipeline)
+
+
+class GroupedSplitTests(SimpleTestCase):
+    """The builder already collapses (price, area, district) twins, so these
+    feed twin rows straight to train() to exercise the split on its own.
+    """
+
+    def _train(self, rows):
+        with mock.patch(
+            "listings.ml.train.build_training_rows", return_value=(rows, {})
+        ), TemporaryDirectory() as tmp:
+            return train(model_path=Path(tmp) / "model.pkl", as_of="2026-07-29")
+
+    def test_no_price_area_district_group_straddles_the_split(self):
+        rows = _twin_rows()
+        key = {r["id"]: (r["price"], r["area_sqm"], r["district"]) for r in rows}
+        metrics = self._train(rows)
+        train_keys = {key[i] for i in metrics["train_ids"]}
+        test_keys = {key[i] for i in metrics["test_ids"]}
+        self.assertTrue(test_keys)
+        self.assertFalse(train_keys & test_keys)
+
+    def test_same_seed_gives_the_same_split(self):
+        rows = _twin_rows()
+        first, second = self._train(rows), self._train(rows)
+        self.assertEqual(first["train_ids"], second["train_ids"])
+        self.assertEqual(first["test_ids"], second["test_ids"])

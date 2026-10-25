@@ -19,15 +19,15 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from listings.ml.dataset import build_training_rows
 from listings.ml.features import district_median_price, fit_district_stats, listing_age
 
-# Must match notebooks/feature_engineering.ipynb so this fit lands on the same
-# split the leak audit was run against.
+# Shared with notebooks/feature_engineering.ipynb. Its leak audit ran on a
+# plain row split; train() groups its split, so the two pick different rows.
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
 
@@ -79,9 +79,17 @@ def train(model_path=MODEL_PATH, as_of=None):
     """
     as_of = pd.Timestamp.now() if as_of is None else pd.Timestamp(as_of)
     df = pd.DataFrame(build_training_rows()[0])
-    train_df, test_df = train_test_split(
-        df, test_size=TEST_SIZE, random_state=RANDOM_STATE
+    # Rows sharing (price, area, district) stay on one side, so no test row is
+    # scored against its own copy in train. The builder already collapses these;
+    # the grouping keeps the guard if that dedup is loosened, and costs no rows.
+    # test_size counts groups, not rows, so the test-row share drifts slightly.
+    groups = df.groupby(["price", "area_sqm", "district"]).ngroup()
+    train_idx, test_idx = next(
+        GroupShuffleSplit(
+            n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE
+        ).split(df, groups=groups)
     )
+    train_df, test_df = df.iloc[train_idx], df.iloc[test_idx]
 
     # Train frame only. Fitting on `df` would put each test row's own price
     # into the district median it is scored against (features.py docstring).

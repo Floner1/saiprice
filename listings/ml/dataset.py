@@ -131,7 +131,7 @@ def build_training_rows(queryset=None):
         units.count(),
     )
 
-    rows, seen = [], set()
+    rows, seen, twins = [], set(), set()
     fields = (
         "id",
         "title",
@@ -143,16 +143,23 @@ def build_training_rows(queryset=None):
     )
     for row in units.order_by("id").values(*fields):
         # An exact repost under a fresh source_id stays a distinct Listing by
-        # design, but duplicate rows leak across a train/test
-        # split and inflate the score. Training set only -- no Listing row is
-        # merged or modified.
-        # exact (title, price, area) match. A looser (price, area,
-        # district) key catches ~3x more but false-positives on identical
-        # floorplans in one building; tighten only if reposts get retitled.
+        # design, but duplicate rows leak across a train/test split and
+        # inflate the score. Training set only -- no Listing row is merged or
+        # modified. Two keys, lowest id kept so a later repost never displaces
+        # a row already in the set: an exact (title, price, area) match, then
+        # a (price, area, district) twin. The second key drops retitled
+        # reposts and genuine sibling units (identical floorplans in one
+        # building) alike, and nothing here can tell the two apart. train.py
+        # groups its split on the same key, so a twin cannot land on both
+        # sides even if this dedup is loosened.
         key = (row["title"], row["price"], row["area_sqm"])
         if key in seen:
             continue
         seen.add(key)
+        twin = (row["price"], row["area_sqm"], row["district"])
+        if twin in twins:
+            continue
+        twins.add(twin)
         rows.append(
             {
                 "id": row["id"],
@@ -181,7 +188,8 @@ def build_training_rows(queryset=None):
         "dropped_missing_or_nonpositive": n_sale - n_complete,
         "dropped_missing_posted_date": n_complete - n_dated,
         "dropped_whole_building": n_dated - n_units,
-        "dropped_duplicate": n_units - n_deduped,
+        "dropped_duplicate": n_units - len(seen),
+        "dropped_same_price_area_district": len(seen) - n_deduped,
         **implausible,
         "rows_after": len(rows),
     }

@@ -51,6 +51,7 @@ class BuildTrainingRowsTests(TestCase):
                 "dropped_missing_posted_date": 0,
                 "dropped_whole_building": 2,
                 "dropped_duplicate": 0,
+                "dropped_same_price_area_district": 0,
                 "rows_after": 1,
             },
         )
@@ -72,6 +73,26 @@ class BuildTrainingRowsTests(TestCase):
         rows, stats = build_training_rows()
         self.assertEqual(stats["dropped_duplicate"], 1)
         self.assertEqual([r["id"] for r in rows], [first.id])
+
+    def test_drops_retitled_twin_sharing_price_area_and_district(self):
+        first = _listing("orig", title="Căn hộ 2PN view sông")
+        _listing("retitled", title="Bán gấp căn 2PN chính chủ")
+        rows, stats = build_training_rows()
+        self.assertEqual([r["id"] for r in rows], [first.id])
+        self.assertEqual(stats["dropped_duplicate"], 0)
+        self.assertEqual(stats["dropped_same_price_area_district"], 1)
+
+    def test_keeps_same_price_and_area_in_different_districts(self):
+        q7 = _listing("q7", title="Unit A", district="Quận 7")
+        q2 = _listing("q2", title="Unit B", district="Quận 2")
+        rows, _ = build_training_rows()
+        self.assertEqual(sorted(r["id"] for r in rows), sorted([q7.id, q2.id]))
+
+    def test_keeps_same_price_and_district_with_different_area(self):
+        small = _listing("small", title="Unit A", area_sqm=70)
+        large = _listing("large", title="Unit B", area_sqm=85)
+        rows, _ = build_training_rows()
+        self.assertEqual(sorted(r["id"] for r in rows), sorted([small.id, large.id]))
 
     def test_carries_posted_date_for_the_listing_age_feature(self):
         _listing("dated", posted_date=date(2026, 6, 13))
@@ -117,7 +138,7 @@ class PriceImplausibilityTests(TestCase):
         # Thu Duc at the real comparable band for the 45 ty listing's area.
         _band(
             "Thành phố Thủ Đức",
-            [100, 105, 108, 112, 115, 118, 120, 122, 125, 128, 130, 130],
+            [100, 105, 108, 112, 115, 118, 120, 122, 125, 128, 130, 131],
         )
         _band("Quận 8", [35, 40, 42, 45, 47, 50, 52, 55, 58, 62, 66, 70])
         # Quan 1 is genuinely bimodal: an ordinary tier around its 118M/m2
@@ -192,6 +213,7 @@ class PriceImplausibilityTests(TestCase):
 
         self.assertEqual(stats["dropped_price_implausible"], 2)
         self.assertEqual(stats["dropped_whole_building"], 1)
+        self.assertEqual(stats["dropped_same_price_area_district"], 0)
 
     def test_thin_district_is_judged_at_its_own_price_level(self):
         # Huyện Hóc Môn has three rows live, far too few for a p90, and they are
