@@ -97,20 +97,35 @@ class PickledModelTests(SimpleTestCase):
         small, large = _predict(self.bundle, pair)
         self.assertGreater(large, small * 1.5)
 
+
+class ScoreFrameEncodingTests(SimpleTestCase):
     def test_score_frame_missing_a_category_is_not_encoded_as_the_baseline(self):
         # get_dummies on a one-row frame emits only that row's category, so
         # score time must reindex against the fitted columns. A frame holding
         # only a non-baseline type must not collapse onto the dropped one.
-        types = [c for c in self.bundle["model"].feature_names_in_
-                 if c.startswith("property_type_")]
-        self.assertTrue(types, "no property_type dummies in the fitted model")
-        one = SAMPLE.assign(property_type=types[0].removeprefix("property_type_"))
-        X = _design(
-            one,
-            self.bundle["district_stats"],
-            pd.Timestamp("2026-07-29"),
-            columns=self.bundle["model"].feature_names_in_,
+        # Fits its own columns: whether the committed model carries any dummy
+        # depends on which side of the split a single house lands. Three types,
+        # so a one-type score frame is missing a fitted dummy and only the
+        # reindex can restore it.
+        train_df = pd.DataFrame(
+            [
+                {
+                    **SAMPLE.iloc[0].to_dict(),
+                    "property_type": kind,
+                    "area_sqm": 50.0 + i,
+                    "price": 3e9 + i * 1e8,
+                }
+                for i, kind in enumerate(["apartment", "house", "villa"] * 2)
+            ]
         )
+        stats = fit_district_stats(train_df)
+        as_of = pd.Timestamp("2026-07-29")
+        columns = list(_design(train_df, stats, as_of).columns)
+        types = [c for c in columns if c.startswith("property_type_")]
+        self.assertTrue(types, "no property_type dummies in the fitted columns")
+        one = SAMPLE.assign(property_type=types[0].removeprefix("property_type_"))
+        X = _design(one, stats, as_of, columns=columns)
+        self.assertEqual(list(X.columns), columns)
         self.assertEqual(X[types[0]].iloc[0], 1.0)
 
 
