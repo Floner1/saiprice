@@ -150,13 +150,13 @@ Each run writes a `ScoringRun` with the in-sample median absolute percentage err
 
 ## The price model
 
-- **Features:** `area_sqm`, `listing_age` (days since posting), `district_median_price`, and one-hot `property_type`.
+- **Features:** `area_sqm`, `listing_age` (days since posting), `district_median_price`, and one-hot `property_type`. The current fit has no `property_type` column, because its training split holds only apartments.
 - **Target:** `log(price)`. Raw VND is heavily right-skewed (4.675 measured) and log brings it to 0.836. Predictions are back-transformed with `exp`, so each value is a conditional median.
 - **Candidates:** linear regression (scaled) and a random forest on one shared split. The lower held-out RMSE ships.
 - **No leakage:** the split is grouped on `(price, area, district)`, so rows sharing all three always land on the same side. District medians are fitted on the training split only, then applied to both splits. A district with fewer than 10 training rows falls back to the training-wide median.
 - **Cleaning** (`ml/dataset.py`, read-only): sale listings only, drop missing or non-positive price and area, drop whole buildings by the area and bedroom caps, drop exact reposts by `(title, price, area)`, then twins by `(price, area, district)`, keeping the lowest id, and drop rows priced above 3.5 times their district's 90th-percentile price per m². The percentile is the anchor, not the median, because Quận 1 has a real luxury tier that a median rule would mistake for a typo.
 - **Delivery:** `train_model` is manual. The winning model is pickled to `listings/ml/model.pkl` and committed. Deploys do not retrain.
-- **Limits:** the shipped model was trained before houses and villas were crawled, so every training row is an apartment and `property_type` carries no signal. Until a retrain, the model prices a house or villa as if it were an apartment of the same size in the same district. `listing_age` saturates past the oldest training row. There is no accuracy floor. Whatever the better model reaches is what ships.
+- **Limits:** the model has been retrained since houses and villas were added to the crawl, but the cleaned set still holds 2,044 apartments and 1 house, and the fitted model has no `property_type` column. Until more houses are crawled, it prices a house or villa as if it were an apartment of the same size in the same district. `listing_age` saturates past the oldest training row. There is no accuracy floor. Whatever the better model reaches is what ships.
 
 ## Web layer
 

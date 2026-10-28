@@ -63,22 +63,21 @@ if __name__ == "__main__":  # python -m listings.ml.predict
     assert sorted(bundle) == ["district_stats", "model", "model_type"], sorted(bundle)
     assert bundle["model_type"] == "random_forest", bundle["model_type"]
 
-    # Pinned against the committed artifact, computed 2026-10-19 from
+    # Pinned against the committed artifact, computed 2026-10-26 from
     # train._design plus the bundle directly, independently of this module.
     # Not an accuracy claim -- it fails if the design matrix, the fitted column
     # order, the exp() back-transform or as_of handling drift, which is what a
     # loader can actually get wrong. The held-out RMSE this model won on is not
     # stored in the bundle, and the split behind it is unreconstructable: the
-    # cleaned set was 2,156 rows at fit time and keeps growing, so a fixed
-    # random_state no longer selects the same test rows.
+    # cleaned set was 2,045 rows at fit time and changes with every scrape and
+    # delisting, so a fixed random_state no longer selects the same test rows.
     #
-    # posted_date sits 14 days before as_of deliberately. Every fitted
-    # listing_age split threshold is under ~50 (the training set topped out at
-    # 50 days), so an older sample saturates and the prediction stops moving --
-    # verified, a sample at age 48 scored identically at age 1266, which left
-    # as_of drift undetectable.
+    # posted_date sits 14 days before as_of deliberately. The largest fitted
+    # listing_age split threshold is 122 days (99th percentile 94.5, measured
+    # 2026-10-26), and a sample older than that stops responding to as_of,
+    # which would leave as_of drift undetectable.
     #
-    # Repinned 2026-10-19 for the 2,156-row retrain (was the 1,447-row fit).
+    # Repinned 2026-10-26 for the 2,045-row retrain (was the 2,156-row fit).
     # The values move on every retrain by construction; a mismatch after one is
     # expected, a mismatch without one is the failure this guards against.
     rows = pd.DataFrame(
@@ -93,6 +92,6 @@ if __name__ == "__main__":  # python -m listings.ml.predict
         ]
     )
     small, large = predict(rows, as_of=pd.Timestamp("2026-07-29"))
-    assert math.isclose(small, 5_193_853_612.217052, rel_tol=1e-9), small
-    assert math.isclose(large, 13_245_085_077.355661, rel_tol=1e-9), large
+    assert math.isclose(small, 4_625_289_088.538438, rel_tol=1e-9), small
+    assert math.isclose(large, 11_940_565_111.747108, rel_tol=1e-9), large
     print(f"ok  70sqm={small:,.0f} VND  150sqm={large:,.0f} VND")
