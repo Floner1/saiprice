@@ -192,6 +192,33 @@ class ScoringRun(models.Model):
     status_counts = models.JSONField(null=True)
 
 
+class DistrictSnapshot(models.Model):
+    """One day's median asking price per m2 for one district and property type.
+
+    Aggregates, not per-listing rows. source_site is in the key so a second
+    source adds rows and never moves the first source's series. A day the
+    scraper's machine was off has no rows, and nothing backfills it.
+    """
+
+    snapshot_date = models.DateField()
+    source_site = models.CharField(max_length=20, choices=SCRAPE_RUN_SOURCE_CHOICES)
+    district = models.CharField(max_length=100)
+    property_type = models.CharField(max_length=20)
+    # listing_count includes reposts, distinct_count collapses them.
+    listing_count = models.IntegerField()
+    distinct_count = models.IntegerField()
+    median_price_per_sqm = models.DecimalField(max_digits=15, decimal_places=0)
+    median_price = models.DecimalField(max_digits=15, decimal_places=0)
+    # Null below the minimum distinct rows a quartile needs.
+    p25_price_per_sqm = models.DecimalField(max_digits=15, decimal_places=0, null=True)
+    p75_price_per_sqm = models.DecimalField(max_digits=15, decimal_places=0, null=True)
+
+    class Meta:
+        unique_together = (
+            ("snapshot_date", "source_site", "district", "property_type"),
+        )
+
+
 class OfficeBuilding(models.Model):
     """One maisonoffice.vn building: a broker's rent quote, not a unit listing.
 

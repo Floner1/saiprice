@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 from .models import (
-    Agent, Listing, OfficeBuilding, OfficeRentHistory, PriceHistory, ScoringRun, ScrapeRun,
+    Agent, DistrictSnapshot, Listing, OfficeBuilding, OfficeRentHistory, PriceHistory,
+    ScoringRun, ScrapeRun,
 )
 
 admin.site.register(Listing)
@@ -25,6 +26,15 @@ class ScoringRunAdmin(admin.ModelAdmin):
         "n_compared", "median_ape", "mae_vnd", "model_fingerprint",
         "error_count", "status_counts",
     )
+
+
+@admin.register(DistrictSnapshot)
+class DistrictSnapshotAdmin(admin.ModelAdmin):
+    list_display = (
+        "snapshot_date", "source_site", "district", "property_type",
+        "listing_count", "distinct_count", "median_price_per_sqm", "median_price",
+    )
+    list_filter = ("snapshot_date", "source_site", "property_type")
 
 
 @admin.register(OfficeBuilding)

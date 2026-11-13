@@ -1,11 +1,13 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
+from listings.models import (
+    Agent, DistrictSnapshot, Listing, PriceHistory, ScoringRun, ScrapeRun,
+)
 from listings.scraping.parsers import ParsedListing
 from listings.upsert import upsert
 
@@ -37,6 +39,41 @@ class ListingUniquenessTests(TestCase):
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 _make_listing(source_id="dup", url="https://batdongsan.com.vn/b-pr1")
+
+
+class DistrictSnapshotUniquenessTests(TestCase):
+    def _snapshot(self, **overrides):
+        fields = dict(
+            snapshot_date=date(2026, 11, 12),
+            source_site="alonhadat",
+            district="Quận 7",
+            property_type="apartment",
+            listing_count=3,
+            distinct_count=3,
+            median_price_per_sqm=60_000_000,
+            median_price=3_000_000_000,
+        )
+        fields.update(overrides)
+        return DistrictSnapshot.objects.create(**fields)
+
+    def test_four_key_fields_unique_together_enforced(self):
+        self._snapshot()
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                self._snapshot(listing_count=9)
+
+    def test_any_one_key_field_may_differ(self):
+        self._snapshot()
+        self._snapshot(snapshot_date=date(2026, 11, 13))
+        self._snapshot(source_site="homedy")
+        self._snapshot(district="Quận 2")
+        self._snapshot(property_type="villa")
+        self.assertEqual(DistrictSnapshot.objects.count(), 5)
+
+    def test_quartiles_are_nullable(self):
+        row = self._snapshot()
+        self.assertIsNone(row.p25_price_per_sqm)
+        self.assertIsNone(row.p75_price_per_sqm)
 
 
 class AgentDedupTests(TestCase):
