@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
+from listings.tests.test_district_analytics import TY, _fill
 from listings.tests.test_models import _make_listing
 from listings.views import _page_slots
 
@@ -571,6 +572,7 @@ class MainNavTests(TestCase):
             "/flagged/": "Flagged",
             "/health/": "Health",
             "/offices/": "Offices",
+            "/districts/": "Residential",
         }
         for path, expected in current.items():
             with self.subTest(path=path):
@@ -592,6 +594,55 @@ class MainNavTests(TestCase):
                     [label for attrs, label in links if 'aria-current="page"' in attrs],
                     [expected],
                 )
+
+
+class DistrictPricesViewTests(TestCase):
+    def test_empty_database_says_so_and_draws_no_bar(self):
+        response = self.client.get("/districts/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No apartment listings")
+        self.assertNotContains(response, 'style="width')
+
+    def test_shows_a_district_with_its_median_per_m2(self):
+        _fill("Quận 7", TY)
+
+        response = self.client.get("/districts/")
+
+        self.assertContains(response, "Quận 7")
+        self.assertContains(response, "55.0")
+        self.assertContains(response, "triệu/m²")
+        self.assertContains(response, 'style="width: 92%"')
+        self.assertContains(response, "55,000,000 VND per m²")
+
+    def test_says_asking_price_never_fair_price(self):
+        _fill("Quận 7", TY)
+
+        html = self.client.get("/districts/").content.decode().lower()
+
+        self.assertIn("asking price", html)
+        self.assertNotIn("fair price", html)
+
+    def test_thin_district_shows_its_count_and_no_median(self):
+        _fill("Quận 9", TY, n=9)
+
+        response = self.client.get("/districts/")
+
+        self.assertContains(response, "Quận 9")
+        self.assertContains(response, "Under 10 listings")
+        self.assertNotContains(response, "50.0")
+        self.assertNotContains(response, 'style="width')
+
+    def test_scraped_district_name_is_escaped(self):
+        _fill('"><script>x</script>', TY)
+
+        response = self.client.get("/districts/")
+
+        self.assertNotContains(response, "<script>x")
+        self.assertContains(response, "&lt;script&gt;x")
+
+    def test_home_page_links_here(self):
+        self.assertContains(self.client.get("/"), 'href="/districts/"')
 
 
 HOSTILE_Q = '"><script>alert(1)</script>'

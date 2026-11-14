@@ -5,6 +5,7 @@ from django.db.models import F, Q
 from django.views.generic import DetailView, ListView, TemplateView
 
 from listings.analytics import accuracy_trend, bar_max, recent_runs, scrapes_per_day
+from listings.district_analytics import dashboard as district_dashboard
 from listings.models import Listing, ScoringRun, ScrapeRun
 from listings.office_analytics import dashboard as office_dashboard
 
@@ -143,3 +144,10 @@ class OfficeDashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         return {**super().get_context_data(**kwargs), **office_dashboard()}
+
+
+class DistrictPricesView(TemplateView):
+    template_name = "listings/district_prices.html"
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **district_dashboard()}

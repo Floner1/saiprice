@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Price per m² by district · SaiPrice{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl mb-1">Price per m² by district</h1>
+{% if not total %}
+<p class="text-sm text-muted">No apartment listings for sale have been seen in the last {{ fresh_days }} days.</p>
+{% else %}
+<p class="text-sm text-muted mb-8">
+  Median asking price per m² for apartments for sale seen in the last
+  {{ fresh_days }} days. Asking prices, not sale prices. Listings with the
+  same price, area and district count once. A project posted many times at
+  one starting price can pull a median. District names follow the listing
+  sites, not an official unit.
+</p>
+
+<section>
+  <h2 class="text-lg mb-1">Median asking price</h2>
+  <p class="text-sm text-muted mb-4">
+    In triệu/m² (million VND per m²), highest first. The number after the
+    dot counts the district's listings.{% if axis_top %} Scale: 0 to
+    {{ axis_top }} triệu/m².{% endif %}
+  </p>
+  <ul>
+    {% for row in districts %}
+    <li class="py-1 border-b border-line text-sm"
+        title="{{ row.district }}: median {{ row.median_price_per_sqm|floatformat:'0g' }} VND per m², middle half {{ row.p25_price_per_sqm|floatformat:'0g' }} to {{ row.p75_price_per_sqm|floatformat:'0g' }}, {{ row.distinct_count }} listings ({{ row.listing_count }} with reposts)">
+      <div class="flex flex-wrap items-center gap-x-3">
+        <span class="w-full sm:w-36 shrink-0">{{ row.district }}</span>
+        <span class="flex-1 h-2 bg-line" aria-hidden="true">
+          <span class="block h-2 rounded-r-sm bg-accent"
+                style="width: {% widthratio row.median_million axis_top 100 %}%"></span>
+        </span>
+        <span class="w-24 shrink-0 text-right tabular-nums">{{ row.median_million|floatformat:1 }} <span class="text-muted">· {{ row.distinct_count }}</span></span>
+      </div>
+    </li>
+    {% empty %}
+    <li class="text-sm text-muted">No district has {{ min_summary_n }} or more listings yet.</li>
+    {% endfor %}
+  </ul>
+
+  {% if thin_districts %}
+  <h3 class="text-sm mt-6 mb-1">Under {{ min_summary_n }} listings</h3>
+  <p class="text-sm text-muted mb-2">Too few for a median worth printing, so only the count is shown.</p>
+  <ul class="text-sm">
+    {% for row in thin_districts %}
+    <li class="py-1 border-b border-line flex justify-between gap-3">
+      <span>{{ row.district }}</span>
+      <span class="tabular-nums">{{ row.distinct_count }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <details class="mt-6 text-sm">
+    <summary class="cursor-pointer text-muted">Every district as a table</summary>
+    <div class="overflow-x-auto">
+      <table class="w-full mt-2 tabular-nums whitespace-nowrap">
+        <thead class="text-muted">
+          <tr class="border-b border-line">
+            <th scope="col" class="py-1 pr-3 text-left font-normal">District</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Median</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Middle half</th>
+            <th scope="col" class="py-1 px-3 text-right font-normal">Listings</th>
+            <th scope="col" class="py-1 pl-3 text-right font-normal">With reposts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in districts %}
+          <tr class="border-b border-line">
+            <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.district }}</th>
+            <td class="py-1 px-3 text-right">{{ row.median_million|floatformat:1 }}</td>
+            <td class="py-1 px-3 text-right">{{ row.p25_million|floatformat:1 }}–{{ row.p75_million|floatformat:1 }}</td>
+            <td class="py-1 px-3 text-right">{{ row.distinct_count }}</td>
+            <td class="py-1 pl-3 text-right">{{ row.listing_count }}</td>
+          </tr>
+          {% endfor %}
+          {% for row in thin_districts %}
+          <tr class="border-b border-line">
+            <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.district }}</th>
+            <td class="py-1 px-3 text-right">-</td>
+            <td class="py-1 px-3 text-right">-</td>
+            <td class="py-1 px-3 text-right">{{ row.distinct_count }}</td>
+            <td class="py-1 pl-3 text-right">{{ row.listing_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted mt-2">Medians in triệu/m². Middle half is the 25th to 75th percentile. "With reposts" counts every post, including copies at the same price and area.</p>
+  </details>
+</section>
+{% endif %}
+{% endblock %}
