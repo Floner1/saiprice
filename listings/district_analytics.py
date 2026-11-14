@@ -3,13 +3,16 @@
 Read-only. Built on asking prices, never sale prices.
 """
 
+import math
 import statistics
 from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Q
+from django.utils import timezone
 
 from listings.ml.dataset import MAX_AREA_SQM, MAX_BEDROOMS
+from listings.models import Listing
 
 # A run that ends on an srp_ code skips the delisting sweep, and recent runs
 # all have, so is_active alone keeps listings that left the market weeks ago.
@@ -70,3 +73,42 @@ def district_stats(queryset, as_of):
             }
         )
     return out
+
+
+def _million(vnd):
+    return None if vnd is None else vnd / 1_000_000
+
+
+def dashboard(as_of=None):
+    """Apartment rows for /districts/, split by whether a median means anything.
+
+    Villas are left out because their price per m2 is not comparable with an
+    apartment's. A district under MIN_SUMMARY_N distinct rows goes to
+    thin_districts and shows a count, never a figure.
+    """
+    rows = district_stats(
+        Listing.objects.filter(
+            source_site__in=MARKET_SOURCES, property_type="apartment"
+        ),
+        as_of or timezone.now(),
+    )
+    for row in rows:
+        for key in ("median", "p25", "p75"):
+            row[f"{key}_million"] = _million(row[f"{key}_price_per_sqm"])
+
+    shown = sorted(
+        (r for r in rows if r["distinct_count"] >= MIN_SUMMARY_N),
+        key=lambda r: (-r["median_price_per_sqm"], r["district"]),
+    )
+    thin = sorted(
+        (r for r in rows if r["distinct_count"] < MIN_SUMMARY_N),
+        key=lambda r: (-r["distinct_count"], r["district"]),
+    )
+    return {
+        "districts": shown,
+        "thin_districts": thin,
+        "total": sum(r["distinct_count"] for r in rows),
+        "axis_top": math.ceil(shown[0]["median_million"] / 10) * 10 if shown else None,
+        "min_summary_n": MIN_SUMMARY_N,
+        "fresh_days": FRESH_DAYS,
+    }

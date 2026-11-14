@@ -5,7 +5,7 @@ from itertools import count
 from django.test import TestCase
 from django.utils import timezone
 
-from listings.district_analytics import district_stats
+from listings.district_analytics import dashboard, district_stats
 from listings.models import Listing
 from listings.tests.test_models import _make_listing
 
@@ -115,3 +115,101 @@ class DistrictStatsTests(TestCase):
         self.assertEqual(
             sorted(r["property_type"] for r in rows), ["apartment", "villa"]
         )
+
+
+def _fill(district, step, n=10, **overrides):
+    # n distinct rows at area 100, so the median is (n + 1) / 2 * step / 100 per m2.
+    for k in range(1, n + 1):
+        _row(k * step, area=100, district=district, **overrides)
+
+
+class DashboardTests(TestCase):
+    def test_districts_sorted_by_median_highest_first(self):
+        _fill("Quận 7", TY)
+        _fill("Quận 1", 1_500_000_000)
+        _fill("Quận 2", 2 * TY)
+
+        data = dashboard()
+
+        self.assertEqual(
+            [d["district"] for d in data["districts"]], ["Quận 2", "Quận 1", "Quận 7"]
+        )
+
+    def test_thin_district_is_listed_apart_and_never_sets_the_axis(self):
+        _fill("Quận 7", TY)
+        _fill("Quận 9", 10 * TY, n=9)
+        _row(10 * TY, area=100, district="Quận 9")
+
+        data = dashboard()
+
+        self.assertEqual([d["district"] for d in data["districts"]], ["Quận 7"])
+        (thin,) = data["thin_districts"]
+        self.assertEqual(thin["district"], "Quận 9")
+        self.assertEqual(thin["listing_count"], 10)
+        self.assertEqual(thin["distinct_count"], 9)
+        self.assertEqual(data["total"], 19)
+        self.assertEqual(data["axis_top"], 60)
+
+    def test_only_apartments_from_the_market_sources(self):
+        _fill("Quận 7", TY)
+        _fill("Quận 2", TY, property_type="villa")
+        _fill("Quận 3", TY, source_site="batdongsan")
+
+        data = dashboard()
+
+        self.assertEqual([d["district"] for d in data["districts"]], ["Quận 7"])
+        self.assertEqual(data["thin_districts"], [])
+        self.assertEqual(data["total"], 10)
+
+    def test_same_unit_on_both_sources_counts_once(self):
+        _row(2 * TY)
+        _row(2 * TY, source_site="homedy")
+
+        data = dashboard()
+
+        (thin,) = data["thin_districts"]
+        self.assertEqual(thin["listing_count"], 2)
+        self.assertEqual(thin["distinct_count"], 1)
+        self.assertEqual(data["total"], 1)
+
+    def test_axis_top_rounds_the_largest_median_up_to_the_next_ten(self):
+        for step, expected in (
+            (TY, 60),  # 55 million
+            (1_500_000_000, 90),  # 82.5 million
+            (2 * TY, 110),  # exactly 110 million
+        ):
+            with self.subTest(step=step):
+                Listing.objects.all().delete()
+                _fill("Quận 7", step)
+                self.assertEqual(dashboard()["axis_top"], expected)
+
+    def test_rows_carry_millions_and_thin_rows_have_no_quartiles(self):
+        _fill("Quận 7", TY)
+        _fill("Quận 9", TY, n=9)
+
+        data = dashboard()
+
+        (row,) = data["districts"]
+        self.assertEqual(row["median_million"], 55.0)
+        self.assertEqual(row["p25_million"], 27.5)
+        self.assertEqual(row["p75_million"], 82.5)
+        (thin,) = data["thin_districts"]
+        self.assertIsNone(thin["p25_million"])
+        self.assertIsNone(thin["p75_million"])
+
+    def test_empty(self):
+        data = dashboard()
+
+        self.assertEqual(data["districts"], [])
+        self.assertEqual(data["thin_districts"], [])
+        self.assertEqual(data["total"], 0)
+        self.assertIsNone(data["axis_top"])
+        self.assertEqual(data["min_summary_n"], 10)
+        self.assertEqual(data["fresh_days"], 30)
+
+    def test_as_of_moves_the_freshness_window(self):
+        _fill("Quận 7", TY)
+
+        data = dashboard(timezone.now() + timedelta(days=40))
+
+        self.assertEqual(data["total"], 0)
