@@ -1,0 +1,176 @@
+<html>
+<body>
+<div class="tab-content">
+<div class="color-blue product-item">
+<div class="product-item-top">
+<a class="thumb-image" href="/ban-can-ho-du-an-a/ban-can-ho-3pn-2wc-103m2-gia-28ty5-es3225932" title="Bán căn hộ 3PN, 2WC, 103m2, giá 28tỷ5">
+<img alt="Bán căn hộ 3PN, 2WC, 103m2, giá 28tỷ5" class="lazy" height="200" width="200"/>
+<span class="distance">6 </span>
+<div class="status"></div>
+</a>
+<div class="product-content">
+<h3><a class="title padding-hoz" href="/ban-can-ho-du-an-a/ban-can-ho-3pn-2wc-103m2-gia-28ty5-es3225932" rel="follow" title="Bán căn hộ 3PN, 2WC, 103m2, giá 28tỷ5">Bán căn hộ 3PN, 2WC, 103m2, giá 28tỷ5</a></h3>
+<div class="description padding-hoz">Bán căn hộ 3PN, 2WC, DT 103m². Giá 28tỷ5, thương lượng...</div>
+<ul class="product-unit">
+<li><i class="icon icon-price"></i> <span class="price">28,5 Tỷ</span></li>
+<li class="acr"><i class="icon icon-acr"></i> <span class="acreage">103 m2</span></li>
+<li>276,7 tr/m2</li>
+<li class="address" title="Đường A, Phường B, quận 1, TP Hồ Chí Minh"><i class="icon icon-address"></i>  quận 1,  TP Hồ Chí Minh</li>
+</ul>
+<div class="box-price-agency">
+<div class="time">
+3 ngày trước                                    </div>
+<div class="social-option listing">
+<ul>
+<li>
+<a class="btn cmd-save" data-content="Bán căn hộ 3PN, 2WC, 103m2, giá 28tỷ5" data-id="3225932" data-type="2" href="javascript:void(0)" title="Lưu lại">
+<i class="icon saved" flow="down" tooltip="Lưu lại tin này"></i>
+<span class="save-count"></span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="product-item">
+<div class="product-item-top">
+<a class="thumb-image" href="/ban-can-ho-du-an-b/mo-ban-can-ho-thanh-toan-10-es3161459" title="Mở bán căn hộ dự án B, thanh toán 10%">
+<img alt="Mở bán căn hộ dự án B, thanh toán 10%" class="lazy" height="200" width="200"/>
+<span class="distance">14 </span>
+<div class="status"></div>
+</a>
+<div class="product-content">
+<h3><a class="title padding-hoz" href="/ban-can-ho-du-an-b/mo-ban-can-ho-thanh-toan-10-es3161459" rel="follow" title="Mở bán căn hộ dự án B, thanh toán 10%">Mở bán căn hộ dự án B, thanh toán 10%</a></h3>
+<div class="description padding-hoz">Mở bán căn hộ dự án B, nhiều diện tích, thanh toán 10%...</div>
+<ul class="product-unit">
+<li><i class="icon icon-price"></i> <span class="price">4,2 - 7,3 Tỷ</span></li>
+<li class="acr"><i class="icon icon-acr"></i> <span class="acreage">60 - 97 m2</span></li>
+<li>70 tr/m2</li>
+<li class="address" title="Đường A, Phường B, Quận Bình Chánh, Thành phố Hồ Chí Minh"><i class="icon icon-address"></i>  Quận Bình Chánh,  Thành phố Hồ Chí Minh</li>
+</ul>
+<div class="box-price-agency">
+<div class="time">
+3 ngày trước                                    </div>
+<div class="social-option listing">
+<ul>
+<li>
+<a class="btn cmd-save" data-content="Mở bán căn hộ dự án B, thanh toán 10%" data-id="3161459" data-type="2" href="javascript:void(0)" title="Lưu lại">
+<i class="icon saved" flow="down" tooltip="Lưu lại tin này"></i>
+<span class="save-count"></span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="product-item">
+<div class="product-item-top">
+<a class="thumb-image" href="/ban-can-ho-du-an-c/chinh-chu-dt-lon-tang-cao-es3226715" title="Chính chủ bán căn hộ, DT lớn, tầng cao">
+<img alt="Chính chủ bán căn hộ, DT lớn, tầng cao" class="lazy" height="200" width="200"/>
+<span class="distance">10 </span>
+<div class="status"></div>
+</a>
+<div class="product-content">
+<h3><a class="title padding-hoz" href="/ban-can-ho-du-an-c/chinh-chu-dt-lon-tang-cao-es3226715" rel="follow" title="Chính chủ bán căn hộ, DT lớn, tầng cao">Chính chủ bán căn hộ, DT lớn, tầng cao</a></h3>
+<div class="description padding-hoz">Chính chủ bán căn hộ 2PN 2wc, tầng cao, diện tích 70m2...</div>
+<ul class="product-unit">
+<li><i class="icon icon-price"></i> <span class="price">3,11 Tỷ</span></li>
+<li class="acr"><i class="icon icon-acr"></i> <span class="acreage">70 m2</span></li>
+<li>44,4 tr/m2</li>
+<li class="address" title="Đường A, Phường B, Quận Thủ Đức, Thành phố Hồ Chí Minh"><i class="icon icon-address"></i>  Quận Thủ Đức,  Thành phố Hồ Chí Minh</li>
+</ul>
+<div class="box-price-agency">
+<div class="time">
+Hôm nay                                    </div>
+<div class="social-option listing">
+<ul>
+<li>
+<a class="btn cmd-save" data-content="Chính chủ bán căn hộ, DT lớn, tầng cao" data-id="3226715" data-type="2" href="javascript:void(0)" title="Lưu lại">
+<i class="icon saved" flow="down" tooltip="Lưu lại tin này"></i>
+<span class="save-count"></span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="product-item">
+<div class="product-item-top">
+<a class="thumb-image" href="/ban-can-ho-du-an-d/chung-cu-full-nt-9trieu-2pn-65m2-es3226317" title="Chung cư, full NT, 9triệu, 2PN, 65m2">
+<img alt="Chung cư, full NT, 9triệu, 2PN, 65m2" class="lazy" height="200" width="200"/>
+<span class="distance">5 </span>
+<div class="status"></div>
+</a>
+<div class="product-content">
+<h3><a class="title padding-hoz" href="/ban-can-ho-du-an-d/chung-cu-full-nt-9trieu-2pn-65m2-es3226317" rel="follow" title="Chung cư, full NT, 9triệu, 2PN, 65m2">Chung cư, full NT, 9triệu, 2PN, 65m2</a></h3>
+<div class="description padding-hoz">Chung cư full NT, 9triệu, 2PN, 65m2, nhận nhà liền...</div>
+<ul class="product-unit">
+<li><i class="icon icon-price"></i> <span class="price">9 Triệu</span></li>
+<li class="acr"><i class="icon icon-acr"></i> <span class="acreage">65 m2</span></li>
+<li>0,1 tr/m2</li>
+<li class="address" title="Đường A, Phường B, Quận Gò Vấp, Thành phố Hồ Chí Minh."><i class="icon icon-address"></i>  Quận Gò Vấp,  Thành phố Hồ Chí Minh.</li>
+</ul>
+<div class="box-price-agency">
+<div class="time">
+5 ngày trước                                    </div>
+<div class="social-option listing">
+<ul>
+<li>
+<a class="btn cmd-save" data-content="Chung cư, full NT, 9triệu, 2PN, 65m2" data-id="3226317" data-type="2" href="javascript:void(0)" title="Lưu lại">
+<i class="icon saved" flow="down" tooltip="Lưu lại tin này"></i>
+<span class="save-count"></span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="product-item">
+<div class="product-item-top">
+<a class="thumb-image" href="/ban-can-ho-du-an-e/goc-65m2-3pn2wc-so-hong-san-thanh-toan-900tr-es3226731" title="Căn góc 65m2 (3pn2wc), sổ hồng sẵn, thanh toán 900tr">
+<img alt="Căn góc 65m2 (3pn2wc), sổ hồng sẵn, thanh toán 900tr" class="lazy" height="200" width="200"/>
+<span class="distance">8 </span>
+<div class="status"></div>
+</a>
+<div class="product-content">
+<h3><a class="title padding-hoz" href="/ban-can-ho-du-an-e/goc-65m2-3pn2wc-so-hong-san-thanh-toan-900tr-es3226731" rel="follow" title="Căn góc 65m2 (3pn2wc), sổ hồng sẵn, thanh toán 900tr">Căn góc 65m2 (3pn2wc), sổ hồng sẵn, thanh toán 900tr</a></h3>
+<div class="description padding-hoz">Căn hộ sổ hồng sẵn, thanh toán 900tr. Diện tích: 65m2 (3 phòng, 2wc)...</div>
+<ul class="product-unit">
+<li><i class="icon icon-price"></i> <span class="price">3,3 Tỷ</span></li>
+<li class="acr"><i class="icon icon-acr"></i> <span class="acreage">65 m2</span></li>
+<li>50,8 tr/m2</li>
+<li class="address" title="Đường A, Phường B, Quận Bình Tân, Thành phố Hồ Chí Minh"><i class="icon icon-address"></i>  Quận Bình Tân,  Thành phố Hồ Chí Minh</li>
+</ul>
+<div class="box-price-agency">
+<div class="time">
+2 giờ trước                                    </div>
+<div class="social-option listing">
+<ul>
+<li>
+<a class="btn cmd-save" data-content="Căn góc 65m2 (3pn2wc), sổ hồng sẵn, thanh toán 900tr" data-id="3226731" data-type="2" href="javascript:void(0)" title="Lưu lại">
+<i class="icon saved" flow="down" tooltip="Lưu lại tin này"></i>
+<span class="save-count"></span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="page-nav">
+<ul>
+<li><a href="/ban-can-ho-tp-ho-chi-minh" rel="prev"><span class="text"></span><span class="fa fa-arrow-left"></span></a></li><li class=""><a href="/ban-can-ho-tp-ho-chi-minh" title="">1</a></li><li class="active"><a href="/ban-can-ho-tp-ho-chi-minh/p2" title="">2</a></li><li class=""><a href="/ban-can-ho-tp-ho-chi-minh/p3" title="">3</a></li><li class=""><a href="/ban-can-ho-tp-ho-chi-minh/p4" title="">4</a></li><li class=""><a href="/ban-can-ho-tp-ho-chi-minh/p5" title="">5</a></li><li><a href="/ban-can-ho-tp-ho-chi-minh/p3" rel="next"><span class="text"></span><span class="fa fa-arrow-right"></span></a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>
