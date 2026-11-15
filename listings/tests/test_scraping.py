@@ -704,6 +704,23 @@ class FetchErrorCodeTests(SimpleTestCase):
         self.assertIsNone(got)
         self.assertEqual(error, "bot_challenge")
 
+    def test_cloudflare_challenge_header_reports_bot_challenge_without_retry(self):
+        # A 503 would otherwise be retried three times and a 403 would read as
+        # a generic http_error. Both are a wall, and walls are never retried.
+        for status in (403, 503):
+            with self.subTest(status=status):
+                response = self._response(status)
+                response.headers = {"cf-mitigated": "challenge"}
+                with patch.object(
+                    client.session, "get", return_value=response
+                ) as get:
+                    with patch.object(client.time, "sleep"):
+                        with self.assertLogs("listings.scraping.client", level="ERROR"):
+                            got, error = client.fetch("https://homedy.com/x-es1")
+                self.assertIsNone(got)
+                self.assertEqual(error, "bot_challenge")
+                self.assertEqual(get.call_count, 1)
+
     def test_404_reports_http_404_not_a_generic_error(self):
         with patch.object(client.session, "get", return_value=self._response(404)):
             with patch.object(client.time, "sleep"):

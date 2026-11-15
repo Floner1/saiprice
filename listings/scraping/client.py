@@ -55,6 +55,12 @@ def fetch(url):
             logger.error(f"bot challenge served for {url}")
             return None, BOT_CHALLENGE
 
+        # Cloudflare's documented challenge marker. It arrives as a 403 or a
+        # 503, which would otherwise read as an http_error or be retried.
+        if response.headers.get("cf-mitigated") == "challenge":
+            logger.error(f"cloudflare challenge served for {url}")
+            return None, BOT_CHALLENGE
+
         if response.status_code == 429:
             reason = "HTTP 429"
             retry_after = response.headers.get("Retry-After")
