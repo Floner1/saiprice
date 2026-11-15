@@ -77,9 +77,12 @@ def _parse_area(text):
 
 # A Vietnamese phone number however it is grouped: 0 or +84, then 9 or 10
 # digits with at most one space, dot or hyphen between any two (0901 234 567,
-# 0901 23 45 67, 028 3822 1234, (+84) 901.234.567). The lookbehind keeps it off
-# digits inside a longer number, so a price such as 2.050.000.000 is untouched.
-PHONE_RE = re.compile(r"(?<![\d.,])(?:\(?\+?84\)?|0)(?:[ .-]?\d){9,10}(?!\d)")
+# 0901 23 45 67, 028 3822 1234, (+84) 901.234.567). The lookbehinds keep it off
+# digits inside a longer number, so a price such as 2.050.000.000 is untouched,
+# while a number typed straight after a word and a dot ("LH.0901...") is caught.
+PHONE_RE = re.compile(
+    r"(?<!\d)(?<!\d[.,])(?:\(?\+?84\)?|0)(?:[ .-]?\d){9,10}(?!\d)"
+)
 
 
 def mask_phones(text):

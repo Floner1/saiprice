@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+from urllib.parse import urlparse
 
 import requests
 from requests.exceptions import ConnectionError, HTTPError, Timeout
@@ -28,6 +29,17 @@ BOT_CHALLENGE = "bot_challenge"
 FETCH_GAVE_UP = "fetch_gave_up"
 HTTP_404 = "http_404"
 HTTP_ERROR = "http_error"
+RATE_LIMITED = "rate_limited"
+
+# Per-host overrides. A host not listed here gets the session defaults and the
+# 429 retry, so alonhadat's requests are exactly what they were. homedy is told
+# who is asking, and is never asked twice after it says slow down.
+SITES = {
+    "homedy.com": {
+        "headers": {"User-Agent": "SaiPriceBot/1.0 (+https://github.com/Floner1/saiprice)"},
+        "retry_429": False,
+    },
+}
 
 
 def fetch(url):
@@ -37,10 +49,12 @@ def fetch(url):
     counts failures by mode: a bot wall, a timeout and a dead URL are three
     different operational facts and used to be one indistinguishable None.
     """
+    site = SITES.get(urlparse(url).hostname, {})
+    extra = {"headers": site["headers"]} if "headers" in site else {}
     reason = None
     for attempt in range(3):
         try:
-            response = session.get(url, timeout=10)
+            response = session.get(url, timeout=10, **extra)
         except (Timeout, ConnectionError, HTTPError) as exc:
             reason = f"{type(exc).__name__}: {exc}"
             time.sleep(2**attempt * 2)
@@ -61,6 +75,10 @@ def fetch(url):
             logger.error(f"cloudflare challenge served for {url}")
             return None, BOT_CHALLENGE
 
+        if response.status_code == 429 and not site.get("retry_429", True):
+            retry_after = response.headers.get("Retry-After")
+            logger.error(f"429 for {url}, stopping; Retry-After: {retry_after}")
+            return None, RATE_LIMITED
         if response.status_code == 429:
             reason = "HTTP 429"
             retry_after = response.headers.get("Retry-After")

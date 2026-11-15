@@ -4,8 +4,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from listings.models import Listing, ScrapeRun
-from listings.scraping.client import fetch
-from listings.scraping.sites import alonhadat
+from listings.scraping.client import BOT_CHALLENGE, RATE_LIMITED, fetch
+from listings.scraping.sites import alonhadat, homedy
 from listings.upsert import upsert
 
 logger = logging.getLogger(__name__)
@@ -13,8 +13,17 @@ logger = logging.getLogger(__name__)
 # Codes that describe a page rather than a malfunction, so they must not
 # inflate error_count. ldp_404/ldp_soft_gone mean the LDP is not real content;
 # ldp_no_anchor/unmapped_breadcrumb are nullable-field parse
-# failures, which are neither a skip nor an error.
-NON_ERROR_CODES = {"ldp_404", "ldp_soft_gone", "ldp_no_anchor", "unmapped_breadcrumb"}
+# failures, which are neither a skip nor an error. unmapped_district is a homedy
+# label outside the known districts: the row is kept, with no district.
+NON_ERROR_CODES = {
+    "ldp_404", "ldp_soft_gone", "ldp_no_anchor", "unmapped_breadcrumb",
+    "unmapped_district",
+}
+
+SITES = {"alonhadat": alonhadat, "homedy": homedy}
+
+# A wall answers every later page the same way, so one is enough to stop on.
+STOP_CRAWL = {BOT_CHALLENGE, RATE_LIMITED}
 
 
 def record(run, code):
@@ -100,12 +109,12 @@ def check_posted_date_nulls(run):
 
 class Command(BaseCommand):
     help = (
-        "SRP crawl of the alonhadat HCMC tracked scope with plain requests "
+        "SRP crawl of one source's HCMC tracked scope with plain requests "
         "(no browser), upsert per (source_site, source_id). One run = one source."
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--source", required=True, choices=["alonhadat"])
+        parser.add_argument("--source", required=True, choices=sorted(SITES))
         parser.add_argument(
             "--pages",
             type=int,
@@ -211,7 +220,10 @@ class Command(BaseCommand):
         run = ScrapeRun.objects.create(
             source_site=options["source"], started_at=timezone.now()
         )
-        self.ldp_budget = 0 if options["no_ldp_enrich"] else options["max_ldp_visits"]
+        site = SITES[options["source"]]
+        # A site with no listing-page parser is read from search pages only.
+        ldp_off = options["no_ldp_enrich"] or not hasattr(site, "parse_ldp_extras")
+        self.ldp_budget = 0 if ldp_off else options["max_ldp_visits"]
         max_visits = self.ldp_budget
         # Ordered by id, not last_seen_at: every active row is re-stamped on
         # every pass, so last_seen_at carries no age information. id is
@@ -229,17 +241,25 @@ class Command(BaseCommand):
         # surface, but the run's counters must survive it. Before this, `run`
         # was saved only on the last line, so anything raising mid-loop
         # discarded the whole run's numbers rather than just the tail.
+        walled = False
         try:
-            for root, (property_type, listing_intent) in alonhadat.CATEGORY_ROOTS.items():
+            for root, (property_type, listing_intent) in site.CATEGORY_ROOTS.items():
+                if walled:
+                    break
                 page = 1
                 while options["pages"] is None or page <= options["pages"]:
-                    response, error = fetch(alonhadat.page_url(root, page))
+                    response, error = fetch(site.page_url(root, page))
                     if error:
                         record(run, f"srp_{error}")
+                        walled = error in STOP_CRAWL
                         break
-                    parsed, skips = alonhadat.parse_srp(
+                    parsed, skips = site.parse_srp(
                         response.text, property_type, listing_intent
                     )
+                    # A first page with nothing on it is a changed page or a
+                    # block page served as 200, not an empty category.
+                    if page == 1 and not parsed and not skips:
+                        record(run, "srp_no_cards")
                     for ref, field in skips:
                         self.stderr.write(
                             f"skipped {ref}: required field missing: {field}"
@@ -257,6 +277,8 @@ class Command(BaseCommand):
                         run.listings_seen += 1
                         if item.fields.get("posted_date") is None:
                             run.posted_date_nulls += 1
+                        if site is homedy and item.fields.get("district") is None:
+                            record(run, "unmapped_district")
                         try:
                             self._enrich_from_ldp(item, run)
                             if upsert(item):

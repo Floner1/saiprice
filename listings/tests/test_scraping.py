@@ -12,10 +12,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError, Time
 
 from listings.management.commands import scrape_listings
 from listings.management.commands.scrape_listings import sweep_delistings
-from listings.models import Listing, ScrapeRun
+from listings.models import Agent, Listing, ScrapeRun
 from listings.scraping import client
 from listings.scraping.parsers import ParsedListing, RequiredFieldMissing, parse_ldp
-from listings.scraping.sites import alonhadat
+from listings.scraping.sites import alonhadat, homedy
 from listings.tests.test_models import _make_listing
 
 # trimmed page excerpts in testdata/ rather than a duplicated fixtures/
@@ -977,3 +977,175 @@ class SweepZeroSeenGuardTests(TestCase):
             sweep_delistings(blocked)
         live.refresh_from_db()
         self.assertTrue(live.is_active)
+
+
+CHROME_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+)
+BOT_UA = "SaiPriceBot/1.0 (+https://github.com/Floner1/saiprice)"
+
+
+def _sent(status_code=200, url="https://alonhadat.com.vn/x-1.html", headers=None):
+    return Mock(status_code=status_code, url=url, headers=headers or {})
+
+
+class FetchPerSiteTests(SimpleTestCase):
+    """fetch() runs the daily alonhadat crawl, so alonhadat's side is pinned
+    byte for byte: same call, same outgoing headers, same 429 retry."""
+
+    ALONHADAT = "https://alonhadat.com.vn/can-ban-can-ho-chung-cu/ho-chi-minh"
+    HOMEDY = "https://homedy.com/ban-can-ho-tp-ho-chi-minh"
+
+    def _outgoing_headers(self, url):
+        # Patch send, not get: this is the request requests actually builds,
+        # after the session defaults and any per-request headers are merged.
+        with patch.object(client.session, "send", return_value=_sent(url=url)) as send:
+            with patch.object(client.time, "sleep"):
+                client.fetch(url)
+        (prepared,), _ = send.call_args
+        return dict(prepared.headers)
+
+    def test_alonhadat_call_is_unchanged(self):
+        with patch.object(client.session, "get", return_value=_sent()) as get:
+            with patch.object(client.time, "sleep"):
+                client.fetch(self.ALONHADAT)
+        get.assert_called_once_with(self.ALONHADAT, timeout=10)
+
+    def test_alonhadat_sends_exactly_the_session_headers(self):
+        sent = self._outgoing_headers(self.ALONHADAT)
+        self.assertEqual(sent, dict(client.session.headers))
+        self.assertEqual(sent["User-Agent"], CHROME_UA)
+        self.assertEqual(sent["Accept-Language"], "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7")
+
+    def test_alonhadat_429_still_waits_and_retries(self):
+        responses = [_sent(429, headers={"Retry-After": "7"}), _sent()]
+        with patch.object(client.session, "get", side_effect=responses) as get:
+            with patch.object(client.time, "sleep") as sleep:
+                got, error = client.fetch(self.ALONHADAT)
+        self.assertIs(got, responses[1])
+        self.assertIsNone(error)
+        self.assertEqual(get.call_count, 2)
+        self.assertEqual(sleep.call_args_list[0].args, (7.0,))
+
+    def test_alonhadat_persistent_429_gives_up_after_three(self):
+        with patch.object(client.session, "get", return_value=_sent(429)) as get:
+            with patch.object(client.time, "sleep"):
+                with self.assertLogs("listings.scraping.client", level="ERROR"):
+                    got, error = client.fetch(self.ALONHADAT)
+        self.assertEqual((got, error), (None, "fetch_gave_up"))
+        self.assertEqual(get.call_count, 3)
+
+    def test_homedy_identifies_itself_and_keeps_the_other_headers(self):
+        before = dict(client.session.headers)
+        sent = self._outgoing_headers(self.HOMEDY)
+        self.assertEqual(sent, {**before, "User-Agent": BOT_UA})
+        # The shared session must not be changed by a homedy request.
+        self.assertEqual(dict(client.session.headers), before)
+
+    def test_homedy_stops_at_the_first_429(self):
+        response = _sent(429, url=self.HOMEDY, headers={"Retry-After": "30"})
+        with patch.object(client.session, "get", return_value=response) as get:
+            with patch.object(client.time, "sleep") as sleep:
+                with self.assertLogs("listings.scraping.client", level="ERROR") as logs:
+                    got, error = client.fetch(self.HOMEDY)
+        self.assertEqual((got, error), (None, "rate_limited"))
+        self.assertEqual(get.call_count, 1)
+        sleep.assert_not_called()
+        self.assertIn("30", logs.output[-1])
+
+
+def _homedy_fixture():
+    return _read("homedy_srp_apartment.txt")
+
+
+class HomedyCrawlTests(TestCase):
+    def _run(self, source, fetch_kwargs, *args):
+        with patch.object(scrape_listings, "fetch", **fetch_kwargs) as mock_fetch:
+            call_command(
+                "scrape_listings", "--source", source, *args,
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        return ScrapeRun.objects.latest("id"), mock_fetch
+
+    def test_homedy_page_is_upserted_with_no_agent_and_no_phone(self):
+        run, mock_fetch = self._run(
+            "homedy", {"return_value": (Mock(text=_homedy_fixture()), None)}, "--pages", "1"
+        )
+        mock_fetch.assert_called_once_with("https://homedy.com/ban-can-ho-tp-ho-chi-minh")
+        rows = Listing.objects.filter(source_site="homedy")
+        self.assertEqual(rows.count(), 5)
+        self.assertEqual(run.source_site, "homedy")
+        self.assertEqual(run.listings_seen, 5)
+        self.assertEqual(run.error_count, 0)
+        self.assertIsNone(run.status_counts)
+        self.assertFalse(Agent.objects.exists())
+        self.assertFalse(rows.exclude(phone_number=None).exists())
+        self.assertFalse(rows.filter(images__isnull=False).exists())
+
+    def test_homedy_never_fetches_a_listing_page(self):
+        page = (Mock(text=_homedy_fixture()), None)
+        _, mock_fetch = self._run("homedy", {"side_effect": [page, page]}, "--pages", "2")
+        self.assertEqual(
+            [c.args[0] for c in mock_fetch.call_args_list],
+            ["https://homedy.com/ban-can-ho-tp-ho-chi-minh",
+             "https://homedy.com/ban-can-ho-tp-ho-chi-minh/p2"],
+        )
+
+    def test_unmapped_homedy_district_is_counted_but_is_not_an_error(self):
+        html = _homedy_fixture().replace(
+            "  quận 1,  TP Hồ Chí Minh</li>", "  Biên Hòa,  Đồng Nai</li>"
+        )
+        run, _ = self._run("homedy", {"return_value": (Mock(text=html), None)}, "--pages", "1")
+        self.assertEqual(run.status_counts, {"unmapped_district": 1})
+        self.assertEqual(run.error_count, 0)
+        self.assertIsNone(Listing.objects.get(source_id="3225932").district)
+
+    def test_alonhadat_district_none_is_not_counted_as_unmapped(self):
+        srp = ScrapeRunStatusCountsTests.SRP_HTML
+        with patch.object(alonhadat, "CATEGORY_ROOTS", APARTMENT_ROOT_ONLY):
+            run, _ = self._run(
+                "alonhadat", {"side_effect": [(Mock(text=srp), None), (None, "http_404")]},
+                "--pages", "1",
+            )
+        self.assertIsNone(Listing.objects.get(source_id="777").district)
+        self.assertNotIn("unmapped_district", run.status_counts)
+
+    def test_page_one_with_no_cards_is_an_error(self):
+        empty = (Mock(text="<html><body>Không tìm thấy</body></html>"), None)
+        run, _ = self._run("homedy", {"return_value": empty}, "--pages", "1")
+        self.assertEqual(run.status_counts, {"srp_no_cards": 1})
+        self.assertEqual(run.error_count, 1)
+
+    def test_homedy_rate_limit_ends_the_run_after_one_request(self):
+        # Two roots, so a 429 that only ended one root would show a second call.
+        two_roots = {**homedy.CATEGORY_ROOTS, "/ban-can-ho-x": ("apartment", "sale")}
+        with patch.object(homedy, "CATEGORY_ROOTS", two_roots):
+            run, mock_fetch = self._run(
+                "homedy", {"return_value": (None, "rate_limited")}, "--pages", "3"
+            )
+        self.assertEqual(run.status_counts, {"srp_rate_limited": 1})
+        self.assertEqual(mock_fetch.call_count, 1)
+
+    def test_alonhadat_wall_on_the_first_root_ends_the_run(self):
+        # Three real roots: before, a walled run still asked roots two and three.
+        self.assertEqual(len(alonhadat.CATEGORY_ROOTS), 3)
+        run, mock_fetch = self._run(
+            "alonhadat", {"return_value": (None, "bot_challenge")}, "--pages", "1"
+        )
+        self.assertEqual(run.status_counts, {"srp_bot_challenge": 1})
+        self.assertEqual(mock_fetch.call_count, 1)
+
+    def test_sweep_on_a_homedy_run_leaves_alonhadat_rows_active(self):
+        old = timezone.now() - timedelta(days=3)
+        alon = _make_listing(
+            source_site="alonhadat", source_id="sw1",
+            url="https://alonhadat.com.vn/sw1.html", last_seen_at=old,
+        )
+        now = timezone.now()
+        run = ScrapeRun.objects.create(
+            source_site="homedy", started_at=now, finished_at=now, listings_seen=5,
+        )
+        sweep_delistings(run)
+        alon.refresh_from_db()
+        self.assertTrue(alon.is_active)

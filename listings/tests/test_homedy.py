@@ -52,6 +52,8 @@ class MaskPhonesTests(SimpleTestCase):
             "Căn hộ 2PN LH (+84) 901.234.567",
             "Căn hộ 2PN LH 0901.234.567",
             "Căn hộ 2PN LH0901234567",
+            "Căn hộ 2PN LH.0901234567",
+            "Căn hộ 2PN LH,0901 234 567",
             "Căn hộ 2PN LH 0901 23 45 67",
             "Căn hộ 2PN LH 090 123 4567",
             "Căn hộ 2PN LH 028 3822 1234",
@@ -66,6 +68,7 @@ class MaskPhonesTests(SimpleTestCase):
         for text in (
             "Giá 2.050.000.000",
             "Giá 10.000.000.000",
+            "Mã 1,0901234567",
             "Mã căn 090123456789",
             "Căn 84 m2, giá 1.840.000.000",
             "Chung cư, full NT, 9triệu, 2PN, 65m2",
@@ -181,6 +184,8 @@ class ParseSrpFixtureTests(SimpleTestCase):
     def test_trieu_card_and_thu_duc_card(self):
         self.assertEqual(self.by_id["3226317"].fields["price"], Decimal("9000000"))
         self.assertEqual(self.by_id["3226317"].fields["price_unit"], "triệu")
+        # price / area, never the card's rounded "0,1 tr/m2" text.
+        self.assertEqual(self.by_id["3226317"].fields["price_per_sqm"], Decimal("138462"))
         self.assertEqual(self.by_id["3226317"].fields["district"], "Quận Gò Vấp")
         self.assertEqual(self.by_id["3226715"].fields["district"], "Thành phố Thủ Đức")
         self.assertEqual(self.by_id["3226715"].fields["posted_date"], TODAY)
