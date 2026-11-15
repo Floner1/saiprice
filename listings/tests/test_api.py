@@ -273,6 +273,20 @@ class ListingDetailTests(TestCase):
         )
         self.assertNotIn("phone_number", row)
 
+    def test_null_district_is_served_as_null(self):
+        # homedy rows whose district label maps to nothing are stored with
+        # district=None, so the API must serve them, not 500 on them.
+        listing = _make_listing(
+            source_id="d4", url="https://homedy.com/d4-es4", district=None,
+        )
+        detail = self.client.get(f"/api/listings/{listing.pk}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertIsNone(detail.json()["district"])
+        listing_page = self.client.get("/api/listings/")
+        self.assertEqual(listing_page.status_code, 200)
+        row = next(r for r in listing_page.json()["results"] if r["source_id"] == "d4")
+        self.assertIsNone(row["district"])
+
     def test_detail_missing_id_returns_404(self):
         response = self.client.get("/api/listings/999999/")
         self.assertEqual(response.status_code, 404)

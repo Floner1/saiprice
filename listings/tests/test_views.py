@@ -75,6 +75,16 @@ class DashboardListingDetailTests(TestCase):
         self.assertContains(response, "Quận 7")
         self.assertContains(response, "Not scored yet.")
 
+    def test_null_district_renders_a_dash(self):
+        listing = _make_listing(
+            source_id="d0", url="https://homedy.com/d0-es0", district=None,
+        )
+        response = self.client.get(f"/listing/{listing.pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(
+            response.content.decode(), r"<dt[^>]*>District</dt><dd>-</dd>"
+        )
+
     def test_renders_prediction_and_anomaly_reason(self):
         listing = _make_listing(
             source_id="d2", url="https://alonhadat.com.vn/d2.html",
