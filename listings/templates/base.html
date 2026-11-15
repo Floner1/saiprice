@@ -12,12 +12,13 @@
 <nav aria-label="Main" class="border-b border-line">
   {# Below sm the title takes its own row on top; DOM order stays left to right so Tab follows the desktop row. #}
   <div class="mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap">
-    <div class="flex flex-1 justify-start gap-6">
-      <a href="{% url 'listing-list' %}" {% if n == "listing-list" or n == "listing-detail" or n == "district-prices" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Residential</a>
+    <div class="flex flex-1 justify-start gap-3 sm:gap-6">
+      <a href="{% url 'listing-list' %}" {% if n == "listing-list" or n == "listing-detail" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Residential</a>
+      <a href="{% url 'district-prices' %}" {% if n == "district-prices" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Districts</a>
       <a href="{% url 'office-dashboard' %}" {% if n == "office-dashboard" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Offices</a>
     </div>
     <a href="{% url 'listing-list' %}" class="order-first w-full text-center text-xl tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto">SaiPrice</a>
-    <div class="flex flex-1 justify-end gap-6">
+    <div class="flex flex-1 justify-end gap-3 sm:gap-6">
       <a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>
       <a href="{% url 'listing-summary' %}" {% if n == "listing-summary" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Flagged</a>
     </div>

@@ -572,7 +572,7 @@ class MainNavTests(TestCase):
             "/flagged/": "Flagged",
             "/health/": "Health",
             "/offices/": "Offices",
-            "/districts/": "Residential",
+            "/districts/": "Districts",
         }
         for path, expected in current.items():
             with self.subTest(path=path):
@@ -587,7 +587,8 @@ class MainNavTests(TestCase):
                 self.assertEqual(
                     [(re.search(r'href="([^"]*)"', attrs).group(1), label)
                      for attrs, label in links],
-                    [("/", "Residential"), ("/offices/", "Offices"), ("/", "SaiPrice"),
+                    [("/", "Residential"), ("/districts/", "Districts"),
+                     ("/offices/", "Offices"), ("/", "SaiPrice"),
                      ("/health/", "Health"), ("/flagged/", "Flagged")],
                 )
                 self.assertEqual(
