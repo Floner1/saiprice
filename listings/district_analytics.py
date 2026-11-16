@@ -25,6 +25,11 @@ MIN_SUMMARY_N = 10
 
 MARKET_SOURCES = ("alonhadat", "homedy")
 
+# Sources a visitor's listing views and the API show. A source with no delisting
+# sweep (homedy reads search pages only, batdongsan is a manual import) would
+# keep sold listings on the list forever, so its rows feed medians only.
+PUBLIC_SOURCES = ("alonhadat",)
+
 
 def district_stats(queryset, as_of):
     """One dict per (district, property_type) over the listings on the market.

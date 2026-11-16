@@ -5,7 +5,7 @@ from django.db.models import F, Q
 from django.views.generic import DetailView, ListView, TemplateView
 
 from listings.analytics import accuracy_trend, bar_max, recent_runs, scrapes_per_day
-from listings.district_analytics import dashboard as district_dashboard
+from listings.district_analytics import PUBLIC_SOURCES, dashboard as district_dashboard
 from listings.models import Listing, ScoringRun, ScrapeRun
 from listings.office_analytics import dashboard as office_dashboard
 
@@ -64,7 +64,9 @@ class PageSlotsMixin:
 class ListingListView(PageSlotsMixin, ListView):
     # select_related: the card's contact control reads agent.name, which is one
     # query per row without it.
-    queryset = Listing.objects.filter(is_active=True).select_related("agent")
+    queryset = Listing.objects.filter(
+        is_active=True, source_site__in=PUBLIC_SOURCES
+    ).select_related("agent")
     ordering = ["-id"]
 
     def get_queryset(self):
@@ -89,7 +91,7 @@ class ListingListView(PageSlotsMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["districts"] = (
-            Listing.objects.filter(is_active=True)
+            Listing.objects.filter(is_active=True, source_site__in=PUBLIC_SOURCES)
             .exclude(district__isnull=True)
             .exclude(district="")
             .values_list("district", flat=True)
@@ -101,8 +103,8 @@ class ListingListView(PageSlotsMixin, ListView):
 
 
 class ListingDetailView(DetailView):
-    # Same is_active scoping as the API detail view.
-    queryset = Listing.objects.filter(is_active=True)
+    # Same scoping as the API detail view, so a hidden row's id is a 404.
+    queryset = Listing.objects.filter(is_active=True, source_site__in=PUBLIC_SOURCES)
 
 
 class AnomalySummaryView(PageSlotsMixin, ListView):
@@ -115,7 +117,9 @@ class AnomalySummaryView(PageSlotsMixin, ListView):
     # same anomaly_scored_at on every row, so without it ties have no stable
     # order and rows repeat or vanish between pages.
     queryset = (
-        Listing.objects.filter(is_active=True, is_anomaly=True)
+        Listing.objects.filter(
+            is_active=True, is_anomaly=True, source_site__in=PUBLIC_SOURCES
+        )
         .select_related("agent")
         .order_by(
             F("anomaly_reason__low_photos__value").asc(nulls_last=True),

@@ -10,7 +10,12 @@ from django.utils import timezone
 
 from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
 from listings.tests.test_district_analytics import TY, _fill
-from listings.tests.test_models import _make_listing
+from listings.tests.test_models import _make_listing as _make_any_listing
+
+
+def _make_listing(**overrides):
+    # Visitor views show PUBLIC_SOURCES only, so rows here default to a public source.
+    return _make_any_listing(**{"source_site": "alonhadat", **overrides})
 from listings.views import _page_slots
 
 
@@ -654,6 +659,46 @@ class DistrictPricesViewTests(TestCase):
 
     def test_home_page_links_here(self):
         self.assertContains(self.client.get("/"), 'href="/districts/"')
+
+
+class PublicSourcesTests(TestCase):
+    """Only PUBLIC_SOURCES reach a visitor's listing views. homedy never
+    delists, so its rows would sit on the list forever; they still feed
+    /districts/."""
+
+    def setUp(self):
+        self.alon = _make_listing(
+            source_site="alonhadat", source_id="pub1", title="Alonhadat row",
+            url="https://alonhadat.com.vn/pub1.html", district="Quận 7",
+            is_anomaly=True,
+        )
+        self.homedy = _make_listing(
+            source_site="homedy", source_id="pub2", title="Homedy row",
+            url="https://homedy.com/pub2-es2", district="Huyện Củ Chi",
+            is_anomaly=True,
+        )
+
+    def test_list_page_hides_homedy(self):
+        response = self.client.get("/")
+        self.assertContains(response, "Alonhadat row")
+        self.assertNotContains(response, "Homedy row")
+
+    def test_district_filter_offers_no_homedy_only_district(self):
+        response = self.client.get("/")
+        self.assertEqual(list(response.context["districts"]), ["Quận 7"])
+
+    def test_detail_page_of_a_homedy_row_is_404(self):
+        self.assertEqual(self.client.get(f"/listing/{self.alon.pk}/").status_code, 200)
+        self.assertEqual(self.client.get(f"/listing/{self.homedy.pk}/").status_code, 404)
+
+    def test_flagged_page_hides_homedy(self):
+        response = self.client.get("/flagged/")
+        self.assertContains(response, "Alonhadat row")
+        self.assertNotContains(response, "Homedy row")
+
+    def test_districts_page_still_counts_homedy(self):
+        _fill("Quận 5", TY, source_site="homedy")
+        self.assertContains(self.client.get("/districts/"), "Quận 5")
 
 
 HOSTILE_Q = '"><script>alert(1)</script>'

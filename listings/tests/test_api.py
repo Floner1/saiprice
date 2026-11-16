@@ -4,7 +4,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 from listings.models import Agent, PriceHistory
-from listings.tests.test_models import _make_listing
+from listings.tests.test_models import _make_listing as _make_any_listing
+
+
+def _make_listing(**overrides):
+    # Visitor views show PUBLIC_SOURCES only, so rows here default to a public source.
+    return _make_any_listing(**{"source_site": "alonhadat", **overrides})
 
 
 class ListingFilterTests(TestCase):
@@ -298,3 +303,21 @@ class ListingDetailTests(TestCase):
         )
         response = self.client.get(f"/api/listings/{delisted.pk}/")
         self.assertEqual(response.status_code, 404)
+
+
+class PublicSourcesApiTests(TestCase):
+    def setUp(self):
+        self.alon = _make_listing(
+            source_site="alonhadat", source_id="api1", url="https://alonhadat.com.vn/api1.html",
+        )
+        self.homedy = _make_listing(
+            source_site="homedy", source_id="api2", url="https://homedy.com/api2-es2",
+        )
+
+    def test_list_hides_homedy(self):
+        ids = {r["source_id"] for r in self.client.get("/api/listings/").json()["results"]}
+        self.assertEqual(ids, {"api1"})
+
+    def test_detail_of_a_homedy_row_is_404(self):
+        self.assertEqual(self.client.get(f"/api/listings/{self.alon.pk}/").status_code, 200)
+        self.assertEqual(self.client.get(f"/api/listings/{self.homedy.pk}/").status_code, 404)

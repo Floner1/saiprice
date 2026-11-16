@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics
 
 from listings.api.serializers import ListingSerializer
+from listings.district_analytics import PUBLIC_SOURCES
 from listings.models import Listing
 
 # Queryset form of the Listing.days_on_market property, including the
@@ -38,9 +39,9 @@ class ListingFilter(django_filters.FilterSet):
 
 
 class ListingListView(generics.ListAPIView):
-    queryset = Listing.objects.filter(is_active=True).annotate(
-        days_on_market_calc=DAYS_ON_MARKET_CALC
-    )
+    queryset = Listing.objects.filter(
+        is_active=True, source_site__in=PUBLIC_SOURCES
+    ).annotate(days_on_market_calc=DAYS_ON_MARKET_CALC)
     serializer_class = ListingSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ListingFilter
@@ -59,7 +60,7 @@ class ListingListView(generics.ListAPIView):
 
 
 class ListingDetailView(generics.RetrieveAPIView):
-    queryset = Listing.objects.filter(is_active=True).annotate(
-        days_on_market_calc=DAYS_ON_MARKET_CALC
-    )
+    queryset = Listing.objects.filter(
+        is_active=True, source_site__in=PUBLIC_SOURCES
+    ).annotate(days_on_market_calc=DAYS_ON_MARKET_CALC)
     serializer_class = ListingSerializer
