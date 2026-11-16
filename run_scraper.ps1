@@ -4,5 +4,5 @@ $report = "scraper_run_reports\${timestamp}_crawl.txt"
 $env:PYTHONUNBUFFERED = "1"
 & ".\venv\Scripts\python.exe" manage.py scrape_listings --source alonhadat *>> $report
 & ".\venv\Scripts\python.exe" manage.py score_listings *>> $report
-& ".\venv\Scripts\python.exe" manage.py snapshot_districts *>> $report
 & ".\venv\Scripts\python.exe" manage.py scrape_listings --source homedy --pages 10 *>> $report
+& ".\venv\Scripts\python.exe" manage.py snapshot_districts *>> $report
