@@ -631,6 +631,14 @@ class DistrictPricesViewTests(TestCase):
         self.assertContains(response, 'style="width: 92%"')
         self.assertContains(response, "55,000,000 VND per m²")
 
+    def test_states_the_price_floor_beside_the_other_filters(self):
+        _fill("Quận 7", TY)
+
+        html = " ".join(self.client.get("/districts/").content.decode().split())
+
+        self.assertIn("under 10 triệu/m²", html)
+        self.assertIn("last 30 days", html)
+
     def test_says_asking_price_never_fair_price(self):
         _fill("Quận 7", TY)
 

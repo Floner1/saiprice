@@ -8,7 +8,7 @@ import statistics
 from collections import defaultdict
 from datetime import timedelta
 
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 
 from listings.ml.dataset import MAX_AREA_SQM, MAX_BEDROOMS
@@ -24,6 +24,13 @@ FRESH_DAYS = 30
 MIN_SUMMARY_N = 10
 
 MARKET_SOURCES = ("alonhadat", "homedy")
+
+# An apartment under this price per m2 is a monthly rent filed as a sale, a
+# down-payment teaser, or a price typed without its decimal: on 2026-11-16 the
+# cheapest of 1,696 rows after four such ones was 16.4 triệu, the median 57.4.
+# Rows stay in the database and on the listing views; only the medians skip them.
+# Apartments only: outer-district land and houses can sit under it for real.
+APARTMENT_FLOOR_PER_SQM = 10_000_000
 
 
 def district_stats(queryset, as_of):
@@ -44,6 +51,10 @@ def district_stats(queryset, as_of):
         )
         .exclude(bedrooms__gt=MAX_BEDROOMS)
         .exclude(Q(district__isnull=True) | Q(district=""))
+        .exclude(
+            property_type="apartment",
+            price__lt=F("area_sqm") * APARTMENT_FLOOR_PER_SQM,
+        )
         .values_list("district", "property_type", "price", "area_sqm")
     )
 
@@ -111,4 +122,5 @@ def dashboard(as_of=None):
         "axis_top": math.ceil(shown[0]["median_million"] / 10) * 10 if shown else None,
         "min_summary_n": MIN_SUMMARY_N,
         "fresh_days": FRESH_DAYS,
+        "floor_million": APARTMENT_FLOOR_PER_SQM // 1_000_000,
     }

@@ -69,6 +69,7 @@ class DistrictStatsTests(TestCase):
             "no district": dict(district=None),
             "blank district": dict(district=""),
             "stale": dict(last_seen_at=as_of - timedelta(days=31)),
+            "apartment under the price floor": dict(price=499_999_999),
         }
         for label, overrides in excluded.items():
             with self.subTest(label):
@@ -78,7 +79,7 @@ class DistrictStatsTests(TestCase):
 
     def test_edge_rows_still_count(self):
         as_of = timezone.now()
-        _row(2 * TY, area=500)
+        _row(10 * TY, area=500)
         _row(3 * TY, bedrooms=10)
         _row(4 * TY, last_seen_at=as_of - timedelta(days=29))
 
@@ -105,6 +106,49 @@ class DistrictStatsTests(TestCase):
         self.assertIsNone(row["p25_price_per_sqm"])
         self.assertIsNone(row["p75_price_per_sqm"])
         self.assertEqual(row["median_price_per_sqm"], 50_000_000.0)
+
+    def test_below_floor_apartments_leave_the_median_and_both_counts(self):
+        # Area 100, so price / 100 is the price per m2: 1 tỷ is exactly 10 triệu.
+        for price in (9 * TY // 10, TY // 2):
+            _row(price, area=100)
+        for price in (TY, 2 * TY, 3 * TY):
+            _row(price, area=100)
+
+        (row,) = _stats()
+
+        self.assertEqual(row["listing_count"], 3)
+        self.assertEqual(row["distinct_count"], 3)
+        self.assertEqual(row["median_price_per_sqm"], 20_000_000.0)
+        self.assertEqual(row["median_price"], 2e9)
+
+    def test_a_row_exactly_at_the_floor_stays_and_one_dong_under_goes(self):
+        # 55.5 m2 x 10 triệu = 555,000,000 exactly.
+        _row(555_000_000, area=Decimal("55.5"))
+        _row(554_999_999, area=Decimal("55.5"))
+
+        (row,) = _stats()
+
+        self.assertEqual(row["listing_count"], 1)
+        self.assertEqual(row["median_price_per_sqm"], 10_000_000.0)
+
+    def test_a_group_with_only_below_floor_apartments_is_absent(self):
+        _row(TY // 10, area=100, district="Quận 9")
+        _row(2 * TY, area=100)
+
+        self.assertEqual([r["district"] for r in _stats()], ["Quận 7"])
+
+    def test_the_floor_is_for_apartments_only(self):
+        for property_type in ("house", "land", "villa"):
+            _row(TY // 10, area=100, property_type=property_type)
+
+        self.assertEqual(
+            sorted(r["property_type"] for r in _stats()), ["house", "land", "villa"]
+        )
+
+    def test_the_floor_hides_a_row_from_the_query_not_from_the_database(self):
+        cheap = _row(TY // 10, area=100)
+        _stats()
+        self.assertTrue(Listing.objects.filter(pk=cheap.pk).exists())
 
     def test_property_types_split_into_separate_rows(self):
         _row(2 * TY)
@@ -206,6 +250,7 @@ class DashboardTests(TestCase):
         self.assertIsNone(data["axis_top"])
         self.assertEqual(data["min_summary_n"], 10)
         self.assertEqual(data["fresh_days"], 30)
+        self.assertEqual(data["floor_million"], 10)
 
     def test_as_of_moves_the_freshness_window(self):
         _fill("Quận 7", TY)
