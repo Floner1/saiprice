@@ -8,7 +8,7 @@ import statistics
 
 from django.db.models import Q
 
-from listings.models import Listing
+from listings.models import PUBLIC_SOURCES, Listing
 
 # The minimum feature set. The trainer must read model inputs from
 # these names, not from row keys -- rows also carry `id`, which exists only to
@@ -102,7 +102,9 @@ def _drop_implausible_prices(rows):
 
 def build_training_rows(queryset=None):
     """Return (rows, stats): model-ready dicts plus a per-rule drop count."""
-    qs = Listing.objects.all() if queryset is None else queryset
+    if queryset is None:
+        queryset = Listing.objects.filter(source_site__in=PUBLIC_SOURCES)
+    qs = queryset
 
     # Rent prices are monthly, sale prices are totals. One target column cannot
     # hold both, and there is nowhere near enough rent data to model separately.

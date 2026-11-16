@@ -15,7 +15,12 @@ from sklearn.pipeline import Pipeline
 from listings.ml.dataset import build_training_rows
 from listings.ml.features import fit_district_stats
 from listings.ml.train import MODEL_PATH, RANDOM_STATE, TEST_SIZE, _design, train
-from listings.tests.test_models import _make_listing
+from listings.tests.test_models import _make_listing as _make_any_listing
+
+
+def _make_listing(**overrides):
+    # Training reads PUBLIC_SOURCES only, so rows here default to a public source.
+    return _make_any_listing(**{"source_site": "alonhadat", **overrides})
 
 SAMPLE = pd.DataFrame(
     [

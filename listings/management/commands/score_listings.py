@@ -11,7 +11,7 @@ from django.utils import timezone
 from listings.analytics import accuracy_metrics
 from listings.ml.dataset import MAX_AREA_SQM, MAX_BEDROOMS
 from listings.ml.predict import MODEL_PATH, load, predict
-from listings.models import Listing, ScoringRun
+from listings.models import PUBLIC_SOURCES, Listing, ScoringRun
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ def _predictions(statuses):
     rows = list(
         Listing.objects.filter(
             is_active=True,
+            source_site__in=PUBLIC_SOURCES,
             listing_intent="sale",
             area_sqm__gt=0,
             posted_date__isnull=False,
@@ -103,7 +104,9 @@ def _price_gap_ratios(predictions):
     a "Thỏa thuận" listing has nothing to compare a prediction against.
     """
     prices = Listing.objects.filter(
-        id__in=[int(pk) for pk in predictions], price__gt=0
+        id__in=[int(pk) for pk in predictions],
+        source_site__in=PUBLIC_SOURCES,
+        price__gt=0,
     ).values_list("id", "price")
     return {pk: float((predictions[pk] - price) / price) for pk, price in prices}
 
@@ -151,7 +154,9 @@ class Command(BaseCommand):
             # Each rule scopes its own population from is_active=True.
             # anomaly_reason holds one key per rule that ran; a listing no rule
             # covers is left untouched, not written with an empty dict.
-            for listing in Listing.objects.filter(is_active=True):
+            for listing in Listing.objects.filter(
+                is_active=True, source_site__in=PUBLIC_SOURCES
+            ):
                 # update_fields is built per row, never a fixed list: a scoring
                 # write must not touch last_seen_at, and it must not stamp
                 # predicted_at on a row the model didn't actually price.
@@ -220,6 +225,7 @@ class Command(BaseCommand):
             run.mae_vnd, run.median_ape, run.n_compared = accuracy_metrics(
                 Listing.objects.filter(
                     is_active=True,
+                    source_site__in=PUBLIC_SOURCES,
                     listing_intent="sale",
                     predicted_price__isnull=False,
                     price__isnull=False,

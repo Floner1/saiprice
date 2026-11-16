@@ -10,7 +10,12 @@ from django.utils import timezone
 
 from listings.management.commands import score_listings
 from listings.models import Listing, PriceHistory, ScoringRun
-from listings.tests.test_models import _make_listing
+from listings.tests.test_models import _make_listing as _make_any_listing
+
+
+def _make_listing(**overrides):
+    # score_listings scores PUBLIC_SOURCES only, so rows here default to a public source.
+    return _make_any_listing(**{"source_site": "alonhadat", **overrides})
 
 
 def _score():
@@ -611,3 +616,57 @@ class PriceGapRuleTests(TestCase):
         self.assertIsNotNone(
             score_listings._price_gap_threshold({**thin, 99: 0.1})
         )
+
+
+class PublicSourcesScoringTests(TestCase):
+    """Only PUBLIC_SOURCES rows are scored. A homedy or batdongsan row never
+    delists, so it must not move the price_gap cutoff, /flagged/ or /health/."""
+
+    def setUp(self):
+        posted = (timezone.now() - timedelta(days=14)).date()
+        same = dict(
+            listing_intent="sale", area_sqm=Decimal("80"), district="Quận 7",
+            posted_date=posted, price=Decimal("5000000000"), images=["a.jpg"],
+        )
+        self.alon = _make_listing(
+            source_site="alonhadat", source_id="ps1", url="https://alonhadat.com.vn/ps1.html", **same,
+        )
+        self.hidden = [
+            _make_listing(source_site="homedy", source_id="ps2", url="https://homedy.com/ps2-es2", **same),
+            _make_listing(source_site="batdongsan", source_id="ps3", url="https://batdongsan.com.vn/ps3-pr3", **same),
+        ]
+
+    def test_hidden_sources_get_no_prediction_and_no_anomaly_write(self):
+        _score()
+        self.alon.refresh_from_db()
+        self.assertIsNotNone(self.alon.predicted_price)
+        self.assertIsNotNone(self.alon.anomaly_reason)
+        for listing in self.hidden:
+            with self.subTest(source=listing.source_site):
+                listing.refresh_from_db()
+                self.assertIsNone(listing.predicted_price)
+                self.assertIsNone(listing.predicted_at)
+                self.assertIsNone(listing.anomaly_reason)
+                self.assertIsNone(listing.anomaly_scored_at)
+                self.assertFalse(listing.is_anomaly)
+
+    def test_run_counts_only_public_rows(self):
+        _score()
+        run = ScoringRun.objects.latest("id")
+        self.assertEqual(run.predicted, 1)
+        self.assertEqual(run.scored, 1)
+
+    def test_price_gap_pool_holds_only_public_rows(self):
+        ratios = score_listings._price_gap_ratios(
+            {self.alon.pk: Decimal("6000000000"),
+             **{listing.pk: Decimal("60000000000") for listing in self.hidden}}
+        )
+        self.assertEqual(set(ratios), {self.alon.pk})
+
+    def test_accuracy_query_holds_only_public_rows(self):
+        # A hidden row keeps whatever prediction an earlier run left on it.
+        for listing in self.hidden:
+            listing.predicted_price = Decimal("1000000000")
+            listing.save(update_fields=["predicted_price"])
+        _score()
+        self.assertEqual(ScoringRun.objects.latest("id").n_compared, 1)

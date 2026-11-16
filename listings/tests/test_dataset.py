@@ -2,6 +2,7 @@ from datetime import date
 from itertools import count
 
 from listings.ml.dataset import FEATURES, TARGET, build_training_rows
+from listings.models import Listing
 from listings.tests.test_models import _make_listing
 
 from django.test import TestCase
@@ -23,6 +24,19 @@ def _listing(source_id, **overrides):
 
 
 class BuildTrainingRowsTests(TestCase):
+    def test_default_set_holds_only_public_sources(self):
+        _listing("pub")
+        _listing("hd", source_site="homedy", url="https://homedy.com/hd-es1")
+        _listing("bds", source_site="batdongsan", url="https://batdongsan.com.vn/bds-pr1", price=6_000_000_000)
+        rows, stats = build_training_rows()
+        self.assertEqual(stats["rows_before"], 1)
+        self.assertEqual(len(rows), 1)
+
+    def test_an_explicit_queryset_is_used_as_given(self):
+        _listing("hd2", source_site="homedy", url="https://homedy.com/hd2-es2")
+        rows, _ = build_training_rows(Listing.objects.filter(source_site="homedy"))
+        self.assertEqual(len(rows), 1)
+
     def test_keeps_clean_sale_listing(self):
         _listing("clean")
         rows, stats = build_training_rows()

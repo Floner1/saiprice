@@ -14,6 +14,12 @@ SCRAPE_RUN_SOURCE_CHOICES = [
     ("batdongsan", "batdongsan"),
 ]
 
+# Sources a visitor sees and the model is fit and scored on. A source with no
+# delisting sweep (homedy reads search pages only, batdongsan is a manual
+# import) would keep sold listings live forever, so its rows feed district
+# medians only. Here rather than in district_analytics, which imports ml.dataset.
+PUBLIC_SOURCES = ("alonhadat",)
+
 
 class Agent(models.Model):
     source_site = models.CharField(max_length=20, choices=SOURCE_SITE_CHOICES)

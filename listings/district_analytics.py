@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from listings.ml.dataset import MAX_AREA_SQM, MAX_BEDROOMS
-from listings.models import Listing
+from listings.models import PUBLIC_SOURCES, Listing  # noqa: F401  views import it from here
 
 # A run that ends on an srp_ code skips the delisting sweep, and recent runs
 # all have, so is_active alone keeps listings that left the market weeks ago.
@@ -24,11 +24,6 @@ FRESH_DAYS = 30
 MIN_SUMMARY_N = 10
 
 MARKET_SOURCES = ("alonhadat", "homedy")
-
-# Sources a visitor's listing views and the API show. A source with no delisting
-# sweep (homedy reads search pages only, batdongsan is a manual import) would
-# keep sold listings on the list forever, so its rows feed medians only.
-PUBLIC_SOURCES = ("alonhadat",)
 
 
 def district_stats(queryset, as_of):
