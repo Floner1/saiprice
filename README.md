@@ -33,7 +33,7 @@ Figures as of 2026-11-16.
 - The house search root failed on its first page in all 26 alonhadat runs since it was added on 2026-10-19: 18 times with a 429, 7 with an SSL error and once with a connection error. Each reason is from the last of three tries. No house search page has ever been parsed. The villa root got past page 1 in only 2 of the 26 runs, on 11-03 and 11-10, and all 75 villas were first scraped on those two days. Active alonhadat rows: 1,875 apartments, 75 villas, 0 houses.
 - `/districts/` medians cover apartments for sale seen in the last 30 days. Apartments under 10 triệu per m² are left out as likely rents or mistyped prices. A day the crawl is blocked still gets a snapshot, built from rows seen in the previous 30 days, so it repeats earlier figures. The first snapshot is dated 2026-11-14.
 - homedy posted dates are approximate. They come from text like "2 ngày trước" (2 days ago), so a "2 tuần trước" listing is dated 14 days back. homedy rows never delist and never appear on the listing pages or the API.
-- The price model learned from 2,044 apartments and 1 house. It has no property type input, so it prices a house or villa as an apartment of the same size in the same district. Its held-out median error is 24.4% on 409 test rows.
+- The price model was fit on 1,636 apartments. The cleaned set's only house fell in the 409-row test split, so the model has no property type input. It prices a house or villa as an apartment of the same size in the same district. Its held-out median error is 24.4% on those 409 test rows.
 
 ## How it works
 
