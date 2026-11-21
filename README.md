@@ -2,6 +2,8 @@
 
 A pricing-transparency pipeline for the Ho Chi Minh City residential property market. It scrapes public listings, stores them in Postgres, tracks price changes over time, estimates an expected asking price for each listing with a random forest model trained on other listings' asking prices, and serves the results through a Django REST API and a server-rendered dashboard.
 
+Live demo: https://saiprice.onrender.com (free hosting, so the first visit after idle can take up to a minute to load)
+
 It only ever sees what's publicly listed. This isn't a lead-generation tool and doesn't surface off-market inventory.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pipeline, model and web app fit together.
@@ -20,7 +22,7 @@ In development. Build started July 2026.
 | Django backend + API | `GET /api/listings/` and `GET /api/listings/<id>/` live, alonhadat listings only |
 | Frontend dashboard | Listing list with filters (district, property type, price, search), detail page, `/flagged/`, `/districts/`, `/offices/` and `/health/` live (Tailwind, paginated) |
 | ML price model | Trained (random forest, log-price target). `predicted_price` set on active alonhadat sale listings by `score_listings` |
-| Deployment (Render) | Not started |
+| Deployment (Render) | Live |
 | Research writeup | Not started |
 
 ## Limits
@@ -76,7 +78,7 @@ A flagged listing:
 - PostgreSQL
 - Django 5.2 + Django REST Framework + `django-filter`
 - Django templates + Tailwind CSS 4 via `django-tailwind-cli` (standalone binary, no Node.js/npm) for the dashboard. Chart.js only if trend charts ship (stretch)
-- Render for deployment (planned)
+- Render for deployment
 
 ## Setup
 
