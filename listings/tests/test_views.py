@@ -5,6 +5,7 @@ from html import unescape
 from urllib.parse import parse_qs
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.test import TestCase
 from django.urls import reverse
@@ -519,7 +520,29 @@ class DetailAnomalyStalenessLabelTests(TestCase):
         self.assertContains(response, "Not scored yet.")
 
 
+def _login_staff(client):
+    client.force_login(User.objects.create_user("staff", is_staff=True))
+
+
+class PipelineHealthAccessTests(TestCase):
+    def test_anonymous_visitor_gets_403_not_a_login_redirect(self):
+        # A redirect would reveal the private admin login path.
+        response = self.client.get("/health/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_logged_in_non_staff_gets_403(self):
+        self.client.force_login(User.objects.create_user("visitor"))
+        self.assertEqual(self.client.get("/health/").status_code, 403)
+
+    def test_staff_gets_the_page(self):
+        _login_staff(self.client)
+        self.assertEqual(self.client.get("/health/").status_code, 200)
+
+
 class PipelineHealthViewTests(TestCase):
+    def setUp(self):
+        _login_staff(self.client)
+
     def test_renders_with_an_empty_database(self):
         # The page must not 500 before the first run ever happens.
         response = self.client.get("/health/")
@@ -600,6 +623,7 @@ class MainNavTests(TestCase):
     """base.html's nav: first in body on every page, current link marked."""
 
     def test_each_page_marks_only_its_own_link_current(self):
+        _login_staff(self.client)
         listing = _make_listing()
         current = {
             "/": "Residential",
@@ -630,6 +654,16 @@ class MainNavTests(TestCase):
                     [label for attrs, label in links if 'aria-current="page"' in attrs],
                     [expected],
                 )
+
+    def test_health_link_is_hidden_from_non_staff(self):
+        for user in (None, User.objects.create_user("visitor")):
+            with self.subTest(user=user):
+                if user:
+                    self.client.force_login(user)
+                html = self.client.get("/").content.decode()
+                nav = re.search(r'<nav aria-label="Main".*?</nav>', html, re.S).group()
+                self.assertNotIn("/health/", nav)
+                self.assertIn("Flagged", nav)
 
 
 class DistrictPricesViewTests(TestCase):

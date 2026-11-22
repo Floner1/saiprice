@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from bs4 import BeautifulSoup
 
 from ..currency import parse_vnd, parse_vnd_unit
-from ..parsers import ParsedListing, RequiredFieldMissing, _parse_area, _parse_int
+from ..parsers import ParsedListing, RequiredFieldMissing, _parse_area, _parse_int, mask_phones
 
 BASE_URL = "https://alonhadat.com.vn"
 
@@ -145,7 +145,7 @@ def _parse_card(card, property_type, listing_intent):
     source_id = id_match.group(1) if id_match else None
     url = f"{BASE_URL}{href}" if href and href.startswith("/") else href
     title_tag = card.select_one("[itemprop='name']")
-    title = title_tag.get_text(strip=True) if title_tag else None
+    title = mask_phones(title_tag.get_text(strip=True)) if title_tag else None
 
     for field_name, value in (("source_id", source_id), ("url", url), ("title", title)):
         if not value:
@@ -170,7 +170,7 @@ def _parse_card(card, property_type, listing_intent):
     new_addr_parts = [
         s.get_text(strip=True) for s in card.select(".new-address [itemprop]")
     ]
-    address_raw = ", ".join(new_addr_parts) or None
+    address_raw = mask_phones(", ".join(new_addr_parts)) or None
     ward_tag = card.select_one(".new-address [itemprop='addressLocality']")
     ward = ward_tag.get_text(strip=True) if ward_tag else None
     old_addr = card.select_one(".old-address span")

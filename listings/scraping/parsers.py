@@ -173,7 +173,7 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
     resolved_url = canonical["href"] if canonical and canonical.get("href") else url
 
     title_el = soup.select_one("h1.re__pr-title")
-    title = title_el.get_text(strip=True) if title_el else None
+    title = mask_phones(title_el.get_text(strip=True)) if title_el else None
 
     for field_name, value in (
         ("source_site", "batdongsan"),
@@ -199,7 +199,7 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
     config = _label_value_map(config_container, ".js__pr-config-item", ".title", ".value")
 
     address_el = soup.select_one(".re__address-line-1")
-    address_raw = address_el.get_text(strip=True) if address_el else None
+    address_raw = mask_phones(address_el.get_text(strip=True)) if address_el else None
     address_parts = [p.strip() for p in address_raw.split(",")] if address_raw else []
     district = address_parts[-2] if len(address_parts) >= 2 else None
     ward = address_parts[-3] if len(address_parts) >= 3 else None
@@ -210,11 +210,12 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
 
     description_el = soup.select_one(".re__pr-description .re__section-body")
     description = (
-        description_el.get_text(separator="\n", strip=True) if description_el else None
+        mask_phones(description_el.get_text(separator="\n", strip=True))
+        if description_el else None
     )
 
     project_el = soup.select_one(".re__project-title")
-    project_name = project_el.get_text(strip=True) if project_el else None
+    project_name = mask_phones(project_el.get_text(strip=True)) if project_el else None
     project_id_source = str(product.get("projectId")) if product.get("projectId") else None
 
     map_lat, map_lng = _extract_map_coords(soup)

@@ -19,7 +19,7 @@
     </div>
     <a href="{% url 'listing-list' %}" class="order-first w-full text-center text-xl tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto">SaiPrice</a>
     <div class="flex flex-1 justify-end gap-3 sm:gap-6">
-      <a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>
+      {% if request.user.is_staff %}<a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>{% endif %}
       <a href="{% url 'listing-summary' %}" {% if n == "listing-summary" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Flagged</a>
     </div>
   </div>

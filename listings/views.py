@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import F, Q
 from django.views.generic import DetailView, ListView, TemplateView
 
@@ -124,8 +125,14 @@ class AnomalySummaryView(PageSlotsMixin, ListView):
     )
 
 
-class PipelineHealthView(TemplateView):
+class PipelineHealthView(UserPassesTestMixin, TemplateView):
+    # 403 for everyone else, anonymous included. A redirect to the login page
+    # would reveal the admin path, which is kept private in production.
+    raise_exception = True
     template_name = "listings/pipeline_health.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

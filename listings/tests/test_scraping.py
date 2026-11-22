@@ -201,6 +201,37 @@ class ParseLdpRequiredFieldTests(SimpleTestCase):
             parse_ldp(html, "https://batdongsan.com.vn/test-pr1")
 
 
+class ParseLdpPhoneMaskTests(SimpleTestCase):
+    # Made-up numbers, never copied from a real listing.
+    HTML = """
+    <html><head><script>
+    window.pageTrackingData = {
+        ...JSON.parse('{"products":[{"intent":"Sale","productId":1,"cateId":324}]}'),
+    };
+    </script></head><body>
+    <h1 class="re__pr-title">Bán căn hộ 2PN LH 0900 000 001</h1>
+    <div class="re__address-line-1">Hẻm 5 gọi 0900.000.002, Phường 1, Quận 3, Hồ Chí Minh</div>
+    <div class="re__pr-description"><div class="re__section-body">Nhà đẹp.<br>Liên hệ +84 900 000 003 xem nhà.</div></div>
+    <div class="re__project-title">Dự án X hotline 0900-000-004</div>
+    </body></html>
+    """
+
+    def test_phones_are_cut_from_every_free_text_field(self):
+        f = parse_ldp(self.HTML, "https://batdongsan.com.vn/test-pr1").fields
+        self.assertEqual(f["title"], "Bán căn hộ 2PN LH")
+        self.assertEqual(f["description"], "Nhà đẹp.\nLiên hệ xem nhà.")
+        self.assertEqual(f["district"], "Quận 3")
+        self.assertEqual(f["ward"], "Phường 1")
+        for field in ("title", "description", "address_raw", "project_name"):
+            with self.subTest(field=field):
+                self.assertNotRegex(f[field], r"900")
+
+    def test_title_that_is_only_a_phone_is_missing(self):
+        html = self.HTML.replace("Bán căn hộ 2PN LH 0900 000 001", "0900 000 001")
+        with self.assertRaises(RequiredFieldMissing):
+            parse_ldp(html, "https://batdongsan.com.vn/test-pr1")
+
+
 class SweepDelistingsGuardTests(TestCase):
     def _run(self, listings_seen, status_counts=None):
         now = timezone.now()
@@ -321,6 +352,35 @@ class ParseAlonhadatSrpTests(SimpleTestCase):
         listings, skips = alonhadat.parse_srp(html, "apartment", "sale")
         self.assertEqual(listings, [])
         self.assertEqual(skips, [("/no-id-here.html", "source_id")])
+
+
+class ParseAlonhadatPhoneMaskTests(SimpleTestCase):
+    # Made-up numbers, never copied from a real listing.
+    def _card(self, title):
+        return (
+            '<article class="property-item">'
+            '<a itemprop="url" href="/ban-can-ho-x-777.html" data-memberid="m1">link</a>'
+            f'<span itemprop="name">{title}</span>'
+            '<div class="new-address"><span itemprop="streetAddress">Hẻm 5 gọi 0900.000.002</span>'
+            '<span itemprop="addressLocality">Phường Bến Nghé</span></div>'
+            "</article>"
+        )
+
+    def test_phones_are_cut_from_title_and_address(self):
+        (item,), skips = alonhadat.parse_srp(
+            self._card("Bán căn hộ 2PN LH 0900 000 001"), "apartment", "sale"
+        )
+        self.assertEqual(skips, [])
+        self.assertEqual(item.fields["title"], "Bán căn hộ 2PN LH")
+        self.assertNotRegex(item.fields["address_raw"], r"900")
+        self.assertIn("Phường Bến Nghé", item.fields["address_raw"])
+
+    def test_title_that_is_only_a_phone_is_skipped(self):
+        listings, skips = alonhadat.parse_srp(
+            self._card("0900 000 001"), "apartment", "sale"
+        )
+        self.assertEqual(listings, [])
+        self.assertEqual(skips, [("/ban-can-ho-x-777.html", "title")])
 
 
 class ParseAlonhadatLdpExtrasTests(SimpleTestCase):
