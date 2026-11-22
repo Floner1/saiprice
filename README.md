@@ -80,7 +80,7 @@ There are no user accounts, so the Django admin is the only login. The pages and
 
 The admin path comes from the `ADMIN_URL` environment variable and defaults to `admin/`. Give it a trailing slash and no leading slash, like `your-admin-path/`. Render sets it, which moves the live admin off the default path.
 
-Public pages show no agent name and no phone number.
+Public pages show no agent name and no phone number. SaiPrice does not store agent names or phone numbers.
 
 ## Tech stack
 

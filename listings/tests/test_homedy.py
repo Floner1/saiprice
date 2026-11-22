@@ -194,7 +194,6 @@ class ParseSrpFixtureTests(SimpleTestCase):
         for p in self.listings:
             with self.subTest(source_id=p.source_id):
                 self.assertIsNone(p.agent_source_id)
-                self.assertIsNone(p.agent_name)
                 self.assertNotIn("phone_number", p.fields)
 
 

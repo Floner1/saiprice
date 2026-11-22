@@ -33,7 +33,6 @@ def _item(source_id="111"):
         source_site="alonhadat",
         source_id=source_id,
         agent_source_id=None,
-        agent_name=None,
         expired=False,
         fields={
             "url": f"https://alonhadat.com.vn/x-{source_id}.html",
@@ -91,13 +90,13 @@ class ParseLdpApartmentTests(SimpleTestCase):
 
     def test_agent(self):
         self.assertEqual(self.parsed.agent_source_id, "9000001")
-        self.assertEqual(self.parsed.agent_name, "A")
+        self.assertFalse(hasattr(self.parsed, "agent_name"))
 
     def test_expired_flag(self):
         self.assertFalse(self.parsed.expired)
 
-    def test_phone_number_always_null(self):
-        self.assertIsNone(self.parsed.fields["phone_number"])
+    def test_no_phone_number_key(self):
+        self.assertNotIn("phone_number", self.parsed.fields)
 
     def test_posted_date(self):
         self.assertEqual(self.parsed.fields["posted_date"], date(2026, 7, 4))
@@ -313,7 +312,6 @@ class ParseAlonhadatSrpTests(SimpleTestCase):
     def test_agent_memberid_on_every_card(self):
         for item in self.listings:
             self.assertTrue(item.agent_source_id)
-            self.assertIsNone(item.agent_name)
 
     def test_missing_id_in_href_is_skipped_not_dropped(self):
         html = (
@@ -1080,7 +1078,6 @@ class HomedyCrawlTests(TestCase):
         self.assertEqual(run.error_count, 0)
         self.assertIsNone(run.status_counts)
         self.assertFalse(Agent.objects.exists())
-        self.assertFalse(rows.exclude(phone_number=None).exists())
         self.assertFalse(rows.filter(images__isnull=False).exists())
 
     def test_homedy_never_fetches_a_listing_page(self):

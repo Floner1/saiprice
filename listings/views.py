@@ -62,11 +62,7 @@ class PageSlotsMixin:
 
 
 class ListingListView(PageSlotsMixin, ListView):
-    # select_related: the card's contact control reads agent.name, which is one
-    # query per row without it.
-    queryset = Listing.objects.filter(
-        is_active=True, source_site__in=PUBLIC_SOURCES
-    ).select_related("agent")
+    queryset = Listing.objects.filter(is_active=True, source_site__in=PUBLIC_SOURCES)
     ordering = ["-id"]
 
     def get_queryset(self):
@@ -120,7 +116,6 @@ class AnomalySummaryView(PageSlotsMixin, ListView):
         Listing.objects.filter(
             is_active=True, is_anomaly=True, source_site__in=PUBLIC_SOURCES
         )
-        .select_related("agent")
         .order_by(
             F("anomaly_reason__low_photos__value").asc(nulls_last=True),
             "-anomaly_scored_at",

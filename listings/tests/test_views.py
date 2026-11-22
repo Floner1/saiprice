@@ -112,7 +112,7 @@ class DashboardListingDetailTests(TestCase):
 
     def test_renders_all_fields_populated(self):
         agent = Agent.objects.create(
-            source_site="alonhadat", source_id="ag1", name="Chị Hoa"
+            source_site="alonhadat", source_id="ag1"
         )
         listing = _make_listing(
             source_id="d4", url="https://alonhadat.com.vn/d4.html",
@@ -123,7 +123,7 @@ class DashboardListingDetailTests(TestCase):
             address_raw="12 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP.HCM",
             posted_date=(timezone.now() - timedelta(days=5)).date(),
             images=["https://img/1.jpg", "https://img/2.jpg"],
-            agent=agent, phone_number="0901234567",
+            agent=agent,
             description="Nhà đẹp, sổ hồng riêng.",
             is_anomaly=True,
             anomaly_reason={"low_photos": {"triggered": True, "value": 2}},
@@ -141,15 +141,15 @@ class DashboardListingDetailTests(TestCase):
 
     def test_detail_shows_no_agent_or_phone(self):
         agent = Agent.objects.create(
-            source_site="alonhadat", source_id="ag2", name="Chị Hoa"
+            source_site="alonhadat", source_id="ag2"
         )
         listing = _make_listing(
             source_id="d6", url="https://alonhadat.com.vn/d6.html",
-            agent=agent, phone_number="0901234567",
+            agent=agent,
         )
         response = self.client.get(f"/listing/{listing.pk}/")
         self.assertEqual(response.status_code, 200)
-        for absent in ("Chị Hoa", "0901234567", "tel:", ">Agent<", ">Phone<"):
+        for absent in ("tel:", ">Agent<", ">Phone<"):
             self.assertNotContains(response, absent)
 
     def test_null_price_renders_negotiable(self):
@@ -338,20 +338,20 @@ class ListingCardContactAgentTests(TestCase):
     def test_list_pages_show_no_agent_or_phone(self):
         # Both pages render the shared card. is_anomaly puts the row on /flagged/.
         agent = Agent.objects.create(
-            source_site="alonhadat", source_id="k-ag", name="Chị Hoa"
+            source_site="alonhadat", source_id="k-ag"
         )
-        self._card(agent=agent, phone_number="090 123 4567", is_anomaly=True)
+        self._card(agent=agent, is_anomaly=True)
         for path in ("/", "/flagged/"):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
-            for absent in ("tel:", "Call", "Chị Hoa", "090 123 4567"):
+            for absent in ("tel:", "Call"):
                 self.assertNotContains(response, absent, msg_prefix=path)
 
     def test_no_agent_contact_info_renders_no_control(self):
         agent = Agent.objects.create(
-            source_site="alonhadat", source_id="k-anon", name=None
+            source_site="alonhadat", source_id="k-anon"
         )
-        _, card = self._card(agent=agent, phone_number=None)
+        _, card = self._card(agent=agent)
         for absent in ("tel:", "Call", "aria-label"):
             self.assertNotIn(absent, card)
 
@@ -361,7 +361,7 @@ class TemplateCommentTests(TestCase):
         # {# #} is single-line only: a newline inside it makes Django print the comment.
         _make_listing(
             source_id="m1", url="https://alonhadat.com.vn/m1.html",
-            phone_number="090 123 4567", is_anomaly=True,
+            is_anomaly=True,
         )
         for path in ("/", "/flagged/"):
             self.assertNotRegex(self.client.get(path).content.decode(), r"\{#|#\}", path)

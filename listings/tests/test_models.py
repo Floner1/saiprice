@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.core.exceptions import FieldDoesNotExist
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
@@ -31,6 +32,18 @@ class UrlFieldLengthTests(TestCase):
     def test_url_max_length_is_500(self):
         field = Listing._meta.get_field("url")
         self.assertEqual(field.max_length, 500)
+
+
+class NoPhoneNumberFieldTests(TestCase):
+    def test_listing_has_no_phone_number_field(self):
+        with self.assertRaises(FieldDoesNotExist):
+            Listing._meta.get_field("phone_number")
+
+
+class NoAgentNameFieldTests(TestCase):
+    def test_agent_has_no_name_field(self):
+        with self.assertRaises(FieldDoesNotExist):
+            Agent._meta.get_field("name")
 
 
 class ListingUniquenessTests(TestCase):
@@ -77,22 +90,28 @@ class DistrictSnapshotUniquenessTests(TestCase):
 
 
 class AgentDedupTests(TestCase):
+    def _parsed(self, source_id):
+        return ParsedListing(
+            source_site="alonhadat",
+            source_id=source_id,
+            agent_source_id="900",
+            expired=False,
+            fields={
+                "url": f"https://alonhadat.com.vn/{source_id}.html",
+                "title": "Test",
+                "property_type": "apartment",
+                "listing_intent": "sale",
+            },
+        )
+
     def test_two_listings_same_agent_reuse_one_agent_row(self):
-        agent, created = Agent.objects.update_or_create(
-            source_site="batdongsan", source_id="900", defaults={"name": "Tuấn"}
-        )
-        self.assertTrue(created)
-
-        listing_a = _make_listing(source_id="a", url="https://batdongsan.com.vn/a-pr1", agent=agent)
-
-        agent_again, created_again = Agent.objects.update_or_create(
-            source_site="batdongsan", source_id="900", defaults={"name": "Tuấn"}
-        )
-        listing_b = _make_listing(source_id="b", url="https://batdongsan.com.vn/b-pr1", agent=agent_again)
-
-        self.assertFalse(created_again)
-        self.assertEqual(Agent.objects.filter(source_site="batdongsan", source_id="900").count(), 1)
-        self.assertEqual(listing_a.agent_id, listing_b.agent_id)
+        upsert(self._parsed("a"))
+        upsert(self._parsed("b"))
+        agents = Agent.objects.filter(source_site="alonhadat", source_id="900")
+        self.assertEqual(agents.count(), 1)
+        listing_a, listing_b = Listing.objects.filter(source_id__in=["a", "b"])
+        self.assertEqual(listing_a.agent_id, agents.get().pk)
+        self.assertEqual(listing_b.agent_id, agents.get().pk)
 
 
 class PriceHistoryUpsertPatternTests(TestCase):
@@ -147,7 +166,6 @@ class NegotiablePriceUpsertTests(TestCase):
             source_site="alonhadat",
             source_id="neg1",
             agent_source_id=None,
-            agent_name=None,
             expired=False,
             fields={
                 "url": "https://alonhadat.com.vn/neg1.html",
@@ -234,7 +252,6 @@ class ReactivationTests(TestCase):
             source_site="alonhadat",
             source_id="react1",
             agent_source_id=None,
-            agent_name=None,
             expired=False,
             fields={
                 "url": "https://alonhadat.com.vn/react1.html",

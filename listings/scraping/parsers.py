@@ -38,7 +38,6 @@ class ParsedListing:
     source_site: str
     source_id: str
     agent_source_id: str | None
-    agent_name: str | None
     expired: bool
     fields: dict
 
@@ -155,11 +154,6 @@ def _extract_video_url(soup):
     return source.get("src") if source else None
 
 
-def _extract_agent_name(soup):
-    name_el = soup.select_one(".re__agent-infor.re__agent-name .re__contact-name")
-    return name_el.get_text(strip=True) if name_el else None
-
-
 def parse_ldp(html: str, url: str) -> ParsedListing:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -252,7 +246,6 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
         "video_url": _extract_video_url(soup),
         "map_lat": map_lat,
         "map_lng": map_lng,
-        "phone_number": None,
         "posted_date": _parse_posted_date(config.get("Ngày đăng")),
     }
 
@@ -262,7 +255,6 @@ def parse_ldp(html: str, url: str) -> ParsedListing:
         source_site="batdongsan",
         source_id=source_id,
         agent_source_id=agent_source_id,
-        agent_name=_extract_agent_name(soup),
         expired=bool(product.get("expired", False)),
         fields=fields,
     )

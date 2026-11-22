@@ -82,10 +82,10 @@ class SpecFilterTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.agent = Agent.objects.create(
-            source_site="alonhadat", source_id="m1", name="Agent One"
+            source_site="alonhadat", source_id="m1"
         )
         cls.agent2 = Agent.objects.create(
-            source_site="alonhadat", source_id="m2", name="Nguyen Thi Hoa"
+            source_site="alonhadat", source_id="m2"
         )
         _make_listing(
             source_id="s1", url="https://alonhadat.com.vn/s1.html",
@@ -271,27 +271,9 @@ class ListingDetailTests(ApiTestCase):
         self.assertEqual(body["district"], "Quận 3")
         self.assertEqual(body["price"], "7000000000")
 
-    def test_phone_number_not_exposed(self):
-        # Populated on purpose: ListingSerializer's field list is what withholds
-        # this, not the column happening to be null. homedy's LDP serves the
-        # agent phone ungated, so this starts filling once that source is wired
-        # into scrape_listings.
-        listing = _make_listing(
-            source_id="d3", url="https://alonhadat.com.vn/d3.html",
-            phone_number="0901234567",
-        )
-        detail = self.client.get(f"/api/listings/{listing.pk}/")
-        self.assertEqual(detail.status_code, 200)
-        self.assertNotIn("phone_number", detail.json())
-        row = next(
-            r for r in self.client.get("/api/listings/").json()["results"]
-            if r["source_id"] == "d3"
-        )
-        self.assertNotIn("phone_number", row)
-
     def test_agent_not_exposed(self):
         agent = Agent.objects.create(
-            source_site="alonhadat", source_id="ag-api", name="Chị Hoa"
+            source_site="alonhadat", source_id="ag-api"
         )
         listing = _make_listing(
             source_id="d5", url="https://alonhadat.com.vn/d5.html", agent=agent,

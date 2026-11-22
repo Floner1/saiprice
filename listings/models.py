@@ -24,7 +24,6 @@ PUBLIC_SOURCES = ("alonhadat",)
 class Agent(models.Model):
     source_site = models.CharField(max_length=20, choices=SOURCE_SITE_CHOICES)
     source_id = models.CharField(max_length=64)
-    name = models.CharField(max_length=255, null=True)
 
     class Meta:
         unique_together = (("source_site", "source_id"),)
@@ -84,7 +83,6 @@ class Listing(models.Model):
     map_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True)
     map_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True)
-    phone_number = models.CharField(max_length=32, null=True)
     posted_date = models.DateField(null=True)
     scraped_at = models.DateTimeField(auto_now_add=True)
     # not auto_now: only ingestion may set this, ML writes must not

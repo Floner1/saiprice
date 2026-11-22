@@ -140,7 +140,6 @@ def _parse_card(card, property_type, listing_intent, today):
         source_site="homedy",
         source_id=id_match.group(1),
         agent_source_id=None,
-        agent_name=None,
         expired=False,
         fields=fields,
     )

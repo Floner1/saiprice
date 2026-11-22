@@ -6,10 +6,9 @@ from listings.models import Agent, Listing, PriceHistory
 def upsert(parsed):
     agent = None
     if parsed.agent_source_id:
-        agent, _ = Agent.objects.update_or_create(
+        agent, _ = Agent.objects.get_or_create(
             source_site=parsed.source_site,
             source_id=parsed.agent_source_id,
-            defaults={"name": parsed.agent_name},
         )
 
     existing = Listing.objects.filter(

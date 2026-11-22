@@ -216,7 +216,6 @@ def _parse_card(card, property_type, listing_intent):
         source_site="alonhadat",
         source_id=source_id,
         agent_source_id=link.get("data-memberid") or None,
-        agent_name=None,
         expired=False,
         fields=fields,
     )
