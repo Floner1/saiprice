@@ -55,7 +55,6 @@ class ListingSerializer(serializers.ModelSerializer):
             "is_anomaly",
             "anomaly_reason",
             "anomaly_scored_at",
-            "agent",
         ]
 
     def get_days_on_market(self, obj):

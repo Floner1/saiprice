@@ -4,8 +4,10 @@ from decimal import Decimal
 from html import unescape
 from urllib.parse import parse_qs
 
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from listings.models import Agent, Listing, PriceHistory, ScoringRun, ScrapeRun
@@ -133,11 +135,22 @@ class DashboardListingDetailTests(TestCase):
         self.assertContains(response, "100 triệu")
         self.assertContains(response, "Phường Tân Phong")
         self.assertContains(response, "12 Nguyễn Văn Linh")
-        self.assertContains(response, "Chị Hoa")
-        self.assertContains(response, "0901234567")
         self.assertContains(response, "Nhà đẹp, sổ hồng riêng.")
         self.assertContains(response, "<dd>3</dd>", html=True)
         self.assertContains(response, "<dd>2</dd>", html=True)
+
+    def test_detail_shows_no_agent_or_phone(self):
+        agent = Agent.objects.create(
+            source_site="alonhadat", source_id="ag2", name="Chị Hoa"
+        )
+        listing = _make_listing(
+            source_id="d6", url="https://alonhadat.com.vn/d6.html",
+            agent=agent, phone_number="0901234567",
+        )
+        response = self.client.get(f"/listing/{listing.pk}/")
+        self.assertEqual(response.status_code, 200)
+        for absent in ("Chị Hoa", "0901234567", "tel:", ">Agent<", ">Phone<"):
+            self.assertNotContains(response, absent)
 
     def test_null_price_renders_negotiable(self):
         listing = _make_listing(
@@ -322,22 +335,17 @@ class ListingCardContactAgentTests(TestCase):
             "listings/_listing_card.html", {"listing": listing}
         )
 
-    def test_contact_control_does_not_navigate_the_row(self):
-        # Markup proxy for the click. Two invariants make the tap land on the
-        # control instead of the row link: the control is a sibling of that link
-        # (closed before it opens, so not a descendant that inherits its href),
-        # and relative z-10 puts it above the after:inset-0 overlay. A literal
-        # click needs a browser, which the project deliberately has no
-        # dependency for, so this was verified by hand in the dev server.
+    def test_list_pages_show_no_agent_or_phone(self):
+        # Both pages render the shared card. is_anomaly puts the row on /flagged/.
         agent = Agent.objects.create(
             source_site="alonhadat", source_id="k-ag", name="Chị Hoa"
         )
-        listing, card = self._card(agent=agent, phone_number="090 123 4567")
-        self.assertIn('href="tel:0901234567"', card)
-        self.assertIn("Call Chị Hoa", card)
-        self.assertIn("relative z-10", card)
-        row_link_end = card.index("</a>", card.index(f'href="/listing/{listing.pk}/"'))
-        self.assertLess(row_link_end, card.index('href="tel:'))
+        self._card(agent=agent, phone_number="090 123 4567", is_anomaly=True)
+        for path in ("/", "/flagged/"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            for absent in ("tel:", "Call", "Chị Hoa", "090 123 4567"):
+                self.assertNotContains(response, absent, msg_prefix=path)
 
     def test_no_agent_contact_info_renders_no_control(self):
         agent = Agent.objects.create(
@@ -574,6 +582,18 @@ class PipelineHealthViewTests(TestCase):
     def test_a_day_with_no_run_is_shown_not_omitted(self):
         response = self.client.get("/health/")
         self.assertEqual(len(response.context["scrape_days"]), 30)
+
+
+class AdminUrlTests(TestCase):
+    def test_admin_mounted_at_admin_url_setting(self):
+        self.assertEqual(settings.ADMIN_URL, "admin/")
+        self.assertEqual(reverse("admin:index"), f"/{settings.ADMIN_URL}")
+
+    def test_anonymous_admin_request_redirects_to_login(self):
+        index = reverse("admin:index")
+        self.assertRedirects(
+            self.client.get(index), f"{reverse('admin:login')}?next={index}"
+        )
 
 
 class MainNavTests(TestCase):

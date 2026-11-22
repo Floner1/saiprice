@@ -35,7 +35,7 @@ class ListingFilter(django_filters.FilterSet):
 
     class Meta:
         model = Listing
-        fields = ["district", "property_type", "listing_intent", "is_anomaly", "agent"]
+        fields = ["district", "property_type", "listing_intent", "is_anomaly"]
 
 
 class ListingListView(generics.ListAPIView):

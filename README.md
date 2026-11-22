@@ -47,7 +47,9 @@ Figures as of 2026-11-16.
 
 `GET /api/listings/`: active alonhadat listings, paginated at 20 per page. homedy and batdongsan rows are not served.
 
-Filters: `district`, `property_type`, `listing_intent`, `min_price`, `max_price`, `min_area`, `max_area`, `is_anomaly`, `agent`, `district_id`.
+Anonymous requests are limited to 60 per hour. Past that the API returns HTTP 429. The output has no `agent` field.
+
+Filters: `district`, `property_type`, `listing_intent`, `min_price`, `max_price`, `min_area`, `max_area`, `is_anomaly`, `district_id`.
 
 Orderable by any field, `?ordering=price` or `?ordering=-price`, plus `?sort_by=days_on_market` (or `-days_on_market`) for the one computed field the ordering filter can't reach directly.
 
@@ -71,6 +73,14 @@ A flagged listing:
   }
 }
 ```
+
+## Access
+
+There are no user accounts, so the Django admin is the only login. The pages and the API are open to anyone.
+
+The admin path comes from the `ADMIN_URL` environment variable and defaults to `admin/`. Give it a trailing slash and no leading slash, like `your-admin-path/`. Render sets it, which moves the live admin off the default path.
+
+Public pages show no agent name and no phone number.
 
 ## Tech stack
 

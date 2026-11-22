@@ -22,8 +22,6 @@
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Posted</dt><dd>{{ listing.posted_date|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Days on market</dt><dd>{{ listing.days_on_market|default_if_none:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Photos</dt><dd>{% if listing.images is not None %}{{ listing.images|length }}{% else %}-{% endif %}</dd></div>
-    <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Agent</dt><dd>{{ listing.agent.name|default:"-" }}</dd></div>
-    <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Phone</dt><dd>{{ listing.phone_number|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Source</dt><dd><a class="text-accent" href="{{ listing.url }}" rel="nofollow noopener">{{ listing.source_site }} ↗</a></dd></div>
   </dl>
 

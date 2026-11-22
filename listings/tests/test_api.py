@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
@@ -12,7 +13,15 @@ def _make_listing(**overrides):
     return _make_any_listing(**{"source_site": "alonhadat", **overrides})
 
 
-class ListingFilterTests(TestCase):
+class ApiTestCase(TestCase):
+    # The anon throttle counts in the default cache, which outlives a single
+    # test. Without the clear, the suite's API requests add up past the hourly
+    # limit and unrelated tests start getting 429.
+    def setUp(self):
+        cache.clear()
+
+
+class ListingFilterTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         _make_listing(
@@ -69,7 +78,7 @@ class ListingFilterTests(TestCase):
         self.assertIsNone(rows["f3"]["price_display"])
 
 
-class SpecFilterTests(TestCase):
+class SpecFilterTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.agent = Agent.objects.create(
@@ -112,8 +121,10 @@ class SpecFilterTests(TestCase):
         self.assertEqual(self._get_ids(is_anomaly=True), {"s1"})
         self.assertEqual(self._get_ids(is_anomaly=False), {"s2", "s3"})
 
-    def test_filter_by_agent(self):
-        self.assertEqual(self._get_ids(agent=self.agent.pk), {"s1"})
+    def test_agent_param_does_not_filter(self):
+        # Filtering by agent id would let a client group listings by agent
+        # without the field in the output, so the param is ignored.
+        self.assertEqual(self._get_ids(agent=self.agent.pk), {"s1", "s2", "s3"})
 
     def test_ordering_by_price(self):
         response = self.client.get("/api/listings/", {"ordering": "price"})
@@ -128,7 +139,7 @@ class SpecFilterTests(TestCase):
         self.assertEqual(ids, ["s3", "s1", "s2"])
 
 
-class SortByDaysOnMarketTests(TestCase):
+class SortByDaysOnMarketTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         _make_listing(
@@ -182,7 +193,7 @@ class SortByDaysOnMarketTests(TestCase):
         )
 
 
-class DaysOnMarketFieldTests(TestCase):
+class DaysOnMarketFieldTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.normal = _make_listing(
@@ -212,7 +223,7 @@ class DaysOnMarketFieldTests(TestCase):
         self.assertEqual(fallback.json()["days_on_market"], 7)
 
 
-class PaginationTests(TestCase):
+class PaginationTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         for i in range(1, 22):
@@ -243,7 +254,7 @@ class PaginationTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class ListingDetailTests(TestCase):
+class ListingDetailTests(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.listing = _make_listing(
@@ -278,6 +289,22 @@ class ListingDetailTests(TestCase):
         )
         self.assertNotIn("phone_number", row)
 
+    def test_agent_not_exposed(self):
+        agent = Agent.objects.create(
+            source_site="alonhadat", source_id="ag-api", name="Chị Hoa"
+        )
+        listing = _make_listing(
+            source_id="d5", url="https://alonhadat.com.vn/d5.html", agent=agent,
+        )
+        detail = self.client.get(f"/api/listings/{listing.pk}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertNotIn("agent", detail.json())
+        row = next(
+            r for r in self.client.get("/api/listings/").json()["results"]
+            if r["source_id"] == "d5"
+        )
+        self.assertNotIn("agent", row)
+
     def test_null_district_is_served_as_null(self):
         # homedy rows whose district label maps to nothing are stored with
         # district=None, so the API must serve them, not 500 on them.
@@ -305,8 +332,9 @@ class ListingDetailTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class PublicSourcesApiTests(TestCase):
+class PublicSourcesApiTests(ApiTestCase):
     def setUp(self):
+        super().setUp()
         self.alon = _make_listing(
             source_site="alonhadat", source_id="api1", url="https://alonhadat.com.vn/api1.html",
         )
@@ -321,3 +349,10 @@ class PublicSourcesApiTests(TestCase):
     def test_detail_of_a_homedy_row_is_404(self):
         self.assertEqual(self.client.get(f"/api/listings/{self.alon.pk}/").status_code, 200)
         self.assertEqual(self.client.get(f"/api/listings/{self.homedy.pk}/").status_code, 404)
+
+
+class AnonThrottleTests(ApiTestCase):
+    def test_anonymous_client_gets_429_after_60_requests(self):
+        for _ in range(60):
+            self.assertEqual(self.client.get("/api/listings/").status_code, 200)
+        self.assertEqual(self.client.get("/api/listings/").status_code, 429)

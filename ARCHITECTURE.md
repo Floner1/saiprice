@@ -218,13 +218,15 @@ The model estimates an expected asking price from other listings' asking prices.
 
 ## Web layer
 
-Routes: `/` (list with filters and search), `/listing/<id>/`, `/flagged/`, `/districts/`, `/offices/`, `/health/`, `/admin/`, `/api/`.
+Routes: `/` (list with filters and search), `/listing/<id>/`, `/flagged/`, `/districts/`, `/offices/`, `/health/`, the admin at `ADMIN_URL`, `/api/`.
 
 - The list, detail and flagged pages and the API filter on `PUBLIC_SOURCES`. `/districts/` uses `MARKET_SOURCES`. `/health/` lists every source's runs.
 - `/health/` charts scrape and scoring runs from `analytics.py`, so a broken parser shows up as a drop in listings seen or a spike in errors.
 - `/districts/` is the median asking price per m² by district, backed by `district_analytics.py`.
 - `/offices/` is the office rent view, backed by `office_analytics.py`.
-- The API is Django REST Framework with `django-filter`, 20 per page.
+- The API is Django REST Framework with `django-filter`, 20 per page. `AnonRateThrottle` limits anonymous clients to 60 requests per hour, then returns HTTP 429. The count lives in the default local-memory cache, so each server process keeps its own. The output has no `agent` field, and `agent` is not a filter.
+- Access: there are no user accounts, so the Django admin is the only login. The pages and the API are open.
+- Public pages show no agent name and no phone number. Both stay in the database and the admin.
 - Styling is Tailwind CSS 4 through `django-tailwind-cli`, a standalone binary with no Node.js. The compiled stylesheet is gitignored, so a deploy has to build it. Content scanning is an allowlist (`@source`), because automatic detection compiled selectors out of unrelated files.
 - Static files are served by WhiteNoise.
 
@@ -243,7 +245,7 @@ Windows Task Scheduler fires it daily. The scraper stays local because it alread
 
 The cost is gaps in `PriceHistory`, delisting detection and district snapshots when the machine is off or asleep. That is accepted until it causes a real problem.
 
-Secrets and host settings come from environment variables through `python-decouple`. `DEBUG` defaults to off and `ALLOWED_HOSTS` defaults to empty, so a misconfigured deploy would fail closed.
+Secrets and host settings come from environment variables through `python-decouple`. `DEBUG` defaults to off and `ALLOWED_HOSTS` defaults to empty, so a misconfigured deploy would fail closed. `ADMIN_URL` sets the admin path. It defaults to `admin/` and takes a trailing slash with no leading slash, like `your-admin-path/`. Render sets its own value.
 
 ## Known limits
 

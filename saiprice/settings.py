@@ -55,7 +55,13 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Anonymous only: the site has no user accounts.
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/hour"},
 }
+
+# Trailing slash, no leading slash. Set on Render so the admin is not at the default path.
+ADMIN_URL = config("ADMIN_URL", default="admin/")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
