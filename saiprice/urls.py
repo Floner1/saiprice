@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from listings import views
 
@@ -11,6 +12,8 @@ urlpatterns = [
     path("health/", views.PipelineHealthView.as_view(), name="pipeline-health"),
     path("offices/", views.OfficeDashboardView.as_view(), name="office-dashboard"),
     path("districts/", views.DistrictPricesView.as_view(), name="district-prices"),
+    path("terms/", TemplateView.as_view(template_name="listings/terms.html"), name="terms"),
+    path("privacy/", TemplateView.as_view(template_name="listings/privacy.html"), name="privacy"),
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/", include("listings.api.urls")),
 ]

@@ -944,3 +944,48 @@ class SmallPaginationBarTests(TestCase):
         response = self.client.get("/")
         self.assertIsNone(_pagination_bar(response))
         self.assertNotContains(response, "Page 1 of 1")
+
+
+class FooterAndLegalPagesTests(TestCase):
+    FOOTER_LINKS = ('href="/terms/"', 'href="/privacy/"', 'href="mailto:saipricesupport@gmail.com"')
+
+    def test_legal_pages_render_for_anonymous_visitors_inside_base(self):
+        for path, h1 in (("/terms/", "Terms and Conditions"), ("/privacy/", "Privacy Policy")):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, f"<h1 class=\"text-2xl tracking-wide\">{h1}</h1>")
+                self.assertContains(response, '<nav aria-label="Main"')
+                self.assertContains(response, 'lang="en"')
+
+    def test_every_page_shows_the_footer(self):
+        _login_staff(self.client)
+        listing = _make_listing()
+        for path in ("/", f"/listing/{listing.pk}/", "/flagged/", "/offices/",
+                     "/districts/", "/health/", "/terms/", "/privacy/"):
+            with self.subTest(path=path):
+                html = self.client.get(path).content.decode()
+                footer = re.search(r"<footer.*?</footer>", html, re.S)
+                self.assertIsNotNone(footer)
+                for link in self.FOOTER_LINKS:
+                    self.assertIn(link, footer.group())
+                self.assertIn("Contact and support:", footer.group())
+                self.assertIn(">Terms and Conditions</a>", footer.group())
+                self.assertIn(">Privacy Policy</a>", footer.group())
+
+    def test_legal_pages_have_no_generator_credit_or_escaped_markup(self):
+        for path in ("/terms/", "/privacy/"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertNotContains(response, "termsfeed")
+                self.assertNotContains(response, "created with the help of")
+                self.assertNotContains(response, 'class=\\"')
+
+    def test_terms_wording_fixes(self):
+        html = self.client.get("/terms/").content.decode()
+        self.assertIn(
+            "neither the Company nor any of the Company's providers make any "
+            "representation or warranty", html
+        )
+        self.assertIn("refers to: Vietnam", html)
+        self.assertNotIn("refers to:  Vietnam", html)
