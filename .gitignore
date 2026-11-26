@@ -18,3 +18,4 @@ stats_reports/
 scrape_test_output/
 taskscheduler_backup_*.evtx
 !testdata/homedy_srp_apartment.txt
+logos/
