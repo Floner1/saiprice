@@ -1,6 +1,6 @@
 {% if is_paginated %}
 {% with link="relative min-w-8 py-3 text-center after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
-<nav aria-label="Pagination" class="mt-6 flex items-center gap-1 text-base sm:gap-3">
+<nav aria-label="Pagination" class="mt-6 flex items-center gap-1 text-base font-medium sm:gap-3">
   <div class="flex flex-1 items-center justify-between gap-1 sm:gap-3">
     {% if page_obj.has_previous %}
     <a rel="prev" href="{% querystring page=page_obj.previous_page_number %}" class="{{ link }}"><span aria-hidden="true">&larr;</span><span class="sr-only sm:not-sr-only"> Previous</span></a>

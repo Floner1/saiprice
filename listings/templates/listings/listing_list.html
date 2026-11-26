@@ -11,29 +11,29 @@
 
   <form method="get" class="mb-6 space-y-2 text-sm">
     <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search address or building"
-           class="w-full border border-line bg-paper px-2 py-2.5 text-base">
+           class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
     <div class="grid grid-cols-2 gap-2">
-      <select name="district" class="w-full border border-line bg-paper px-2 py-2.5 text-base">
+      <select name="district" class="w-full border border-line bg-card px-2 py-2.5 text-base">
         <option value="">All districts</option>
         {% for d in districts %}
         <option value="{{ d }}"{% if request.GET.district == d %} selected{% endif %}>{{ d }}</option>
         {% endfor %}
       </select>
-      <select name="property_type" class="w-full border border-line bg-paper px-2 py-2.5 text-base">
+      <select name="property_type" class="w-full border border-line bg-card px-2 py-2.5 text-base">
         <option value="">All types</option>
         {% for value, label in property_types %}
         <option value="{{ value }}"{% if request.GET.property_type == value %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
       <input type="number" name="min_price" value="{{ request.GET.min_price }}" placeholder="Min price (VND)"
-             class="w-full border border-line bg-paper px-2 py-2.5 text-base">
+             class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
       <input type="number" name="max_price" value="{{ request.GET.max_price }}" placeholder="Max price (VND)"
-             class="w-full border border-line bg-paper px-2 py-2.5 text-base">
+             class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
     </div>
     <div class="flex gap-6 text-base">
-      <button type="submit" class="relative cursor-pointer py-3 after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Filter</button>
-      <a href="{% url 'listing-list' %}" class="relative py-3 text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Clear</a>
-      <a href="{% url 'district-prices' %}" class="relative ml-auto py-3 text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent after:scale-x-0 hover:after:scale-x-100">Price per m² by district</a>
+      <button type="submit" class="relative cursor-pointer py-3 font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Filter</button>
+      <a href="{% url 'listing-list' %}" class="relative py-3 font-medium text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Clear</a>
+      <a href="{% url 'district-prices' %}" class="relative ml-auto py-3 font-medium text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent after:scale-x-0 hover:after:scale-x-100">Price per m² by district</a>
     </div>
   </form>
 

@@ -1,23 +1,29 @@
-{% load tailwind_cli %}
+{% load static tailwind_cli %}
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}SaiPrice{% endblock %}</title>
+<link rel="icon" href="{% static 'brand/favicon.ico' %}" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="{% static 'brand/favicon-16.png' %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static 'brand/favicon-32.png' %}">
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'brand/apple-touch-icon.png' %}">
+{# A meta value cannot read a CSS variable, so this repeats the paper token. #}
+<meta name="theme-color" content="#F0F8F9">
 {% tailwind_css %}
 </head>
-<body class="bg-paper text-ink font-sans">
-{% with n=request.resolver_match.url_name btn="relative py-3 text-base after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+<body class="bg-paper text-ink font-sans tabular-nums">
+{% with n=request.resolver_match.url_name btn="relative py-3 text-base font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
 <nav aria-label="Main" class="border-b border-line">
-  {# Below sm the title takes its own row on top; DOM order stays left to right so Tab follows the desktop row. #}
+  {# Below sm the logo takes its own row on top; DOM order stays left to right so Tab follows the desktop row. #}
   <div class="mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap">
     <div class="flex flex-1 justify-start gap-3 sm:gap-6">
       <a href="{% url 'listing-list' %}" {% if n == "listing-list" or n == "listing-detail" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Residential</a>
       <a href="{% url 'district-prices' %}" {% if n == "district-prices" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Districts</a>
       <a href="{% url 'office-dashboard' %}" {% if n == "office-dashboard" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Offices</a>
     </div>
-    <a href="{% url 'listing-list' %}" class="order-first w-full text-center text-xl tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto">SaiPrice</a>
+    <a href="{% url 'listing-list' %}" class="order-first flex w-full justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto"><img src="{% static 'brand/saiprice-aperture-logo-horizontal.svg' %}" alt="" class="h-8 w-auto"><span class="sr-only">SaiPrice</span></a>
     <div class="flex flex-1 justify-end gap-3 sm:gap-6">
       {% if request.user.is_staff %}<a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>{% endif %}
       <a href="{% url 'listing-summary' %}" {% if n == "listing-summary" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Flagged</a>
@@ -28,12 +34,13 @@
 <main class="mx-auto max-w-2xl px-4 pt-8 pb-12">
 {% block content %}{% endblock %}
 </main>
-{% with link="relative py-4 after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+{% with link="relative py-4 font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
 <footer lang="en" class="border-t border-line">
   <div class="mx-auto flex max-w-2xl flex-wrap items-center gap-x-6 px-4 py-5 text-base text-muted">
     <a href="{% url 'terms' %}" class="{{ link }}">Terms and Conditions</a>
     <a href="{% url 'privacy' %}" class="{{ link }}">Privacy Policy</a>
     <p class="sm:ml-auto">Contact and support: <a href="mailto:saipricesupport@gmail.com" class="{{ link }}">saipricesupport@gmail.com</a></p>
+    <p class="w-full pt-2 text-sm">Many perspectives. One clearer picture.</p>
   </div>
 </footer>
 {% endwith %}

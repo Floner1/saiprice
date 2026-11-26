@@ -7,8 +7,8 @@
 <p class="text-sm text-muted">No apartment listings for sale have been seen in the last {{ fresh_days }} days.</p>
 {% else %}
 <p class="text-sm text-muted mb-8">
-  Median asking price per m² for apartments for sale seen in the last
-  {{ fresh_days }} days. Asking prices, not sale prices. Listings with the
+  Median asking price per m² for apartments for sale on alonhadat.com.vn
+  and homedy.com, seen in the last {{ fresh_days }} days, up to {% now "Y-m-d" %}. Asking prices, not sale prices. Listings with the
   same price, area and district count once. A project posted many times at
   one starting price can pull a median. Apartments under {{ floor_million }}
   triệu/m² are left out as likely rents or mistyped prices. District names
@@ -68,7 +68,7 @@
         </thead>
         <tbody>
           {% for row in districts %}
-          <tr class="border-b border-line">
+          <tr class="even:bg-zebra">
             <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.district }}</th>
             <td class="py-1 px-3 text-right">{{ row.median_million|floatformat:1 }}</td>
             <td class="py-1 px-3 text-right">{{ row.p25_million|floatformat:1 }}–{{ row.p75_million|floatformat:1 }}</td>
@@ -77,7 +77,7 @@
           </tr>
           {% endfor %}
           {% for row in thin_districts %}
-          <tr class="border-b border-line">
+          <tr class="even:bg-zebra">
             <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.district }}</th>
             <td class="py-1 px-3 text-right">-</td>
             <td class="py-1 px-3 text-right">-</td>

@@ -7,28 +7,41 @@
 
 @source "../listings/templates";
 
-/* GPL-2.0 font (license in assets/fonts/). Shipped as the unmodified OTFs: a WOFF2
-   conversion would be a modification under GPL section 2. url() is relative to the
-   compiled assets/css/tailwind.css, and manifest storage fails collectstatic if it breaks. */
+/* Inter variable font, OFL-1.1 (license in assets/fonts/OFL.txt). One upright file
+   covers every weight. url() is relative to the compiled assets/css/tailwind.css,
+   and manifest storage fails collectstatic if it breaks. */
 @font-face {
-  font-family: "Times Newer Roman";
-  font-weight: 400;
+  font-family: "Inter";
+  font-weight: 100 900;
   font-display: swap;
-  src: url("../fonts/TimesNewerRoman-Regular.otf") format("opentype");
-}
-
-@font-face {
-  font-family: "Times Newer Roman";
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/TimesNewerRoman-Bold.otf") format("opentype");
+  src: url("../fonts/Inter-VariableFont_opsz,wght.ttf") format("truetype");
 }
 
 @theme {
-  --font-sans: "Times Newer Roman", "Times New Roman", serif;
-  --color-paper: #faf9f7;
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-line: #e7e5e4;
-  --color-accent: #9a3412;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-ink: #14202B;
+  --color-accent: #1B4F63;
+  --color-paper: #F0F8F9;
+  --color-card: #FFFFFF;
+  --color-muted: #566573;
+  --color-line: #C9D3DA;
+  --color-zebra: #ECF1F3;
+  --color-price-text: #8A5300;
+  --color-price-fill: #FBF0D9;
+  --color-price-border: #B7791F;
+  --color-stale-text: #5A6670;
+  --color-stale-fill: #EAEFF1;
+  --color-error-text: #B42318;
+  --color-error-fill: #FDECEA;
+  --radius-sp-sm: 6px;
+  --radius-sp-md: 10px;
+  --radius-sp-lg: 16px;
+}
+
+/* One rule each instead of a class on every heading and every focusable element,
+   so a new page cannot miss them. Utilities still win over these when a template
+   sets its own weight. */
+@layer base {
+  h1, h2, h3 { font-weight: 600; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 }

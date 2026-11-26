@@ -10,10 +10,16 @@ risking an orphan " · " when it parses null.
     {# after:inset-0 stretches the hit area over the whole row: it holds no other link. #}
     <a href="{% url 'listing-detail' listing.pk %}"
        class="after:absolute after:inset-0 hover:text-accent">{{ listing.title }}</a>
-    {% if listing.is_anomaly %}<span class="ml-2 align-middle text-xs font-bold uppercase tracking-wide text-accent">anomaly</span>{% endif %}
+    {# Amber is reserved for the one price-specific rule; the other two are data-quality signals. #}
+    {% if listing.is_anomaly %}{% with r=listing.anomaly_reason %}
+    {% if r.price_gap.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-price-border bg-price-fill px-1.5 align-middle text-xs font-medium text-price-text">Below estimate</span>{% endif %}
+    {% if r.low_photos.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 align-middle text-xs font-medium text-stale-text">Few photos</span>{% endif %}
+    {% if r.stale_listing.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 align-middle text-xs font-medium text-stale-text">Long on the market</span>{% endif %}
+    {% endwith %}{% endif %}
   </h2>
   <p>
-    <span class="font-bold text-accent">{{ listing.price_display|default:"Thỏa thuận" }}</span>
+    <span class="text-sm text-muted">asking</span>
+    <span class="font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</span>
     {% if listing.price_per_sqm_display %}<span class="text-sm text-muted"> · {{ listing.price_per_sqm_display }}/m²</span>{% endif %}
   </p>
   <p class="text-sm text-muted">

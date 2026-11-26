@@ -79,7 +79,7 @@ class DashboardListingDetailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Test listing")
         self.assertContains(response, "8.5 tỷ")
-        self.assertContains(response, "Predicted: pending")
+        self.assertRegex(response.content.decode(), r"Model estimate</p>\s*<p[^>]*>pending</p>")
         self.assertContains(response, "Quận 7")
         self.assertContains(response, "Not scored yet.")
 
@@ -104,7 +104,7 @@ class DashboardListingDetailTests(TestCase):
             },
         )
         response = self.client.get(f"/listing/{listing.pk}/")
-        self.assertContains(response, "Predicted: 9 tỷ")
+        self.assertRegex(response.content.decode(), r"Model estimate</p>\s*<p[^>]*>9 tỷ</p>")
         self.assertContains(response, "Flagged as anomaly")
         self.assertContains(response, "low_photos")
         self.assertContains(response, "triggered · value: 1")
@@ -132,7 +132,7 @@ class DashboardListingDetailTests(TestCase):
         response = self.client.get(f"/listing/{listing.pk}/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "8 tỷ")
-        self.assertContains(response, "Predicted: 7.5 tỷ")
+        self.assertRegex(response.content.decode(), r"Model estimate</p>\s*<p[^>]*>7\.5 tỷ</p>")
         self.assertContains(response, "100 triệu")
         self.assertContains(response, "Phường Tân Phong")
         self.assertContains(response, "12 Nguyễn Văn Linh")
@@ -372,14 +372,24 @@ class DashboardAnomalyBadgeTests(TestCase):
     def test_badge_shown_for_anomaly_listing(self):
         _make_listing(
             source_id="a1", url="https://alonhadat.com.vn/a1.html", is_anomaly=True,
+            anomaly_reason={
+                "price_gap": {"triggered": True, "value": 0.4},
+                "low_photos": {"triggered": True, "value": 1},
+                "stale_listing": {"triggered": False, "value": 12},
+            },
         )
-        self.assertContains(self.client.get("/"), "anomaly")
+        response = self.client.get("/")
+        self.assertContains(response, "Below estimate")
+        self.assertContains(response, "Few photos")
+        self.assertNotContains(response, "Long on the market")
 
     def test_no_badge_for_normal_listing(self):
         _make_listing(
             source_id="n1", url="https://alonhadat.com.vn/n1.html", is_anomaly=False,
         )
-        self.assertNotContains(self.client.get("/"), "anomaly")
+        response = self.client.get("/")
+        for chip in ("Below estimate", "Few photos", "Long on the market"):
+            self.assertNotContains(response, chip)
 
 
 class DashboardAnomalySummaryTests(TestCase):
@@ -642,7 +652,10 @@ class MainNavTests(TestCase):
                 # aria-label pins the main nav: the list page has a second
                 # nav for pagination.
                 nav = re.search(r'<nav aria-label="Main".*?</nav>', html, re.S)
-                links = re.findall(r"<a ([^>]*)>([^<]*)</a>", nav.group())
+                # The home link holds the logo image, so labels are the link's
+                # text with tags stripped.
+                links = [(attrs, re.sub(r"<[^>]*>", "", inner))
+                         for attrs, inner in re.findall(r"<a ([^>]*)>(.*?)</a>", nav.group(), re.S)]
                 self.assertEqual(
                     [(re.search(r'href="([^"]*)"', attrs).group(1), label)
                      for attrs, label in links],

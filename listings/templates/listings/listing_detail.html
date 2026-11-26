@@ -8,8 +8,14 @@
   <h1 class="text-2xl tracking-wide">{{ listing.title }}</h1>
   <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listing.property_type }} · {{ listing.listing_intent }} · {{ listing.source_site }}</p>
 
-  <p class="text-xl font-bold text-accent">{{ listing.price_display|default:"Thỏa thuận" }}</p>
-  <p class="mb-6 text-sm text-muted">Predicted: {{ listing.predicted_price_display|default:"pending" }}</p>
+  <div class="mb-6">
+    <p class="text-sm text-muted">Asking price</p>
+    <p class="text-xl font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</p>
+    <p class="text-sm text-muted">Listed on {{ listing.source_site }}, last seen {{ listing.last_seen_at|date:"Y-m-d" }}</p>
+    <p class="mt-4 text-sm text-muted">Model estimate</p>
+    <p class="font-semibold">{{ listing.predicted_price_display|default:"pending" }}</p>
+    {% if listing.predicted_price_display %}<p class="text-sm text-muted">This is an estimate, not a valuation.{% if listing.predicted_at %} The model ran on {{ listing.predicted_at|date:"Y-m-d" }}.{% endif %}</p>{% endif %}
+  </div>
 
   <dl class="text-sm">
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Area</dt><dd>{% if listing.area_sqm %}{{ listing.area_sqm|floatformat }} m²{% else %}-{% endif %}</dd></div>
@@ -19,7 +25,7 @@
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">District</dt><dd>{{ listing.district|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Ward</dt><dd>{{ listing.ward|default:"-" }}</dd></div>
     <div class="flex justify-between gap-6 border-b border-line py-2"><dt class="shrink-0 text-muted">Address</dt><dd class="text-right">{{ listing.address_raw|default:"-" }}</dd></div>
-    <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Posted</dt><dd>{{ listing.posted_date|default:"-" }}</dd></div>
+    <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Posted</dt><dd>{{ listing.posted_date|date:"Y-m-d"|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Days on market</dt><dd>{{ listing.days_on_market|default_if_none:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Photos</dt><dd>{% if listing.images is not None %}{{ listing.images|length }}{% else %}-{% endif %}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Source</dt><dd><a class="text-accent" href="{{ listing.url }}" rel="nofollow noopener">{{ listing.source_site }} ↗</a></dd></div>
@@ -33,13 +39,13 @@
   <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg">Anomaly check</h2>
   {% if listing.anomaly_reason %}
     {% if listing.anomaly_scored_at %}
-    <p class="mb-2 text-xs text-muted">Scored {{ listing.anomaly_scored_at|date:"Y-m-d H:i" }}{% if listing.anomaly_is_stale %} · <span class="font-bold text-accent">stale by {{ listing.anomaly_scored_at|timesince }}</span>: values below predate today&rsquo;s days on market{% endif %}</p>
+    <p class="mb-2 text-xs {% if listing.anomaly_is_stale %}rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-2 py-1 text-stale-text{% else %}text-muted{% endif %}">Scored {{ listing.anomaly_scored_at|date:"Y-m-d H:i" }}{% if listing.anomaly_is_stale %} · <span class="font-semibold">stale by {{ listing.anomaly_scored_at|timesince }}</span>: values below predate today&rsquo;s days on market{% endif %}</p>
     {% endif %}
-    {% if listing.is_anomaly %}<p class="mb-1 text-sm font-bold text-accent">Flagged as anomaly</p>{% endif %}
+    {% if listing.is_anomaly %}<p class="mb-1 text-sm font-semibold">Flagged as anomaly</p>{% endif %}
     <ul class="text-sm">
       {% for rule, info in listing.anomaly_reason.items %}
       <li class="flex justify-between border-b border-line py-2">
-        <span class="{% if info.triggered %}font-bold text-accent{% else %}text-muted{% endif %}">{{ rule }}</span>
+        <span class="{% if not info.triggered %}text-muted{% elif rule == 'price_gap' %}font-semibold text-price-text{% else %}font-semibold{% endif %}">{{ rule }}</span>
         <span>{{ info.triggered|yesno:"triggered,not triggered" }} · value: {{ info.value }}</span>
       </li>
       {% endfor %}

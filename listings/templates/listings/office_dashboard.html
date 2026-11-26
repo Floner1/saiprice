@@ -39,7 +39,7 @@
       </thead>
       <tbody>
         {% for row in grades %}
-        <tr class="border-b border-line">
+        <tr class="even:bg-zebra">
           <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
           <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"-" }}</td>
           <td class="py-1 px-3 text-right">{% if row.median is not None %}{{ row.p25|floatformat:1 }}–{{ row.p75|floatformat:1 }}{% else %}-{% endif %}</td>
@@ -97,7 +97,7 @@
         </thead>
         <tbody>
           {% for row in district_table %}
-          <tr class="border-b border-line">
+          <tr class="even:bg-zebra">
             <th scope="row" class="py-1 pr-3 text-left font-normal">{{ row.label }}</th>
             <td class="py-1 px-3 text-right">{{ row.priced }} of {{ row.total }}</td>
             <td class="py-1 px-3 text-right">{{ row.median|floatformat:1|default:"-" }}</td>
