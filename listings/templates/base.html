@@ -1,6 +1,6 @@
 {% load static tailwind_cli %}
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,7 +35,7 @@
 {% block content %}{% endblock %}
 </main>
 {% with link="relative py-4 font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
-<footer lang="en" class="border-t border-line">
+<footer class="border-t border-line">
   {# The side groups are flex-1 and the middle keeps its natural width, so the logo stays centred. order-* only moves them visually: the DOM order is logo, links, contact. #}
   <div class="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 py-8 text-base text-muted lg:max-w-none lg:flex-row lg:gap-4 lg:px-8">
     <div class="flex flex-col items-center gap-3 lg:order-2 lg:flex-none">

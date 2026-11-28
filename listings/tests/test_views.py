@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 from decimal import Decimal
 from html import unescape
+from html.parser import HTMLParser
 from urllib.parse import parse_qs
 
 from django.conf import settings
@@ -1027,3 +1028,96 @@ class FooterAndLegalPagesTests(TestCase):
         )
         self.assertIn("refers to: Vietnam", html)
         self.assertNotIn("refers to:  Vietnam", html)
+
+
+def _text_langs(html):
+    """(text, inherited lang) for every text node, in document order."""
+    class Parser(HTMLParser):
+        VOID = {"meta", "link", "img", "input", "br", "hr", "source", "wbr"}
+
+        def __init__(self):
+            super().__init__()
+            self.stack, self.texts = [], []
+
+        def handle_starttag(self, tag, attrs):
+            if tag not in self.VOID:
+                inherited = self.stack[-1] if self.stack else None
+                self.stack.append(dict(attrs).get("lang", inherited))
+
+        def handle_endtag(self, tag):
+            if tag not in self.VOID:
+                self.stack.pop()
+
+        def handle_data(self, data):
+            if data.strip():
+                self.texts.append((data.strip(), self.stack[-1] if self.stack else None))
+
+    parser = Parser()
+    parser.feed(html)
+    return parser.texts
+
+
+class PageLanguageTests(TestCase):
+    def _html(self, path):
+        return self.client.get(path).content.decode()
+
+    def test_every_page_declares_english_once_on_the_html_element(self):
+        _login_staff(self.client)
+        listing = _make_listing()
+        for path in ("/", f"/listing/{listing.pk}/", "/flagged/", "/districts/",
+                     "/offices/", "/health/", "/terms/", "/privacy/", "/no-such-page/"):
+            with self.subTest(path=path):
+                html = self._html(path)
+                self.assertIn('<html lang="en">', html)
+                self.assertEqual(html.count('lang="en"'), 1)
+
+    def test_card_title_is_vietnamese_on_list_and_flagged(self):
+        listing = _make_listing(
+            title="Bán căn hộ Quận 7", is_anomaly=True,
+            anomaly_reason={"low_photos": {"triggered": True, "value": 1}},
+        )
+        for path in ("/", "/flagged/"):
+            with self.subTest(path=path):
+                self.assertRegex(
+                    self._html(path),
+                    rf'<a href="/listing/{listing.pk}/"[^>]*lang="vi"[^>]*>Bán căn hộ Quận 7</a>',
+                )
+
+    def test_negotiable_price_is_vietnamese_on_card_and_detail(self):
+        listing = _make_listing(price=None)
+        self.assertRegex(self._html("/"), r'<span[^>]*lang="vi"[^>]*>Thỏa thuận</span>')
+        self.assertRegex(
+            self._html(f"/listing/{listing.pk}/"), r'<p[^>]*lang="vi"[^>]*>Thỏa thuận</p>'
+        )
+
+    def test_priced_listing_price_is_not_marked(self):
+        listing = _make_listing(price=8_000_000_000)
+        for path in ("/", f"/listing/{listing.pk}/"):
+            with self.subTest(path=path):
+                self.assertIn(("8 tỷ", "en"), _text_langs(self._html(path)))
+
+    def test_detail_title_description_and_address_are_vietnamese(self):
+        listing = _make_listing(
+            title="Nhà phố Phú Mỹ Hưng",
+            description="Nhà đẹp, sổ hồng riêng.",
+            address_raw="12 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP.HCM",
+        )
+        html = self._html(f"/listing/{listing.pk}/")
+        self.assertRegex(html, r'<h1[^>]*lang="vi"[^>]*>Nhà phố Phú Mỹ Hưng</h1>')
+        self.assertRegex(html, r'<p[^>]*lang="vi"[^>]*>Nhà đẹp, sổ hồng riêng.</p>')
+        self.assertRegex(
+            html, r'<dd[^>]*lang="vi"[^>]*>12 Nguyễn Văn Linh, Phường Tân Phong, Quận 7, TP.HCM</dd>'
+        )
+
+    def test_empty_address_dash_is_not_marked(self):
+        listing = _make_listing(address_raw=None)
+        texts = _text_langs(self._html(f"/listing/{listing.pk}/"))
+        label = [text for text, _ in texts].index("Address")
+        self.assertEqual(texts[label + 1], ("-", "en"))
+
+    def test_office_placeholder_phrases_are_vietnamese(self):
+        from listings.tests.test_office_analytics import _save
+        _save(1, rent=12)
+        html = self._html("/offices/")
+        self.assertIn('<span lang="vi">Liên hệ</span>', html)
+        self.assertIn('<span lang="vi">Đang cập nhật</span>', html)

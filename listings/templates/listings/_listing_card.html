@@ -9,7 +9,7 @@ risking an orphan " · " when it parses null.
   <h2 class="mb-0.5 text-base font-normal lg:col-span-3">
     {# after:inset-0 stretches the hit area over the whole row: it holds no other link. #}
     <a href="{% url 'listing-detail' listing.pk %}"
-       class="after:absolute after:inset-0 hover:text-accent">{{ listing.title }}</a>
+       class="after:absolute after:inset-0 hover:text-accent" lang="vi">{{ listing.title }}</a>
     {# Amber is reserved for the one price-specific rule; the other two are data-quality signals. #}
     {% if listing.is_anomaly %}{% with r=listing.anomaly_reason %}
     <span class="mt-0.5 flex flex-wrap items-center gap-x-2">
@@ -21,7 +21,7 @@ risking an orphan " · " when it parses null.
   </h2>
   <p class="lg:col-start-4 lg:row-span-2 lg:text-right">
     <span class="text-sm text-muted">asking</span>
-    <span class="font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</span>
+    <span class="font-semibold"{% if not listing.price_display %} lang="vi"{% endif %}>{{ listing.price_display|default:"Thỏa thuận" }}</span>
     {% if listing.price_per_sqm_display %}<span class="text-sm text-muted lg:block"><span aria-hidden="true" class="lg:hidden"> · </span>{{ listing.price_per_sqm_display }}/m²</span>{% endif %}
   </p>
   <p class="text-sm text-muted lg:col-span-3">

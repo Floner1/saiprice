@@ -6,14 +6,14 @@
   <div class="mx-auto max-w-7xl">
   <p class="mb-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
 
-  <h1 class="text-2xl tracking-wide">{{ listing.title }}</h1>
+  <h1 class="text-2xl tracking-wide" lang="vi">{{ listing.title }}</h1>
   <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listing.property_type|capfirst }} · {{ listing.listing_intent }} · {{ listing.source_site }}</p>
 
   <div class="lg:grid lg:grid-cols-2 lg:gap-12">
   <div>
   <div class="mb-6">
     <p class="text-sm text-muted">Asking price</p>
-    <p class="text-xl font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</p>
+    <p class="text-xl font-semibold"{% if not listing.price_display %} lang="vi"{% endif %}>{{ listing.price_display|default:"Thỏa thuận" }}</p>
     <p class="text-sm text-muted">Listed on {{ listing.source_site }}, last seen {{ listing.last_seen_at|date:"Y-m-d" }}</p>
     <p class="mt-4 text-sm text-muted">Model estimate</p>
     <p class="font-semibold">{{ listing.predicted_price_display|default:"pending" }}</p>
@@ -27,7 +27,7 @@
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Bathrooms</dt><dd>{{ listing.bathrooms|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">District</dt><dd>{{ listing.district|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Ward</dt><dd>{{ listing.ward|default:"-" }}</dd></div>
-    <div class="flex justify-between gap-6 border-b border-line py-2"><dt class="shrink-0 text-muted">Address</dt><dd class="text-right">{{ listing.address_raw|default:"-" }}</dd></div>
+    <div class="flex justify-between gap-6 border-b border-line py-2"><dt class="shrink-0 text-muted">Address</dt><dd class="text-right"{% if listing.address_raw %} lang="vi"{% endif %}>{{ listing.address_raw|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Posted</dt><dd>{{ listing.posted_date|date:"Y-m-d"|default:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Days on market</dt><dd>{{ listing.days_on_market|default_if_none:"-" }}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Photos</dt><dd>{% if listing.images is not None %}{{ listing.images|length }}{% else %}-{% endif %}</dd></div>
@@ -38,7 +38,7 @@
   <div>
   {% if listing.description %}
   <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg lg:first:mt-0">Description</h2>
-  <p class="whitespace-pre-line break-words text-sm">{{ listing.description }}</p>
+  <p class="whitespace-pre-line break-words text-sm" lang="vi">{{ listing.description }}</p>
   {% endif %}
 
   <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg lg:first:mt-0">Anomaly check</h2>
