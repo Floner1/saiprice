@@ -5,25 +5,27 @@ property_type and listing_intent lead the spec line because both are
 required fields: every later item can carry a leading separator without
 risking an orphan " · " when it parses null.
 {% endcomment %}
-<article class="relative border-b border-line py-3.5">
-  <h2 class="mb-0.5 text-base font-normal">
+<article class="relative border-b border-line py-3.5 lg:grid lg:grid-cols-4 lg:gap-x-6">
+  <h2 class="mb-0.5 text-base font-normal lg:col-span-3">
     {# after:inset-0 stretches the hit area over the whole row: it holds no other link. #}
     <a href="{% url 'listing-detail' listing.pk %}"
        class="after:absolute after:inset-0 hover:text-accent">{{ listing.title }}</a>
     {# Amber is reserved for the one price-specific rule; the other two are data-quality signals. #}
     {% if listing.is_anomaly %}{% with r=listing.anomaly_reason %}
-    {% if r.price_gap.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-price-border bg-price-fill px-1.5 align-middle text-xs font-medium text-price-text">Below estimate</span>{% endif %}
-    {% if r.low_photos.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 align-middle text-xs font-medium text-stale-text">Few photos</span>{% endif %}
-    {% if r.stale_listing.triggered %}<span class="ml-2 inline-block rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 align-middle text-xs font-medium text-stale-text">Long on the market</span>{% endif %}
+    <span class="mt-0.5 flex flex-wrap items-center gap-x-2">
+    {% if r.price_gap.triggered %}<span class="text-sm font-medium text-price-text">Below estimate <span aria-hidden="true">↓</span></span>{% endif %}
+    {% if r.low_photos.triggered %}<span class="rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 text-sm font-medium text-stale-text">Few photos</span>{% endif %}
+    {% if r.stale_listing.triggered %}<span class="rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 text-sm font-medium text-stale-text">Long on the market</span>{% endif %}
+    </span>
     {% endwith %}{% endif %}
   </h2>
-  <p>
+  <p class="lg:col-start-4 lg:row-span-2 lg:text-right">
     <span class="text-sm text-muted">asking</span>
     <span class="font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</span>
-    {% if listing.price_per_sqm_display %}<span class="text-sm text-muted"> · {{ listing.price_per_sqm_display }}/m²</span>{% endif %}
+    {% if listing.price_per_sqm_display %}<span class="text-sm text-muted lg:block"><span aria-hidden="true" class="lg:hidden"> · </span>{{ listing.price_per_sqm_display }}/m²</span>{% endif %}
   </p>
-  <p class="text-sm text-muted">
-    {{ listing.property_type }} for {{ listing.listing_intent }}
+  <p class="text-sm text-muted lg:col-span-3">
+    {{ listing.property_type|capfirst }} for {{ listing.listing_intent }}
     {% if listing.area_sqm %} · {{ listing.area_sqm|floatformat }} m²{% endif %}
     {# 0 bedrooms is a studio, not a parse miss. Only null hides the field. #}
     {% if listing.bedrooms is not None %} · {{ listing.bedrooms }} bed{{ listing.bedrooms|pluralize }}{% endif %}

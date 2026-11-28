@@ -2,11 +2,12 @@
 {% block title %}Price per m² by district · SaiPrice{% endblock %}
 
 {% block content %}
+<div class="lg:mx-auto lg:max-w-4xl">
 <h1 class="text-2xl mb-1">Price per m² by district</h1>
 {% if not total %}
 <p class="text-sm text-muted">No apartment listings for sale have been seen in the last {{ fresh_days }} days.</p>
 {% else %}
-<p class="text-sm text-muted mb-8">
+<p class="text-sm text-muted mb-8 lg:max-w-prose">
   Median asking price per m² for apartments for sale on alonhadat.com.vn
   and homedy.com, seen in the last {{ fresh_days }} days, up to {% now "Y-m-d" %}. Asking prices, not sale prices. Listings with the
   same price, area and district count once. A project posted many times at
@@ -17,7 +18,7 @@
 
 <section>
   <h2 class="text-lg mb-1">Median asking price</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     In triệu/m² (million VND per m²), highest first. The number after the
     dot counts the district's listings.{% if axis_top %} Scale: 0 to
     {{ axis_top }} triệu/m².{% endif %}
@@ -88,8 +89,9 @@
         </tbody>
       </table>
     </div>
-    <p class="text-muted mt-2">Medians in triệu/m². Middle half is the 25th to 75th percentile. "With reposts" counts every post, including copies at the same price and area.</p>
+    <p class="text-muted mt-2 lg:max-w-prose">Medians in triệu/m². Middle half is the 25th to 75th percentile. "With reposts" counts every post, including copies at the same price and area.</p>
   </details>
 </section>
 {% endif %}
+</div>
 {% endblock %}

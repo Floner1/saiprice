@@ -2,14 +2,15 @@
 {% block title %}Pipeline health · SaiPrice{% endblock %}
 
 {% block content %}
+<div class="lg:mx-auto lg:max-w-4xl">
 <h1 class="text-2xl mb-1">Pipeline health</h1>
-<p class="text-sm text-muted mb-8">
+<p class="text-sm text-muted mb-8 lg:max-w-prose">
   Crawl volume and model residuals, read straight from ScrapeRun and ScoringRun.
 </p>
 
 <section class="mb-12">
   <h2 class="text-lg mb-1">Listings seen per day</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     Last 30 days. A day with no bar had no run at all: the gap is the signal,
     so empty days are shown rather than skipped.
   </p>
@@ -33,7 +34,7 @@
 
 <section class="mb-12">
   <h2 class="text-lg mb-1">Model error per scoring run</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     Median absolute percentage error, predicted against listed price
     (lower is better, so a shorter bar is a better run).
     <strong class="text-ink">This is in-sample</strong>: the model is fit on
@@ -102,4 +103,5 @@
   <p class="text-sm text-muted">No scoring runs recorded.</p>
   {% endfor %}
 </section>
+</div>
 {% endblock %}

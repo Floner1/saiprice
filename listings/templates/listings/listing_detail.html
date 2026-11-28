@@ -3,11 +3,14 @@
 {% block title %}{{ listing.title }} · SaiPrice{% endblock %}
 
 {% block content %}
+  <div class="mx-auto max-w-7xl">
   <p class="mb-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
 
   <h1 class="text-2xl tracking-wide">{{ listing.title }}</h1>
-  <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listing.property_type }} · {{ listing.listing_intent }} · {{ listing.source_site }}</p>
+  <p class="mb-6 border-b-2 border-ink pb-3 text-sm text-muted">{{ listing.property_type|capfirst }} · {{ listing.listing_intent }} · {{ listing.source_site }}</p>
 
+  <div class="lg:grid lg:grid-cols-2 lg:gap-12">
+  <div>
   <div class="mb-6">
     <p class="text-sm text-muted">Asking price</p>
     <p class="text-xl font-semibold">{{ listing.price_display|default:"Thỏa thuận" }}</p>
@@ -30,13 +33,15 @@
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Photos</dt><dd>{% if listing.images is not None %}{{ listing.images|length }}{% else %}-{% endif %}</dd></div>
     <div class="flex justify-between border-b border-line py-2"><dt class="text-muted">Source</dt><dd><a class="text-accent" href="{{ listing.url }}" rel="nofollow noopener">{{ listing.source_site }} ↗</a></dd></div>
   </dl>
+  </div>
 
+  <div>
   {% if listing.description %}
-  <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg">Description</h2>
+  <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg lg:first:mt-0">Description</h2>
   <p class="whitespace-pre-line break-words text-sm">{{ listing.description }}</p>
   {% endif %}
 
-  <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg">Anomaly check</h2>
+  <h2 class="mt-8 mb-2 border-b-2 border-ink pb-2 text-lg lg:first:mt-0">Anomaly check</h2>
   {% if listing.anomaly_reason %}
     {% if listing.anomaly_scored_at %}
     <p class="mb-2 text-xs {% if listing.anomaly_is_stale %}rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-2 py-1 text-stale-text{% else %}text-muted{% endif %}">Scored {{ listing.anomaly_scored_at|date:"Y-m-d H:i" }}{% if listing.anomaly_is_stale %} · <span class="font-semibold">stale by {{ listing.anomaly_scored_at|timesince }}</span>: values below predate today&rsquo;s days on market{% endif %}</p>
@@ -53,4 +58,7 @@
   {% else %}
     <p class="text-sm text-muted">Not scored yet.</p>
   {% endif %}
+  </div>
+  </div>
+  </div>
 {% endblock %}

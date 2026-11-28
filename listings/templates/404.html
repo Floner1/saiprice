@@ -3,7 +3,9 @@
 {% block title %}Page not found · SaiPrice{% endblock %}
 
 {% block content %}
+<div class="lg:mx-auto lg:max-w-2xl">
   <h1 class="text-2xl tracking-wide">Page not found</h1>
   <p class="mt-3">There is no page at this address, or the listing it showed is no longer active.</p>
   <p class="mt-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
+</div>
 {% endblock %}

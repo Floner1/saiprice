@@ -250,6 +250,10 @@ class DashboardListingFilterTests(TestCase):
         self.assertContains(response, 'value="Linh"')
         self.assertContains(response, '<option value="Quận 7" selected')
 
+    def test_property_type_option_label_is_capitalised_value_is_not(self):
+        response = self.client.get("/")
+        self.assertContains(response, '<option value="apartment">Apartment</option>', html=True)
+
 
 class DashboardFilterPaginationTests(TestCase):
     @classmethod
@@ -288,7 +292,7 @@ class ListingCardTests(TestCase):
             bedrooms=2, district="Quận Bình Tân",
             posted_date=(timezone.now() - timedelta(days=3)).date(),
         )
-        self.assertIn("apartment for sale", card)
+        self.assertIn("Apartment for sale", card)
         self.assertIn("3.75 tỷ", card)
         self.assertIn("73.53 triệu/m²", card)
         self.assertIn("51 m²", card)
@@ -677,6 +681,27 @@ class MainNavTests(TestCase):
                 nav = re.search(r'<nav aria-label="Main".*?</nav>', html, re.S).group()
                 self.assertNotIn("/health/", nav)
                 self.assertIn("Flagged", nav)
+
+
+class DesktopShellWidthTests(TestCase):
+    def test_nav_main_and_footer_drop_max_width_from_lg(self):
+        html = self.client.get("/").content.decode()
+        nav = re.search(r'<nav aria-label="Main"[^>]*>\s*<div class="([^"]*)"', html)
+        main = re.search(r'<main class="([^"]*)"', html)
+        footer = re.search(r'<footer[^>]*>\s*<div class="([^"]*)"', html)
+        for name, match in (("nav", nav), ("main", main), ("footer", footer)):
+            with self.subTest(container=name):
+                self.assertIsNotNone(match, name)
+                classes = match.group(1).split()
+                self.assertIn("max-w-2xl", classes)
+                self.assertIn("lg:max-w-none", classes)
+
+    def test_404_content_sits_in_a_centred_column_from_lg(self):
+        response = self.client.get("/no-such-page/")
+        self.assertEqual(response.status_code, 404)
+        main = re.search(r"<main[^>]*>(.*)</main>", response.content.decode(), re.S).group(1)
+        class_lists = [c.split() for c in re.findall(r'class="([^"]*)"', main)]
+        self.assertTrue(any({"lg:mx-auto", "lg:max-w-2xl"} <= set(c) for c in class_lists))
 
 
 class DistrictPricesViewTests(TestCase):

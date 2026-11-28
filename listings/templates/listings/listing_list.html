@@ -3,40 +3,43 @@
 {% block title %}SaiPrice · HCMC listings{% endblock %}
 
 {% block content %}
-  <h1 class="text-2xl tracking-wide">HCMC listings</h1>
-  <p class="mb-6 flex justify-between gap-4 border-b-2 border-ink pb-3 text-sm text-muted">
+  <h1 class="text-2xl tracking-wide lg:ml-68 2xl:mr-68">HCMC listings</h1>
+  <p class="mb-6 flex justify-between gap-4 border-b-2 border-ink pb-3 text-sm text-muted lg:ml-68 2xl:mr-68">
     <span>{{ paginator.count }} result{{ paginator.count|pluralize }}</span>
     {% if is_paginated %}<span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>{% endif %}
   </p>
 
-  <form method="get" class="mb-6 space-y-2 text-sm">
+  {# 68 = the filter column's lg:w-60 plus lg:gap-8. The heading's margins, the results div's 2xl:mr-68 and listing_summary.html's 2xl:mx-68 must change with it. #}
+  <div class="lg:flex lg:gap-8">
+  <form method="get" class="mb-6 space-y-2 text-sm lg:mb-0 lg:w-60 lg:shrink-0">
     <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search address or building"
-           class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
-    <div class="grid grid-cols-2 gap-2">
-      <select name="district" class="w-full border border-line bg-card px-2 py-2.5 text-base">
+           class="h-11.5 w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
+    <div class="grid grid-cols-2 gap-2 lg:grid-cols-1">
+      <select name="district" class="h-11.5 w-full border border-line bg-card pl-1 pr-2 py-2.5 text-base">
         <option value="">All districts</option>
         {% for d in districts %}
         <option value="{{ d }}"{% if request.GET.district == d %} selected{% endif %}>{{ d }}</option>
         {% endfor %}
       </select>
-      <select name="property_type" class="w-full border border-line bg-card px-2 py-2.5 text-base">
+      <select name="property_type" class="h-11.5 w-full border border-line bg-card pl-1 pr-2 py-2.5 text-base">
         <option value="">All types</option>
         {% for value, label in property_types %}
-        <option value="{{ value }}"{% if request.GET.property_type == value %} selected{% endif %}>{{ label }}</option>
+        <option value="{{ value }}"{% if request.GET.property_type == value %} selected{% endif %}>{{ label|capfirst }}</option>
         {% endfor %}
       </select>
       <input type="number" name="min_price" value="{{ request.GET.min_price }}" placeholder="Min price (VND)"
-             class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
+             class="h-11.5 w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
       <input type="number" name="max_price" value="{{ request.GET.max_price }}" placeholder="Max price (VND)"
-             class="w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
+             class="h-11.5 w-full border border-line bg-card placeholder:text-muted px-2 py-2.5 text-base">
     </div>
-    <div class="flex gap-6 text-base">
+    <div class="flex gap-6 pl-2.25 text-base lg:flex-wrap lg:gap-y-0">
       <button type="submit" class="relative cursor-pointer py-3 font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Filter</button>
       <a href="{% url 'listing-list' %}" class="relative py-3 font-medium text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100">Clear</a>
-      <a href="{% url 'district-prices' %}" class="relative ml-auto py-3 font-medium text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent after:scale-x-0 hover:after:scale-x-100">Price per m² by district</a>
+      <a href="{% url 'district-prices' %}" class="relative ml-auto lg:ml-0 py-3 font-medium text-accent after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent after:scale-x-0 hover:after:scale-x-100">Price per m² by district</a>
     </div>
   </form>
 
+  <div class="lg:min-w-0 lg:flex-1 2xl:mr-68">
   <ul>
     {% for listing in page_obj %}
     <li>{% include "listings/_listing_card.html" %}</li>
@@ -46,4 +49,6 @@
   </ul>
 
   {% include "listings/_pagination.html" %}
+  </div>
+  </div>
 {% endblock %}

@@ -2,11 +2,12 @@
 {% block title %}Office rents · SaiPrice{% endblock %}
 
 {% block content %}
+<div class="lg:mx-auto lg:max-w-4xl">
 <h1 class="text-2xl mb-1">Office rents</h1>
 {% if not total %}
 <p class="text-sm text-muted">No office buildings have been crawled yet.</p>
 {% else %}
-<p class="text-sm text-muted mb-8">
+<p class="text-sm text-muted mb-8 lg:max-w-prose">
   Asking rents from maisonoffice.vn, one broker's catalogue of Ho Chi Minh City
   office buildings, not signed leases. {{ priced }} of {{ total }} buildings
   publish a rent, and every rent figure below uses only those.
@@ -17,7 +18,7 @@
 
 <section class="mb-12">
   <h2 class="text-lg mb-1">Rent by grade</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     USD per m² per month. A building's rent is the midpoint of its quoted range.
     Each bar spans the middle half of a group's rents, the break in the bar is
     the median (printed beside it), and the last column counts the buildings
@@ -50,7 +51,7 @@
       </tbody>
     </table>
   </div>
-  <p class="text-sm text-muted mt-2">
+  <p class="text-sm text-muted mt-2 lg:max-w-prose">
     Service fee is the median among buildings that charge it on top of rent,
     in USD per m² per month. "Bundled" counts buildings whose fee is included
     in the rent.
@@ -59,7 +60,7 @@
 
 <section class="mb-12">
   <h2 class="text-lg mb-1">Rent by district</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     Sorted by median.{% if district_axis %} Scale: 0 to {{ district_axis }} USD,
     tighter than the grade chart's, so read bar positions within one chart and
     compare across charts by the printed medians.{% endif %} Districts differ in
@@ -75,7 +76,7 @@
   </ul>
   {% if thin_districts %}
   <h3 class="text-sm mt-6 mb-1">Under {{ min_summary_n }} published rents</h3>
-  <p class="text-sm text-muted mb-2">
+  <p class="text-sm text-muted mb-2 lg:max-w-prose">
     Too few for a middle half or a fair rank, so the full range is listed instead.
   </p>
   <ul>
@@ -113,7 +114,7 @@
 
 <section>
   <h2 class="text-lg mb-1">What the source publishes</h2>
-  <p class="text-sm text-muted mb-4">
+  <p class="text-sm text-muted mb-4 lg:max-w-prose">
     Buildings with each field filled in. A missing field means the page shows
     "Liên hệ" (contact us), "Đang cập nhật" (being updated) or nothing.
   </p>
@@ -136,4 +137,5 @@
   </ul>
 </section>
 {% endif %}
+</div>
 {% endblock %}

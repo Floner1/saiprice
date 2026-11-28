@@ -3,6 +3,7 @@
 {% block title %}Flagged listings · SaiPrice{% endblock %}
 
 {% block content %}
+  <div class="2xl:mx-68">
   <p class="mb-6 text-sm"><a class="text-accent" href="{% url 'listing-list' %}">&larr; All listings</a></p>
 
   <h1 class="text-2xl tracking-wide">Flagged listings</h1>
@@ -28,4 +29,5 @@
   </ul>
 
   {% include "listings/_pagination.html" %}
+  </div>
 {% endblock %}
