@@ -69,10 +69,10 @@ class ListingListView(PageSlotsMixin, ListView):
     def get_queryset(self):
         qs = super().get_queryset()
         params = self.request.GET
-        if district := params.get("district"):
-            qs = qs.filter(district=district)
-        if property_type := params.get("property_type"):
-            qs = qs.filter(property_type=property_type)
+        if districts := [d for d in params.getlist("district") if d]:
+            qs = qs.filter(district__in=districts)
+        if property_types := [t for t in params.getlist("property_type") if t]:
+            qs = qs.filter(property_type__in=property_types)
         if (min_price := _to_decimal(params.get("min_price"))) is not None:
             qs = qs.filter(price__gte=min_price)
         if (max_price := _to_decimal(params.get("max_price"))) is not None:
@@ -96,6 +96,8 @@ class ListingListView(PageSlotsMixin, ListView):
             .order_by("district")
         )
         ctx["property_types"] = Listing.PROPERTY_TYPE_CHOICES
+        ctx["selected_districts"] = self.request.GET.getlist("district")
+        ctx["selected_types"] = self.request.GET.getlist("property_type")
         return ctx
 
 

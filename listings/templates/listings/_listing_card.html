@@ -13,9 +13,9 @@ risking an orphan " · " when it parses null.
     {# Amber is reserved for the one price-specific rule; the other two are data-quality signals. #}
     {% if listing.is_anomaly %}{% with r=listing.anomaly_reason %}
     <span class="mt-0.5 flex flex-wrap items-center gap-x-2">
-    {% if r.price_gap.triggered %}<span class="text-sm font-medium text-price-text">Below estimate <span aria-hidden="true">↓</span></span>{% endif %}
-    {% if r.low_photos.triggered %}<span class="rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 text-sm font-medium text-stale-text">Few photos</span>{% endif %}
-    {% if r.stale_listing.triggered %}<span class="rounded-sp-sm border border-dashed border-stale-text bg-stale-fill px-1.5 text-sm font-medium text-stale-text">Long on the market</span>{% endif %}
+    {% if r.price_gap.triggered %}<span class="text-sm font-medium text-price-text">Below estimate <span aria-hidden="true" class="text-lg leading-none">↓</span></span>{% endif %}
+    {% if r.low_photos.triggered %}<span class="text-sm font-medium text-photos-text">Few photos <span aria-hidden="true" class="text-lg leading-none">∅</span></span>{% endif %}
+    {% if r.stale_listing.triggered %}<span class="inline-flex items-center gap-1 text-sm font-medium text-age-text">Long on the market <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" class="h-3.5 w-3.5 shrink-0"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></svg></span>{% endif %}
     </span>
     {% endwith %}{% endif %}
   </h2>

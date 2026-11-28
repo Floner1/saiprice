@@ -219,6 +219,21 @@ class DashboardListingFilterTests(TestCase):
         )
         self.assertEqual(self._ids(response), ["f3"])
 
+    def test_filter_by_several_districts(self):
+        response = self.client.get("/", {"district": ["Quận 1", "Quận 3"]})
+        self.assertEqual(self._ids(response), ["f1"])
+
+    def test_filter_by_several_property_types(self):
+        response = self.client.get("/", {"property_type": ["house", "villa"]})
+        self.assertEqual(self._ids(response), ["f2"])
+
+    def test_selected_checkboxes_stay_checked(self):
+        response = self.client.get("/", {"property_type": ["house", "land"]})
+        self.assertContains(response, 'value="house" checked')
+        self.assertContains(response, 'value="land" checked')
+        self.assertNotContains(response, 'value="villa" checked')
+        self.assertContains(response, "2 types")
+
     def test_search_matches_address(self):
         self.assertEqual(self._ids(self.client.get("/", {"q": "Lê Lợi"})), ["f1"])
 
@@ -243,17 +258,18 @@ class DashboardListingFilterTests(TestCase):
 
     def test_district_options_listed(self):
         response = self.client.get("/")
-        self.assertContains(response, '<option value="Quận 1"')
-        self.assertContains(response, '<option value="Quận 7"')
+        self.assertContains(response, 'name="district" value="Quận 1"')
+        self.assertContains(response, 'name="district" value="Quận 7"')
 
     def test_form_reflects_selected_state(self):
         response = self.client.get("/", {"district": "Quận 7", "q": "Linh"})
         self.assertContains(response, 'value="Linh"')
-        self.assertContains(response, '<option value="Quận 7" selected')
+        self.assertContains(response, 'value="Quận 7" checked')
+        self.assertNotContains(response, 'value="Quận 1" checked')
 
     def test_property_type_option_label_is_capitalised_value_is_not(self):
         response = self.client.get("/")
-        self.assertContains(response, '<option value="apartment">Apartment</option>', html=True)
+        self.assertContains(response, 'value="apartment" class="accent-accent">Apartment</label>')
 
 
 class DashboardFilterPaginationTests(TestCase):
@@ -664,8 +680,8 @@ class MainNavTests(TestCase):
                 self.assertEqual(
                     [(re.search(r'href="([^"]*)"', attrs).group(1), label)
                      for attrs, label in links],
-                    [("/", "Residential"), ("/districts/", "Districts"),
-                     ("/offices/", "Offices"), ("/", "SaiPrice"),
+                    [("/", "SaiPrice"), ("/", "Residential"),
+                     ("/districts/", "Districts"), ("/offices/", "Offices"),
                      ("/health/", "Health"), ("/flagged/", "Flagged")],
                 )
                 self.assertEqual(

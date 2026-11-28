@@ -13,40 +13,38 @@
 <meta name="theme-color" content="#F0F8F9">
 {% tailwind_css %}
 </head>
-<body class="bg-paper text-ink font-sans tabular-nums">
-{% with n=request.resolver_match.url_name btn="relative py-3 text-base font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
+<body class="bg-paper text-ink font-sans tabular-nums{% block body_class %}{% endblock %}">
+{% with n=request.resolver_match.url_name btn="relative py-4 text-base font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
 <nav aria-label="Main" class="border-b border-line">
-  {# Below sm the logo takes its own row on top; DOM order stays left to right so Tab follows the desktop row. #}
-  <div class="mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap lg:max-w-none lg:px-8">
-    <div class="flex flex-1 justify-start gap-3 sm:gap-2 lg:gap-6">
+  <div class="mx-auto flex max-w-2xl flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:max-w-none lg:px-8">
+    <a href="{% url 'listing-list' %}" class="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><img src="{% static 'brand/saiprice-aperture-logo-horizontal.svg' %}" alt="" class="h-10 w-auto"><span class="sr-only">SaiPrice</span></a>
+    <div class="flex flex-wrap gap-3 sm:gap-2 lg:gap-6">
       <a href="{% url 'listing-list' %}" {% if n == "listing-list" or n == "listing-detail" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Residential</a>
       <a href="{% url 'district-prices' %}" {% if n == "district-prices" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Districts</a>
       <a href="{% url 'office-dashboard' %}" {% if n == "office-dashboard" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Offices</a>
-    </div>
-    <a href="{% url 'listing-list' %}" class="order-first flex w-full justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:order-none sm:w-auto"><img src="{% static 'brand/saiprice-aperture-logo-horizontal.svg' %}" alt="" class="h-10 w-auto"><span class="sr-only">SaiPrice</span></a>
-    <div class="flex flex-1 justify-end gap-3 sm:gap-2 lg:gap-6">
       {% if request.user.is_staff %}<a href="{% url 'pipeline-health' %}" {% if n == "pipeline-health" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Health</a>{% endif %}
       <a href="{% url 'listing-summary' %}" {% if n == "listing-summary" %}aria-current="page" class="{{ btn }} text-accent"{% else %}class="{{ btn }} after:scale-x-0 hover:after:scale-x-100"{% endif %}>Flagged</a>
     </div>
   </div>
 </nav>
 {% endwith %}
-<main class="mx-auto max-w-2xl px-4 pt-8 pb-12 lg:max-w-none lg:px-8">
+<main class="mx-auto w-full max-w-2xl flex-1 px-4 pt-8 pb-12 lg:max-w-none lg:px-8">
 {% block content %}{% endblock %}
 </main>
 {% with link="relative py-4 font-medium after:absolute after:bottom-2 after:left-0 after:h-0.5 after:w-full after:will-change-transform after:origin-left after:bg-current after:transition-transform after:duration-500 after:ease-out motion-reduce:after:transition-none after:scale-x-0 hover:after:scale-x-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" %}
 <footer class="border-t border-line">
-  {# The side groups are flex-1 and the middle keeps its natural width, so the logo stays centred. order-* only moves them visually: the DOM order is logo, links, contact. #}
-  <div class="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 py-8 text-base text-muted lg:max-w-none lg:flex-row lg:gap-4 lg:px-8">
-    <div class="flex flex-col items-center gap-3 lg:order-2 lg:flex-none">
-      <img src="{% static 'brand/saiprice-aperture-logo-horizontal.svg' %}" alt="SaiPrice" class="h-12 w-auto">
-      <p class="text-center text-base text-balance sm:text-lg">Many perspectives. One clearer picture.</p>
+  <div class="mx-auto flex max-w-2xl flex-col items-start gap-6 px-4 py-8 text-base text-muted lg:max-w-none lg:flex-row lg:items-center lg:justify-between lg:px-8">
+    <div class="flex flex-col items-start gap-3">
+      <img src="{% static 'brand/saiprice-aperture-logo-horizontal.svg' %}" alt="SaiPrice" class="h-10 w-auto">
+      <p class="text-base font-medium text-balance">Many perspectives. One clearer picture.</p>
     </div>
-    <div class="flex flex-wrap justify-center gap-x-6 lg:order-1 lg:gap-x-4 lg:flex-1 lg:justify-start">
-      <a href="{% url 'terms' %}" class="{{ link }}">Terms and Conditions</a>
-      <a href="{% url 'privacy' %}" class="{{ link }}">Privacy Policy</a>
+    <div class="flex flex-col items-start lg:flex-row lg:items-center lg:gap-6">
+      <div class="flex flex-wrap gap-x-6 lg:gap-x-4">
+        <a href="{% url 'terms' %}" class="{{ link }}">Terms and Conditions</a>
+        <a href="{% url 'privacy' %}" class="{{ link }}">Privacy Policy</a>
+      </div>
+      <p>Contact and support: <a href="mailto:saipricesupport@gmail.com" class="{{ link }}">saipricesupport@gmail.com</a></p>
     </div>
-    <p class="text-center lg:order-3 lg:flex-1 lg:text-right">Contact and support: <a href="mailto:saipricesupport@gmail.com" class="{{ link }}">saipricesupport@gmail.com</a></p>
   </div>
 </footer>
 {% endwith %}
